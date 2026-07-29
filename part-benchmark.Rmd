@@ -1,1 +1,1 @@
-# (PART) Part III — The benchmark {-}
+# (PART) The benchmark {-}

@@ -1,1 +1,1 @@
-# (PART) Part II — Methods under test {-}
+# (PART) Methods under test {-}

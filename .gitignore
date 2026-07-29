@@ -9,6 +9,11 @@ _bookdown_files/
 .RData
 .Rproj.user/
 
+# bookdown new_session intermediates: each chapter is knitted to <name>.md and
+# the result lands in output_dir. They are a build by-product, not part of the
+# published site.
+docs/*.md
+
 # renv: track the lockfile and settings, not the library
 renv/library/
 renv/staging/
@@ -26,3 +31,6 @@ renv/sandbox/
 # OS
 .DS_Store
 Thumbs.db
+
+# bookdown new_session cache
+*.rds

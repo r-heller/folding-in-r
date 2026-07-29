@@ -79,20 +79,25 @@
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
 <li><a class="" href="how-to-use-this-book.html">How to use this book</a></li>
+<li class="book-part">Folding</li>
 <li><a class="" href="intro.html"><span class="header-section-number">1</span> Introduction</a></li>
 <li><a class="" href="folding-geometry.html"><span class="header-section-number">2</span> The geometry of folding</a></li>
 <li><a class="" href="generative.html"><span class="header-section-number">3</span> Folding as a generative model</a></li>
+<li class="book-part">Methods under test</li>
 <li><a class="" href="linear.html"><span class="header-section-number">4</span> Linear projections and where they break</a></li>
 <li><a class="" href="geodesic.html"><span class="header-section-number">5</span> Geodesic methods</a></li>
 <li><a class="active" href="neighbor.html"><span class="header-section-number">6</span> Neighbour embeddings</a></li>
 <li><a class="" href="autoencoders.html"><span class="header-section-number">7</span> Learned folds</a></li>
+<li class="book-part">The benchmark</li>
 <li><a class="" href="benchmarks.html"><span class="header-section-number">8</span> Building crease-pattern manifolds</a></li>
 <li><a class="" href="evaluation.html"><span class="header-section-number">9</span> Ground truth and the evaluators</a></li>
 <li><a class="" href="results.html"><span class="header-section-number">10</span> Benchmark results</a></li>
 <li><a class="" href="comparison.html"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></li>
+<li class="book-part">Application</li>
 <li><a class="" href="application.html"><span class="header-section-number">12</span> From benchmark to decision</a></li>
-<li><a class="" href="notation.html"><span class="header-section-number">13</span> Notation</a></li>
-<li><a class="" href="datasets.html"><span class="header-section-number">14</span> Datasets and codebook</a></li>
+<li class="book-part">Reference material</li>
+<li><a class="" href="notation.html"><span class="header-section-number">A</span> Notation</a></li>
+<li><a class="" href="datasets.html"><span class="header-section-number">B</span> Datasets and codebook</a></li>
 <li><a class="" href="glossary.html">Glossary</a></li>
 <li><a class="" href="colophon.html">Colophon</a></li>
 <li><a class="" href="about-the-author.html">About the author</a></li>
@@ -145,39 +150,39 @@
       });
     });
   })();
-</script><!-- Left-sidebar Part dividers (bs4_book drops bookdown's native (PART) from the sidebar) --><script>
+</script><!-- Left-sidebar Part dividers: add the roman numeral bs4_book leaves off --><script>
   document.addEventListener("DOMContentLoaded", function () {
-    var toc = document.querySelector(".book-toc");
-    if (!toc) return;
+    // bookdown 0.47 renders "# (PART)" into the bs4_book sidebar by itself, as
+    // <li class="book-part">Folding</li> — earlier versions did not, and the
+    // script inherited from methods-in-r injected its own <li> keyed on
+    // chapter filenames. Doing that now duplicates every divider. What is
+    // still missing is the numeral, so this decorates what bookdown emits
+    // rather than adding anything.
+    var parts = document.querySelectorAll(".book-toc li.book-part");
+    if (!parts.length) return;
 
-    // Keyed on the first chapter file of each part. bookdown's native
-    // "# (PART)" marker does render in PDF and EPUB, but bs4_book drops it
-    // from the sidebar, so the dividers are injected here instead. Keep the
-    // hrefs in sync with the {#anchor} values in the chapter files.
-    var parts = [
-      { before: "intro.html",       roman: "Part I",   title: "Folding" },
-      { before: "linear.html",      roman: "Part II",  title: "Methods under test" },
-      { before: "benchmarks.html",  roman: "Part III", title: "The benchmark" },
-      { before: "application.html", roman: "Part IV",  title: "Application" },
-      { before: "notation.html",    roman: "Appendix", title: "Reference material" }
-    ];
+    // The appendix carries a word, not a numeral, and does not advance the
+    // count. Matched on the rendered text, which comes from the first line of
+    // part-appendix.Rmd.
+    var APPENDIX = "Reference material";
+    var ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+    var n = 0;
 
-    parts.forEach(function (p) {
-      var anchor = toc.querySelector('a[href="' + p.before + '"]');
-      if (!anchor) return;
-      var li = anchor.closest("li");
-      if (!li || li.previousElementSibling && li.previousElementSibling.classList.contains("part-header")) return;
-      var hdr = document.createElement("li");
-      hdr.className = "part-header";
+    parts.forEach(function (li) {
+      var title = li.textContent.trim();
+      var kicker = title === APPENDIX ? "Appendix" : "Part " + (ROMAN[n++] || "");
+
+      li.classList.add("part-header");
+      li.textContent = "";
+
       var k = document.createElement("span");
       k.className = "part-kicker";
-      k.textContent = p.roman;
+      k.textContent = kicker;
       var t = document.createElement("span");
       t.className = "part-title";
-      t.textContent = p.title;
-      hdr.appendChild(k);
-      hdr.appendChild(t);
-      li.parentNode.insertBefore(hdr, li);
+      t.textContent = title;
+      li.appendChild(k);
+      li.appendChild(t);
     });
   });
 </script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
@@ -216,7 +221,16 @@
     liBook.appendChild(aBook);
     list.appendChild(liBook);
 
-    if (!isLanding) {
+    wrap.appendChild(list);
+    bookExtra.parentNode.insertBefore(wrap, bookExtra);
+
+    // Front and back matter — Impressum, Acknowledgments, Colophon — are
+    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter link is
+    // added only once the file is known to exist. Probing beats keeping a
+    // second copy of the skip list here in sync with the R script.
+    if (isLanding) return;
+    fetch("pdf-chapters/" + chapterPdf, { method: "HEAD" }).then(function (r) {
+      if (!r.ok) return;
       var liChapter = document.createElement("li");
       var aChapter = document.createElement("a");
       aChapter.id = "book-download-chapter";
@@ -227,10 +241,7 @@
       aChapter.appendChild(iconCh);
       liChapter.appendChild(aChapter);
       list.appendChild(liChapter);
-    }
-
-    wrap.appendChild(list);
-    bookExtra.parentNode.insertBefore(wrap, bookExtra);
+    });
   });
 </script><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.

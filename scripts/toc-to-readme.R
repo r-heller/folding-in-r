@@ -31,16 +31,29 @@ heading_of <- function(f) {
 lines <- character()
 numbered <- 0L
 
+# The part files carry the bare title: bookdown supplies the numeral itself in
+# the PDF, and style/after-body.html supplies it in the HTML sidebar. Neither is
+# reachable from here, so the README applies the same rule — roman numerals for
+# the parts, the word "Appendix" for the appendix, which does not advance the
+# count.
+ROMAN  <- c("I", "II", "III", "IV", "V", "VI", "VII", "VIII")
+part_n <- 0L
+
 for (f in files) {
   if (identical(basename(f), "index.Rmd")) next
 
-  if (grepl("^_part-", basename(f))) {
+  if (grepl("^part-", basename(f))) {
     # Both markers appear as part files: "# (PART) ..." and "# (APPENDIX) ...".
-    ttl <- readLines(f, n = 1, warn = FALSE)
-    ttl <- sub("^#\\s*\\((PART|APPENDIX)\\)\\s*", "", ttl)
+    head1 <- readLines(f, n = 1, warn = FALSE)
+    ttl <- sub("^#\\s*\\((PART|APPENDIX)\\)\\s*", "", head1)
     ttl <- trimws(sub("\\s*\\{-\\}\\s*$", "", ttl))
-    if (!nzchar(ttl)) ttl <- "Appendix"
-    lines <- c(lines, "", sprintf("**%s**", ttl), "")
+    kicker <- if (grepl("\\(APPENDIX\\)", head1)) {
+      "Appendix"
+    } else {
+      part_n <- part_n + 1L
+      paste("Part", ROMAN[part_n])
+    }
+    lines <- c(lines, "", sprintf("**%s — %s**", kicker, ttl), "")
     next
   }
 
