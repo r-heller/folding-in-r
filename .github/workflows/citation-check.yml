@@ -1,0 +1,116 @@
+name: Citation Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'references.bib'
+      - '**/*.qmd'
+
+jobs:
+  check-citations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: |
+          install.packages(c("httr2"))
+        shell: Rscript {0}
+
+      - name: Verify DOIs, arXiv IDs, and PMIDs
+        run: |
+          library(httr2)
+          bib <- readLines("references.bib")
+          content <- paste(bib, collapse = "\n")
+
+          failed <- character(0)
+
+          # Check DOIs
+          doi_lines <- grep("doi\\s*=", bib, value = TRUE, ignore.case = TRUE)
+          dois <- gsub(".*\\{(.+?)\\}.*", "\\1", doi_lines)
+          dois <- trimws(dois)
+          dois <- dois[nchar(dois) > 0 & !grepl("^\\{", dois)]
+
+          for (d in dois) {
+            url <- paste0("https://doi.org/", d)
+            tryCatch({
+              resp <- request(url) |>
+                req_method("HEAD") |>
+                req_options(followlocation = TRUE) |>
+                req_timeout(30) |>
+                req_perform()
+              if (resp_status(resp) >= 400) {
+                failed <- c(failed, paste0("DOI: ", d))
+              } else {
+                cat("OK:", d, "\n")
+              }
+            }, error = function(e) {
+              failed <<- c(failed, paste0("DOI: ", d, " (", e$message, ")"))
+            })
+          }
+
+          # Check arXiv IDs
+          arxiv_lines <- grep("eprint\\s*=|arxiv", bib, value = TRUE, ignore.case = TRUE)
+          arxiv_ids <- gsub(".*\\{(.+?)\\}.*", "\\1", arxiv_lines)
+          arxiv_ids <- trimws(arxiv_ids)
+          arxiv_ids <- arxiv_ids[nchar(arxiv_ids) > 0 & grepl("^[0-9]", arxiv_ids)]
+
+          for (aid in arxiv_ids) {
+            url <- paste0("https://arxiv.org/abs/", aid)
+            tryCatch({
+              resp <- request(url) |>
+                req_method("HEAD") |>
+                req_timeout(30) |>
+                req_perform()
+              if (resp_status(resp) >= 400) {
+                failed <- c(failed, paste0("arXiv: ", aid))
+              } else {
+                cat("OK: arXiv", aid, "\n")
+              }
+            }, error = function(e) {
+              failed <<- c(failed, paste0("arXiv: ", aid, " (", e$message, ")"))
+            })
+          }
+
+          # Check PMIDs
+          pmid_lines <- grep("pmid\\s*=", bib, value = TRUE, ignore.case = TRUE)
+          pmids <- gsub(".*\\{(.+?)\\}.*", "\\1", pmid_lines)
+          pmids <- trimws(pmids)
+          pmids <- pmids[nchar(pmids) > 0 & grepl("^[0-9]+$", pmids)]
+
+          for (pid in pmids) {
+            url <- paste0("https://pubmed.ncbi.nlm.nih.gov/", pid, "/")
+            tryCatch({
+              resp <- request(url) |>
+                req_method("HEAD") |>
+                req_timeout(30) |>
+                req_perform()
+              if (resp_status(resp) >= 400) {
+                failed <- c(failed, paste0("PMID: ", pid))
+              } else {
+                cat("OK: PMID", pid, "\n")
+              }
+            }, error = function(e) {
+              failed <<- c(failed, paste0("PMID: ", pid, " (", e$message, ")"))
+            })
+          }
+
+          # Report results
+          cat("\n--- Results ---\n")
+          cat("DOIs checked:", length(dois), "\n")
+          cat("arXiv IDs checked:", length(arxiv_ids), "\n")
+          cat("PMIDs checked:", length(pmids), "\n")
+
+          if (length(failed) > 0) {
+            cat("\nFAILED references:\n")
+            cat(paste("-", failed, collapse = "\n"), "\n")
+            quit(status = 1)
+          } else {
+            cat("\nAll references verified.\n")
+          }
+        shell: Rscript {0}

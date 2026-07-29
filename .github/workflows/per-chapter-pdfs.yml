@@ -1,0 +1,43 @@
+name: Render per-chapter PDFs (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pdfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bookdown
+            rmarkdown
+            knitr
+            fs
+            tinytex
+
+      - name: Install TinyTeX (TinyTeX-2 bundle)
+        run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'
+
+      - name: Render per-chapter PDFs
+        run: Rscript scripts/render-chapter-pdfs.R
+
+      - name: Sync to gh-pages /pdf-chapters
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: docs/pdf-chapters
+          target-folder: pdf-chapters
+          clean: false

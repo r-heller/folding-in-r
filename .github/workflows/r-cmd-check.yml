@@ -1,0 +1,48 @@
+name: R-CMD-check (foldbench)
+
+# The companion package lives in the sibling repository r-heller/foldbench.
+# Until that repository exists this workflow is inert: the checkout step is
+# conditional, so the job reports skipped rather than red.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        r-version: ['release', 'oldrel-1']
+    steps:
+      - name: Check out foldbench
+        id: fetch
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: r-heller/foldbench
+          path: foldbench
+
+      - name: Skip if foldbench is not published yet
+        if: steps.fetch.outcome != 'success'
+        run: echo "foldbench repository not available — skipping." && exit 0
+
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.fetch.outcome == 'success'
+        with:
+          r-version: ${{ matrix.r-version }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.fetch.outcome == 'success'
+        with:
+          working-directory: foldbench
+          extra-packages: any::rcmdcheck
+
+      - uses: r-lib/actions/check-r-package@v2
+        if: steps.fetch.outcome == 'success'
+        with:
+          working-directory: foldbench
+          error-on: '"note"'

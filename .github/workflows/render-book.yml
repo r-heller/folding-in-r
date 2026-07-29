@@ -1,0 +1,88 @@
+name: Render and deploy book
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Apt deps for PDF splitter (poppler headers + python)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libpoppler-cpp-dev python3-pip
+
+      - name: Python deps for PDF splitter
+        run: pip install --break-system-packages --user pypdf
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            bookdown
+            rmarkdown
+            knitr
+            sessioninfo
+            bslib
+            downlit
+            xml2
+            htmltools
+            tinytex
+            pdftools
+            qpdf
+
+      - name: Install TinyTeX (TinyTeX-2 bundle — includes hyperref + common packages)
+        run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'
+
+      - name: Top up LaTeX packages used by our preamble
+        run: |
+          Rscript -e 'tinytex::tlmgr_install(c(
+            "hyperref","xcolor","microtype","booktabs","longtable","float",
+            "fontspec","unicode-math","tipa","tex-gyre","amsmath","mathtools",
+            "etoolbox","iftex","l3backend","l3kernel","l3packages","fancyvrb",
+            "framed","ulem","upquote","url","koma-script","caption","listings",
+            "textcomp","geometry","setspace","titling","environ","pdftexcmds",
+            "infwarerr","kvoptions","ltxcmds","epstopdf-pkg","colortbl","array",
+            "multirow","wrapfig","threeparttable","threeparttablex","makecell",
+            "ragged2e","filehook"
+          ))'
+        continue-on-error: true
+
+      - name: Render HTML (bs4_book)
+        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::bs4_book")'
+
+      - name: Render EPUB
+        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::epub_book")'
+        continue-on-error: true
+
+      - name: Render PDF
+        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::pdf_book")'
+        continue-on-error: true
+
+      - name: Split whole-book PDF into per-chapter PDFs
+        run: Rscript scripts/split-book-pdf.R
+        continue-on-error: true
+
+      # Per-chapter PDFs are rendered on demand by a separate manual
+      # workflow (.github/workflows/per-chapter-pdfs.yml) — 687 chapters at
+      # a few seconds each blow past the 90-min job ceiling and were
+      # blocking the gh-pages deploy.
+
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: docs
