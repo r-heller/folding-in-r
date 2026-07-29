@@ -21,28 +21,28 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Apt deps for PDF splitter (poppler headers + python)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends libpoppler-cpp-dev python3-pip
+      - uses: r-lib/actions/setup-renv@v2
 
-      - name: Python deps for PDF splitter
-        run: pip install --break-system-packages --user pypdf
+      # torch is recorded in renv.lock but only Chapter 7 needs it, and it
+      # pulls a large binary backend. Excluding it keeps the job inside the
+      # 90-minute ceiling; see the README.
+      - name: Restore the pinned library, minus torch
+        run: Rscript -e 'renv::restore(exclude = "torch", prompt = FALSE)'
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      # foldbench is a sibling repository. It is not needed to render the
+      # scaffold — every chunk is eval = FALSE until a chapter is written — so
+      # the checkout is allowed to fail and the render continues without it.
+      - name: Check out foldbench
+        id: foldbench
+        continue-on-error: true
+        uses: actions/checkout@v4
         with:
-          packages: |
-            bookdown
-            rmarkdown
-            knitr
-            sessioninfo
-            bslib
-            downlit
-            xml2
-            htmltools
-            tinytex
-            pdftools
-            qpdf
+          repository: r-heller/foldbench
+          path: .foldbench-src
+
+      - name: Install foldbench
+        if: steps.foldbench.outcome == 'success'
+        run: R CMD INSTALL .foldbench-src
 
       - name: Install TinyTeX (TinyTeX-2 bundle — includes hyperref + common packages)
         run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'
@@ -72,17 +72,20 @@ jobs:
         run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::pdf_book")'
         continue-on-error: true
 
-      - name: Split whole-book PDF into per-chapter PDFs
-        run: Rscript scripts/split-book-pdf.R
-        continue-on-error: true
+      # bookdown knits each chapter to <name>.md under new_session and leaves
+      # the result in output_dir. Build by-products, not part of the site.
+      - name: Drop knit intermediates
+        run: rm -f docs/*.md
 
-      # Per-chapter PDFs are rendered on demand by a separate manual
-      # workflow (.github/workflows/per-chapter-pdfs.yml) — 687 chapters at
-      # a few seconds each blow past the 90-min job ceiling and were
-      # blocking the gh-pages deploy.
-
+      # Per-chapter PDFs are rendered by the manual workflow in
+      # .github/workflows/per-chapter-pdfs.yml, which deploys them to
+      # gh-pages:/pdf-chapters without clearing the rest of the branch.
+      # Deploying docs/ here must therefore not clean, or it would delete them.
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: docs
+          clean: true
+          clean-exclude: |
+            pdf-chapters

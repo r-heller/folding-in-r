@@ -1,5 +1,11 @@
 name: Render per-chapter PDFs (manual)
 
+# Manual because the whole-book render already runs on every push to main and
+# the two together do not fit comfortably in one job. Run this after a render
+# whenever the chapter set or a chapter's anchor changes — the PDFs are named
+# after the HTML page, so a changed {#anchor} silently breaks its download link
+# until this runs again.
+
 on:
   workflow_dispatch:
 
@@ -19,17 +25,22 @@ jobs:
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          packages: |
-            bookdown
-            rmarkdown
-            knitr
-            fs
-            tinytex
+      - uses: r-lib/actions/setup-renv@v2
+
+      - name: Restore the pinned library, minus torch
+        run: Rscript -e 'renv::restore(exclude = "torch", prompt = FALSE)'
 
       - name: Install TinyTeX (TinyTeX-2 bundle)
         run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'
+
+      # The script cross-checks each output name against docs/, so the rendered
+      # site has to be present. Fetch what is already deployed rather than
+      # re-rendering the whole book here.
+      - name: Fetch the deployed site into docs/
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: docs
 
       - name: Render per-chapter PDFs
         run: Rscript scripts/render-chapter-pdfs.R
