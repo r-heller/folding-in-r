@@ -1,0 +1,9 @@
+# Colophon {-}
+
+Written in R Markdown and built with **bookdown** [@R-bookdown]. Typeset in
+Inter and JetBrains Mono. Figures use the viridis plasma palette (option `"C"`),
+the series convention for this volume.
+
+```{r colophon-session, eval=TRUE, echo=FALSE}
+sessioninfo::session_info(pkgs = "attached")
+```

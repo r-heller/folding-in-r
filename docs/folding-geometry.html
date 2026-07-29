@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>Chapter 2 The geometry of folding | Folding in R</title>
+<meta name="author" content="R. Heller">
+<meta name="description" content="What makes a crease pattern a valid manifold? Developability and why a folded sheet has zero Gaussian curvature on facets. Rigid vs. non-rigid folding; why only rigid folding preserves the...">
+<meta name="generator" content="bookdown 0.47 with bs4_book()">
+<meta property="og:title" content="Chapter 2 The geometry of folding | Folding in R">
+<meta property="og:type" content="book">
+<meta property="og:url" content="https://r-heller.github.io/folding-in-r/folding-geometry.html">
+<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
+<meta property="og:description" content="What makes a crease pattern a valid manifold? Developability and why a folded sheet has zero Gaussian curvature on facets. Rigid vs. non-rigid folding; why only rigid folding preserves the...">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Chapter 2 The geometry of folding | Folding in R">
+<meta name="twitter:description" content="What makes a crease pattern a valid manifold? Developability and why a folded sheet has zero Gaussian curvature on facets. Rigid vs. non-rigid folding; why only rigid folding preserves the...">
+<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
+<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style/font-awesome.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+    
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  </style>
+<style type="text/css">
+    /* Used with Pandoc 2.11+ new --citeproc when CSL is used */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+        }
+    .hanging div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }
+  </style>
+<link rel="stylesheet" href="style/style.css">
+</head>
+<body data-spy="scroll" data-target="#toc">
+
+<div class="container-fluid">
+<div class="row">
+  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+
+    <div class="d-flex align-items-start justify-content-between">
+      <h1>
+        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+        <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
+      </h1>
+      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+    </div>
+
+    <div id="main-nav" class="collapse-lg">
+      <form role="search">
+        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</form>
+
+      <nav aria-label="Table of contents"><h2>Table of contents</h2>
+        <ul class="book-toc list-unstyled">
+<li><a class="" href="index.html">Preface</a></li>
+<li><a class="" href="impressum.html">Impressum</a></li>
+<li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
+<li><a class="" href="how-to-use-this-book.html">How to use this book</a></li>
+<li><a class="" href="intro.html"><span class="header-section-number">1</span> Introduction</a></li>
+<li><a class="active" href="folding-geometry.html"><span class="header-section-number">2</span> The geometry of folding</a></li>
+<li><a class="" href="generative.html"><span class="header-section-number">3</span> Folding as a generative model</a></li>
+<li><a class="" href="linear.html"><span class="header-section-number">4</span> Linear projections and where they break</a></li>
+<li><a class="" href="geodesic.html"><span class="header-section-number">5</span> Geodesic methods</a></li>
+<li><a class="" href="neighbor.html"><span class="header-section-number">6</span> Neighbour embeddings</a></li>
+<li><a class="" href="autoencoders.html"><span class="header-section-number">7</span> Learned folds</a></li>
+<li><a class="" href="benchmarks.html"><span class="header-section-number">8</span> Building crease-pattern manifolds</a></li>
+<li><a class="" href="evaluation.html"><span class="header-section-number">9</span> Ground truth and the evaluators</a></li>
+<li><a class="" href="results.html"><span class="header-section-number">10</span> Benchmark results</a></li>
+<li><a class="" href="comparison.html"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></li>
+<li><a class="" href="application.html"><span class="header-section-number">12</span> From benchmark to decision</a></li>
+<li><a class="" href="notation.html"><span class="header-section-number">13</span> Notation</a></li>
+<li><a class="" href="datasets.html"><span class="header-section-number">14</span> Datasets and codebook</a></li>
+<li><a class="" href="glossary.html">Glossary</a></li>
+<li><a class="" href="colophon.html">Colophon</a></li>
+<li><a class="" href="about-the-author.html">About the author</a></li>
+<li><a class="" href="references.html">References</a></li>
+</ul>
+
+        <div class="book-extra">
+          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
+        </div>
+      </nav>
+</div>
+  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="folding-geometry" class="section level1" number="2">
+<h1>
+<span class="header-section-number">2</span> The geometry of folding<a class="anchor" aria-label="anchor" href="#folding-geometry"><i class="fas fa-link"></i></a>
+</h1>
+<p><em>What makes a crease pattern a valid manifold?</em></p>
+<!-- TODO: chapter content. Outline below is the plan of record. -->
+<ul>
+<li>Developability and why a folded sheet has zero Gaussian curvature on facets.</li>
+<li>Rigid vs. non-rigid folding; why only rigid folding preserves the isometry we rely on.</li>
+<li>Maekawa’s theorem: <span class="math inline">\(|M - V| = 2\)</span> at every interior vertex of a flat-foldable pattern.</li>
+<li>Kawasaki’s theorem: alternating angle sums at an interior vertex are equal.</li>
+<li>Boxed aside, one page, labelled background: the Huzita–Hatori axioms.</li>
+<li>Piecewise-flat surfaces sit <em>outside</em> the smoothness assumptions of manifold-learning theory. Stated as realism, not as a caveat — real data manifolds have creases too.</li>
+</ul>
+</div>
+<!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
+<div class="sticky-item">
+  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
+    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
+  </button>
+</div>
+
+<script>
+  (function () {
+    var stored = localStorage.getItem('themeMode');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var initial = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', initial);
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var btn = document.getElementById('mode-switch');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var current = document.documentElement.getAttribute('data-theme');
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('themeMode', next);
+      });
+    });
+  })();
+</script><!-- Left-sidebar Part dividers (bs4_book drops bookdown's native (PART) from the sidebar) --><script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var toc = document.querySelector(".book-toc");
+    if (!toc) return;
+
+    // Keyed on the first chapter file of each part. bookdown's native
+    // "# (PART)" marker does render in PDF and EPUB, but bs4_book drops it
+    // from the sidebar, so the dividers are injected here instead. Keep the
+    // hrefs in sync with the {#anchor} values in the chapter files.
+    var parts = [
+      { before: "intro.html",       roman: "Part I",   title: "Folding" },
+      { before: "linear.html",      roman: "Part II",  title: "Methods under test" },
+      { before: "benchmarks.html",  roman: "Part III", title: "The benchmark" },
+      { before: "application.html", roman: "Part IV",  title: "Application" },
+      { before: "notation.html",    roman: "Appendix", title: "Reference material" }
+    ];
+
+    parts.forEach(function (p) {
+      var anchor = toc.querySelector('a[href="' + p.before + '"]');
+      if (!anchor) return;
+      var li = anchor.closest("li");
+      if (!li || li.previousElementSibling && li.previousElementSibling.classList.contains("part-header")) return;
+      var hdr = document.createElement("li");
+      hdr.className = "part-header";
+      var k = document.createElement("span");
+      k.className = "part-kicker";
+      k.textContent = p.roman;
+      var t = document.createElement("span");
+      t.className = "part-title";
+      t.textContent = p.title;
+      hdr.appendChild(k);
+      hdr.appendChild(t);
+      li.parentNode.insertBefore(hdr, li);
+    });
+  });
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // There are TWO .book-extra blocks on each page:
+    //  - sidebar one: contains #book-repo ("View book source")
+    //  - right-nav one: contains #book-source + #book-edit
+    // We want the latter.
+    var bookSource = document.getElementById("book-source");
+    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
+    if (!bookExtra || document.querySelector(".book-downloads")) return;
+
+    var current = window.location.pathname.split("/").pop() || "index.html";
+    var chapterPdf = current.replace(/\.html$/, ".pdf");
+    var isLanding = current === "" || current === "index.html";
+
+    var wrap = document.createElement("div");
+    wrap.className = "book-downloads";
+
+    var heading = document.createElement("h6");
+    heading.className = "book-downloads-heading";
+    heading.textContent = "Downloads";
+    wrap.appendChild(heading);
+
+    var list = document.createElement("ul");
+    list.className = "list-unstyled";
+
+    var liBook = document.createElement("li");
+    var aBook = document.createElement("a");
+    aBook.id = "book-download-full";
+    aBook.href = "folding-in-r.pdf";
+    aBook.textContent = "Entire book (PDF) ";
+    var iconBook = document.createElement("i");
+    iconBook.className = "fa-solid fa-book";
+    aBook.appendChild(iconBook);
+    liBook.appendChild(aBook);
+    list.appendChild(liBook);
+
+    if (!isLanding) {
+      var liChapter = document.createElement("li");
+      var aChapter = document.createElement("a");
+      aChapter.id = "book-download-chapter";
+      aChapter.href = "pdf-chapters/" + chapterPdf;
+      aChapter.textContent = "This chapter (PDF) ";
+      var iconCh = document.createElement("i");
+      iconCh.className = "fa-solid fa-file-pdf";
+      aChapter.appendChild(iconCh);
+      liChapter.appendChild(aChapter);
+      list.appendChild(liChapter);
+    }
+
+    wrap.appendChild(list);
+    bookExtra.parentNode.insertBefore(wrap, bookExtra);
+  });
+</script><!-- Footer attribution --><div class="bookdown-attribution">
+  This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
+</div>
+  <div class="chapter-nav">
+<div class="prev"><a href="intro.html"><span class="header-section-number">1</span> Introduction</a></div>
+<div class="next"><a href="generative.html"><span class="header-section-number">3</span> Folding as a generative model</a></div>
+</div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
+    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
+      <ul class="nav navbar-nav"><li><a class="nav-link" href="#folding-geometry"><span class="header-section-number">2</span> The geometry of folding</a></li></ul>
+
+      <div class="book-extra">
+        <ul class="list-unstyled">
+<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/02-folding-geometry.Rmd">View source <i class="fab fa-github"></i></a></li>
+          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/02-folding-geometry.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
+        </ul>
+</div>
+    </nav>
+</div>
+
+</div>
+</div> <!-- .container -->
+
+<footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
+
+  <div class="col-12 col-md-6 mt-3">
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-07-29.</p>
+  </div>
+
+  <div class="col-12 col-md-6 mt-3">
+    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+  </div>
+
+</div></div>
+</footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/latest.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script><script type="text/x-mathjax-config">const popovers = document.querySelectorAll('a.footnote-ref[data-toggle="popover"]');
+for (let popover of popovers) {
+  const div = document.createElement('div');
+  div.setAttribute('style', 'position: absolute; top: 0, left:0; width:0, height:0, overflow: hidden; visibility: hidden;');
+  div.innerHTML = popover.getAttribute('data-content');
+
+  var has_math = div.querySelector("span.math");
+  if (has_math) {
+    document.body.appendChild(div);
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
+    MathJax.Hub.Queue(function() {
+      popover.setAttribute('data-content', div.innerHTML);
+      document.body.removeChild(div);
+    })
+  }
+}
+</script>
+</body>
+</html>

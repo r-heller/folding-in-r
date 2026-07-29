@@ -1,0 +1,26 @@
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{xcolor}
+\definecolor{linkblue}{HTML}{1565C0}
+% hyperref is loaded by pandoc's default LaTeX template AFTER this
+% header-includes block, so \hypersetup here would error with
+% "Undefined control sequence". Pass options forward so they apply
+% when hyperref actually loads.
+\PassOptionsToPackage{colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue}{hyperref}
+% This volume is theorem-heavy (Maekawa, Kawasaki, isometry arguments).
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+
+% LaTeX fallbacks for the Harrer-style HTML callout boxes
+% ({block, type='boxempty'} etc. — see style/style.css). PDF degrades to
+% plain quoted blocks; HTML keeps the styled boxes.
+\newenvironment{boxempty}{\begin{quote}}{\end{quote}}
+\newenvironment{boxinfo}{\begin{quote}}{\end{quote}}
+\newenvironment{boximportant}{\begin{quote}}{\end{quote}}
+\newenvironment{boxreport}{\begin{quote}}{\end{quote}}
+\newenvironment{boxquestion}{\begin{quote}}{\end{quote}}

@@ -1,0 +1,14 @@
+intro
+folding-geometry
+generative
+linear
+geodesic
+neighbor
+autoencoders
+benchmarks
+evaluation
+results
+comparison
+application
+notation
+datasets

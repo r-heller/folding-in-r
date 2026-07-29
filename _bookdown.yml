@@ -1,0 +1,40 @@
+book_filename: "folding-in-r"
+delete_merged_file: true
+language:
+  ui:
+    chapter_name: "Chapter "
+output_dir: "docs"
+new_session: yes
+before_chapter_script: "_common.R"
+
+# Explicit list, not a wildcard. Ordering is load-bearing, and under glob
+# expansion "00-*" sorts ahead of "index.Rmd" on some platforms, which puts
+# the front matter before the title page.
+rmd_files:
+  - 'index.Rmd'
+  - '00-impressum.Rmd'
+  - '00-acknowledgments.Rmd'
+  - '00-how-to-use.Rmd'
+  - '_part-folding.Rmd'
+  - '01-introduction.Rmd'
+  - '02-folding-geometry.Rmd'
+  - '03-generative-model.Rmd'
+  - '_part-methods.Rmd'
+  - '04-linear-projections.Rmd'
+  - '05-geodesic-methods.Rmd'
+  - '06-neighbor-embeddings.Rmd'
+  - '07-autoencoders.Rmd'
+  - '_part-benchmark.Rmd'
+  - '08-building-benchmarks.Rmd'
+  - '09-ground-truth-evaluation.Rmd'
+  - '10-benchmark-results.Rmd'
+  - '11-versus-swiss-roll.Rmd'
+  - '_part-application.Rmd'
+  - '12-benchmark-to-decision.Rmd'
+  - '_part-appendix.Rmd'
+  - 'A1-notation.Rmd'
+  - 'A2-datasets.Rmd'
+  - '90-glossary.Rmd'
+  - '95-colophon.Rmd'
+  - '96-about-the-author.Rmd'
+  - '99-references.Rmd'

@@ -1,0 +1,124 @@
+<!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
+<div class="sticky-item">
+  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
+    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
+  </button>
+</div>
+
+<script>
+  (function () {
+    var stored = localStorage.getItem('themeMode');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var initial = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', initial);
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var btn = document.getElementById('mode-switch');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var current = document.documentElement.getAttribute('data-theme');
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('themeMode', next);
+      });
+    });
+  })();
+</script>
+
+<!-- Left-sidebar Part dividers (bs4_book drops bookdown's native (PART) from the sidebar) -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var toc = document.querySelector(".book-toc");
+    if (!toc) return;
+
+    // Keyed on the first chapter file of each part. bookdown's native
+    // "# (PART)" marker does render in PDF and EPUB, but bs4_book drops it
+    // from the sidebar, so the dividers are injected here instead. Keep the
+    // hrefs in sync with the {#anchor} values in the chapter files.
+    var parts = [
+      { before: "intro.html",       roman: "Part I",   title: "Folding" },
+      { before: "linear.html",      roman: "Part II",  title: "Methods under test" },
+      { before: "benchmarks.html",  roman: "Part III", title: "The benchmark" },
+      { before: "application.html", roman: "Part IV",  title: "Application" },
+      { before: "notation.html",    roman: "Appendix", title: "Reference material" }
+    ];
+
+    parts.forEach(function (p) {
+      var anchor = toc.querySelector('a[href="' + p.before + '"]');
+      if (!anchor) return;
+      var li = anchor.closest("li");
+      if (!li || li.previousElementSibling && li.previousElementSibling.classList.contains("part-header")) return;
+      var hdr = document.createElement("li");
+      hdr.className = "part-header";
+      var k = document.createElement("span");
+      k.className = "part-kicker";
+      k.textContent = p.roman;
+      var t = document.createElement("span");
+      t.className = "part-title";
+      t.textContent = p.title;
+      hdr.appendChild(k);
+      hdr.appendChild(t);
+      li.parentNode.insertBefore(hdr, li);
+    });
+  });
+</script>
+
+<!-- Right-panel "Downloads" section, injected above View source / Edit this page -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // There are TWO .book-extra blocks on each page:
+    //  - sidebar one: contains #book-repo ("View book source")
+    //  - right-nav one: contains #book-source + #book-edit
+    // We want the latter.
+    var bookSource = document.getElementById("book-source");
+    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
+    if (!bookExtra || document.querySelector(".book-downloads")) return;
+
+    var current = window.location.pathname.split("/").pop() || "index.html";
+    var chapterPdf = current.replace(/\.html$/, ".pdf");
+    var isLanding = current === "" || current === "index.html";
+
+    var wrap = document.createElement("div");
+    wrap.className = "book-downloads";
+
+    var heading = document.createElement("h6");
+    heading.className = "book-downloads-heading";
+    heading.textContent = "Downloads";
+    wrap.appendChild(heading);
+
+    var list = document.createElement("ul");
+    list.className = "list-unstyled";
+
+    var liBook = document.createElement("li");
+    var aBook = document.createElement("a");
+    aBook.id = "book-download-full";
+    aBook.href = "folding-in-r.pdf";
+    aBook.textContent = "Entire book (PDF) ";
+    var iconBook = document.createElement("i");
+    iconBook.className = "fa-solid fa-book";
+    aBook.appendChild(iconBook);
+    liBook.appendChild(aBook);
+    list.appendChild(liBook);
+
+    if (!isLanding) {
+      var liChapter = document.createElement("li");
+      var aChapter = document.createElement("a");
+      aChapter.id = "book-download-chapter";
+      aChapter.href = "pdf-chapters/" + chapterPdf;
+      aChapter.textContent = "This chapter (PDF) ";
+      var iconCh = document.createElement("i");
+      iconCh.className = "fa-solid fa-file-pdf";
+      aChapter.appendChild(iconCh);
+      liChapter.appendChild(aChapter);
+      list.appendChild(liChapter);
+    }
+
+    wrap.appendChild(list);
+    bookExtra.parentNode.insertBefore(wrap, bookExtra);
+  });
+</script>
+
+<!-- Footer attribution -->
+<div class="bookdown-attribution">
+  This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
+</div>

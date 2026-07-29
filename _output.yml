@@ -1,0 +1,35 @@
+bookdown::bs4_book:
+  theme:
+    primary: "#1565c0"
+    bg: "#fafafa"
+    fg: "#212121"
+    base_font: { google: "Inter" }
+    heading_font: { google: "Inter" }
+    code_font: { google: "JetBrains Mono" }
+  repo:
+    base: https://github.com/r-heller/folding-in-r
+    branch: main
+  css: style/style.css
+  includes:
+    in_header: style/header.html
+    after_body: style/after-body.html
+  split_by: chapter
+  config:
+    toc:
+      collapse: section
+      scroll_highlight: yes
+    download: ["pdf", "epub"]
+
+bookdown::pdf_book:
+  latex_engine: xelatex
+  citation_package: natbib
+  keep_tex: false
+  toc_depth: 3
+  includes:
+    in_header: style/preamble.tex
+  pandoc_args: ["--top-level-division=chapter"]
+
+bookdown::epub_book:
+  cover_image: "images/cover.png"
+  stylesheet: style/style.css
+  toc_depth: 3
