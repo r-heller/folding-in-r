@@ -1,5 +1,11 @@
 # Benchmark results {#results}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-04-28*
+:::
+<!-- page-provenance:end -->
+
 *Which method survives — and can the benchmark tell?*
 
 ## What this chapter answers {#results-question}

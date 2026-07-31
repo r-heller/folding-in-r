@@ -1,5 +1,11 @@
 # Glossary {-}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2025-05-08*
+:::
+<!-- page-provenance:end -->
+
 <!-- TODO: populate as terms are introduced. Each entry defined at first use in
      the body text; this is the lookup table, not the definition of record. -->
 

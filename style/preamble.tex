@@ -24,3 +24,10 @@
 \newenvironment{boximportant}{\begin{quote}}{\end{quote}}
 \newenvironment{boxreport}{\begin{quote}}{\end{quote}}
 \newenvironment{boxquestion}{\begin{quote}}{\end{quote}}
+
+\input{style/provenance.tex}
+
+% Wrap long code and URLs within the printable text area.
+\usepackage{fvextra}
+\fvset{breaklines=true,breakanywhere=true}
+\usepackage{xurl}

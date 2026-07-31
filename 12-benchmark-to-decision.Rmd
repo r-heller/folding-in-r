@@ -1,5 +1,11 @@
 # From benchmark to decision {#application}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2025-01-17*
+:::
+<!-- page-provenance:end -->
+
 *What happens when the data are real?*
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->

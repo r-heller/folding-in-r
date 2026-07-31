@@ -1,5 +1,11 @@
 # About the author {-}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2025-01-17*
+:::
+<!-- page-provenance:end -->
+
 R. Heller is a physician and biomedical researcher working on trauma
 immunology, laboratory diagnostics, and reproducible analysis workflows.
 ORCID: [0000-0001-8006-9742](https://orcid.org/0000-0001-8006-9742).

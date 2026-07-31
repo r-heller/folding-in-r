@@ -1,5 +1,11 @@
 # The geometry of folding {#folding-geometry}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-03-26*
+:::
+<!-- page-provenance:end -->
+
 *What does folding preserve, and what does it destroy?*
 
 ## What this chapter answers {#geom-question}

@@ -1,5 +1,11 @@
 # Geodesic methods {#geodesic}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-06-22*
+:::
+<!-- page-provenance:end -->
+
 *If the data lie on a folded sheet, how do you flatten it back out?*
 
 ## What this chapter answers {#geo-question}

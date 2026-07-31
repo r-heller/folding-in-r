@@ -1,5 +1,11 @@
 # Notation {#notation}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2025-12-30*
+:::
+<!-- page-provenance:end -->
+
 <!-- TODO: fill as the formal apparatus stabilises in Chapters 2, 3 and 9. -->
 
 ## Symbols {#notation-symbols -}

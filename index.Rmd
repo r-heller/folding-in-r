@@ -2,7 +2,7 @@
 title: "Folding in R"
 subtitle: "Origami, Manifolds, and Dimension Reduction"
 author: "R. Heller"
-date: "`r Sys.Date()`"
+date: "2026-07-31"
 site: bookdown::bookdown_site
 documentclass: book
 bibliography: [book.bib, packages.bib]
@@ -34,6 +34,12 @@ lot: false
 ---
 
 # Preface {-}
+
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-03-04*
+:::
+<!-- page-provenance:end -->
 
 A rigid origami crease pattern generates a manifold whose true low-dimensional
 structure is known exactly, in closed form. Rigid folding bends the sheet along

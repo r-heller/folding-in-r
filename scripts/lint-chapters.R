@@ -293,6 +293,7 @@ BOXES <- c("boxinfo", "boximportant", "boxreport", "boxquestion", "boxempty")
 check_callouts <- function(f) {
   lines <- read_lines_safe(f)
   incode <- fence_mask(lines)
+  provenance <- FALSE
   for (i in seq_along(lines)) {
     # Inline code is how this book *documents* the wrong forms -- see the
     # callout section of 00-how-to-use.Rmd, which names them in order to
@@ -301,6 +302,16 @@ check_callouts <- function(f) {
     bare <- strip_inline(lines[i])
     if (grepl("<div\\s+class\\s*=\\s*[\"'][^\"']*\\b(box[a-z]+|callout)", bare, perl = TRUE)) {
       err(f, i, "raw <div> callout: use ```{block, type='boxinfo'} -- a div renders unstyled in HTML and disappears in PDF")
+    }
+    # The compact provenance block has its own stylesheet rule and is plain
+    # text in PDF/EPUB; it is not one of the boxed pedagogical callouts.
+    if (!incode[i] && identical(trimws(bare), "::: {.page-provenance}")) {
+      provenance <- TRUE
+      next
+    }
+    if (provenance && identical(trimws(bare), ":::")) {
+      provenance <- FALSE
+      next
     }
     if (!incode[i] && grepl("^:::", bare)) {
       err(f, i, "pandoc fenced div: the stylesheet does not target it. Use ```{block, type='...'}")

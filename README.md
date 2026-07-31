@@ -164,3 +164,21 @@ The data licence is not boilerplate. This book's argument is that its results ar
 reproducible from committed artefacts, so a reader is expected to download
 `data/processed/`, re-run the analysis and publish what they find — and the dual
 licence covered prose and code and left that third thing unaddressed.
+
+## Validate a release build
+
+Use Python 3 with `pypdf`, the book’s R dependencies, Pandoc and XeLaTeX.
+Refresh the page notes before rendering; their dates follow source revisions,
+not the day the site is built. Then validate the actual downloadable artifacts:
+
+```sh
+python3 scripts/update-page-provenance.py
+Rscript -e 'bookdown::render_book("index.Rmd", output_format = "all")'
+python3 scripts/split-chapter-pdfs.py
+python3 scripts/finalize-book.py
+python3 scripts/check-book.py
+```
+
+The final check fails on missing author/date notes, broken local links or anchors,
+and missing or unreadable whole-book PDF/EPUB files. Chapter downloads reuse the
+whole-book PDF’s bookmarks instead of executing every chapter a second time.

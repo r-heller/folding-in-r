@@ -1,5 +1,11 @@
 # Learned folds {#autoencoders}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2025-01-17*
+:::
+<!-- page-provenance:end -->
+
 *Can a network learn the fold and the unfold at once?*
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->

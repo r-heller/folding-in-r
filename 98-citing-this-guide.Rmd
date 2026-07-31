@@ -1,5 +1,11 @@
 # Citing this book {#citing .unnumbered}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-05-16 · Last changed: 2025-05-16*
+:::
+<!-- page-provenance:end -->
+
 This book is published under CC BY 4.0, which asks for attribution and nothing
 else. Quote it, teach from it, adapt it, use its figures — the licence permits
 all of that, and a citation is the whole of what is expected in return.

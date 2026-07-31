@@ -1,5 +1,11 @@
 # Ground truth and the evaluators {#evaluation}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-05-21*
+:::
+<!-- page-provenance:end -->
+
 *Your embedding looks good. Is it correct?*
 
 ## What "correct" means here {#eval-question}

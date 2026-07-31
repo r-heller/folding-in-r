@@ -29,7 +29,7 @@ bookdown::bs4_book:
 bookdown::pdf_book:
   latex_engine: xelatex
   citation_package: natbib
-  keep_tex: false
+  keep_tex: true
   toc_depth: 3
   includes:
     in_header: style/preamble.tex

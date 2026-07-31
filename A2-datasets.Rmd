@@ -1,5 +1,11 @@
 # Datasets and codebook {#datasets}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-03-19*
+:::
+<!-- page-provenance:end -->
+
 ## Generated data {#datasets-generated -}
 
 All crease-pattern manifolds are generated, not collected. Every dataset in

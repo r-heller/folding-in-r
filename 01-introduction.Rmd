@@ -1,5 +1,11 @@
 # Introduction {#intro}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-06-08*
+:::
+<!-- page-provenance:end -->
+
 *Why should a crease pattern tell you anything about a gene expression matrix?*
 
 ## What this chapter answers {#intro-question}

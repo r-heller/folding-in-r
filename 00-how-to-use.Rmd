@@ -1,5 +1,11 @@
 # How to use this book {-}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-01-23*
+:::
+<!-- page-provenance:end -->
+
 ## Standing methodological rules {-}
 
 Three rules apply throughout and are not restated in each chapter.

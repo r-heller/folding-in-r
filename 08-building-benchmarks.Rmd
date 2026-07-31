@@ -1,5 +1,11 @@
 # Building crease-pattern manifolds {#benchmarks}
 
+<!-- page-provenance:start -->
+::: {.page-provenance}
+*R. Heller · Date: 2025-01-17 · Last changed: 2026-04-28*
+:::
+<!-- page-provenance:end -->
+
 *How do you build a manifold whose true geometry you already know?*
 
 ## What this chapter answers {#bench-question}
