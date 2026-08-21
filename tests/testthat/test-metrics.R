@@ -287,31 +287,13 @@ test_that("continuity is trustworthiness with the two geometries swapped", {
   expect_equal(continuity(Y, E, 10L), trustworthiness(E, Y, 10L))
 })
 
-test_that("A(k) is the reciprocal of the largest attainable penalty sum", {
-  # The paper describes A(k) as the constant that "scales the values between
-  # zero and one". Each point contributes at most k terms and the largest ranks
-  # available are N-k .. N-1, so the largest sum over N points is
-  # N * sum_{r = N-k}^{N-1} (r - k). This asserts that 1/A(k) is exactly that
-  # number -- an arithmetic identity that a mistranscribed constant fails, and
-  # it needs no access to the paper.
-  for (N in c(20L, 50L, 400L, 800L)) {
-    # k is capped where A(k) stops being positive, which is the same bound the
-    # function itself refuses outside; the next test covers that edge.
-    ks <- Filter(function(k) k < (2 * N - 1) / 3, c(1L, 2L, 5L, 10L, 25L))
-    for (k in ks) {
-      worst <- N * sum(seq.int(N - k, N - 1L) - k)
-      expect_equal(1 / .a_k(N, k), as.double(worst))
-    }
-  }
-})
-
 test_that("A(k) refuses the k where its scaling is meaningless", {
   expect_error(.a_k(100, 0), "1 <= k")
   expect_error(.a_k(100, 67), "1 <= k")     # (2N-1)/3 = 66.33
   expect_silent(.a_k(100, 66))
 })
 
-test_that("A(k) is exactly the reciprocal of the worst attainable penalty sum", {
+test_that("A(k) is the reciprocal of the worst attainable penalty sum", {
   # THE GATE (PLAN.md S1-4, R7 in the risk register), and it is now closed by a
   # route better than the one originally planned.
   #
@@ -333,8 +315,11 @@ test_that("A(k) is exactly the reciprocal of the worst attainable penalty sum", 
   #    no reference to the paper at all.
   #
   # If the transcription were wrong, these two would disagree.
-  for (N in c(10L, 25L, 100L, 337L)) {
-    for (k in c(1L, 2L, 5L, 9L)) {
+  # N = 800 and k = 25 are in the grid because those are the book's own budget
+  # (constants.R, N_DEFAULT) and the largest k Chapter 9 sweeps; an identity
+  # that held only at small N would not be the one being relied on.
+  for (N in c(10L, 25L, 100L, 337L, 800L)) {
+    for (k in c(1L, 2L, 5L, 9L, 25L)) {
       if (k >= (2 * N - 1) / 3) next
       brute <- N * sum(((N - k):(N - 1)) - k)
       expect_equal(1 / .a_k(N, k), brute,
@@ -351,10 +336,11 @@ test_that("trustworthiness reaches zero on the worst attainable embedding", {
   N <- 40L; k <- 5L
   Y <- matrix(seq_len(N), N, 1L)                    # original: a line
   rk <- t(apply(as.matrix(stats::dist(Y)), 1, rank, ties.method = "first"))
-  worst <- t(vapply(seq_len(N), function(i) order(rk[i, ], decreasing = TRUE)[seq_len(k)],
-                    integer(k)))
+  farthest <- function(i) order(rk[i, ], decreasing = TRUE)[seq_len(k)]
+  worst <- t(vapply(seq_len(N), farthest, integer(k)))
 
-  penalty <- sum(vapply(seq_len(N), function(i) sum(rk[i, worst[i, ]] - 1 - k), numeric(1)))
+  charge <- function(i) sum(rk[i, worst[i, ]] - 1 - k)
+  penalty <- sum(vapply(seq_len(N), charge, numeric(1)))
   expect_equal(1 - .a_k(N, k) * penalty, 0, tolerance = 1e-12)
 
   # And the paper's own caveat, which most re-implementations drop: A(k) is
@@ -363,6 +349,39 @@ test_that("trustworthiness reaches zero on the worst attainable embedding", {
   # their Figures 2 and 3. So Chapter 9 must not clamp a value that comes out
   # slightly below zero, and must say why.
   expect_true(is.finite(.a_k(N, k)))
+})
+
+test_that("the co-ranking machinery agrees with the coRanking package", {
+  # coRanking is pinned now (PLAN.md S1-6), and checking against it turned up
+  # something worth recording: it exports coranking(), Q_NX(), R_NX(), LCMC()
+  # and AUC_ln_K() -- and NO trustworthiness or continuity at all. So there is
+  # no second R implementation of A(k) to compare against, and the plan's
+  # original gate for S1-4 could not have been met as written.
+  #
+  # That leaves the algebraic identity above as the check on A(k), which is the
+  # stronger one anyway: two implementations can inherit the same misremembered
+  # constant from each other, an identity cannot.
+  #
+  # What this test does buy is a cross-check on the co-ranking matrix itself,
+  # which Q_NX is built from and which Chapter 9's second headline number
+  # depends on. An off-by-one in the rank convention or a difference in tie
+  # handling shows up here and nowhere else.
+  skip_if_not_installed("coRanking")
+
+  Y <- mk_chart(150L, 21L)
+  set.seed(21L)
+  E <- matrix(stats::rnorm(300L), 150L, 2L)
+
+  Q_ref <- coRanking::coranking(Y, E)
+  for (K in c(5L, 10L, 25L, 50L)) {
+    expect_equal(qnx(E, Y, K = K), unname(coRanking::Q_NX(Q_ref)[K]),
+                 tolerance = 1e-10, info = paste("K =", K))
+  }
+
+  # And on an exact recovery both must report one.
+  Q_id <- coRanking::coranking(Y, Y)
+  expect_equal(unname(coRanking::Q_NX(Q_id)[10L]), 1)
+  expect_equal(qnx(Y, Y, K = 10L), 1)
 })
 
 # ── k-NN preservation ────────────────────────────────────────────────────────

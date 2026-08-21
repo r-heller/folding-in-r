@@ -201,30 +201,37 @@ facet_isometry_error <- function(pattern, theta) {
 #' theta = 0 nothing self-approaches, so g is set by L; as the pattern folds,
 #' sheets come together and g falls.
 #'
-#' L defaults to the facet diagonal, which is the smallest scale at which "far
-#' apart along the surface" is meaningful for these patterns.
-branch_gap <- function(sample, L = NULL) {
+#' L is a fixed fraction of the chart diameter (default one quarter), so that
+#' the same question is asked of every family and the answer cannot be an
+#' artefact of how densely the sample was drawn.
+branch_gap <- function(sample, L_frac = 0.25) {
   X <- sample$X
   U <- sample$truth
 
-  if (is.null(L)) {
-    L <- attr(sample, "facet_diagonal")
-    if (is.null(L)) {
-      # Fall back to a robust scale from the chart itself.
-      L <- 2 * stats::median(as.matrix(stats::dist(U))[
-        cbind(seq_len(nrow(U)), max.col(-as.matrix(stats::dist(U)) -
-                                          diag(Inf, nrow(U))))])
-    }
-  }
-
   dA <- as.matrix(stats::dist(X))
   dU <- as.matrix(stats::dist(U))
-  diag(dA) <- Inf
 
+  # The length scale must be a property of the SURFACE, not of the sample.
+  #
+  # The first version of this took L from the sampling density -- twice the
+  # median nearest-neighbour distance -- and the result was g/s pinned at 2.00
+  # for every pattern at every theta, because the nearest pair separated by more
+  # than L is at distance about L, so the statistic was measuring its own
+  # definition. A fixed fraction of the chart diameter has no such circularity:
+  # "far apart along the surface" means far in absolute terms, and g then
+  # answers the question that matters -- how close does this surface bring two
+  # genuinely distant regions?
+  #
+  # It also makes the families comparable, which is the whole point. A crease
+  # pattern has facets and a Swiss roll does not, so anything keyed to facet
+  # structure could not be measured on both, and E1 needs one axis both lie on.
+  L <- L_frac * max(dU)
+
+  diag(dA) <- Inf
   s <- stats::median(apply(dA, 1, min))
 
   far <- dU > L
   g <- if (any(far)) min(dA[far]) else NA_real_
 
-  list(g = g, s = s, ratio = g / s, L = L)
+  list(g = g, s = s, ratio = g / s, L = L, L_frac = L_frac)
 }
