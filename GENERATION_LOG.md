@@ -222,3 +222,83 @@ and only size constrains what ships), and label provenance — the labels come
 from separately sequenced purified subpopulations, not from clustering the
 matrix under test, so the comparison is not circular in the way that would have
 mattered.
+
+## Phase 14 — the library, and E2 decided
+
+`R/` is complete apart from `methods.R` and `constructions.R`: patterns,
+folding, sampling, metrics, baselines, constants and plotting, with 993
+assertions passing and no skips.
+
+**The kinematics agent died and the failure is worth recording**, because the
+same mistake is easy to repeat. It was asked to derive two closed-form rigid
+foldings, implement them, verify four properties across a fine sweep, and write
+the test file — all in one task. After four long reasoning turns it hit
+*"Claude's response exceeded the 64000 output token maximum"* and returned
+nothing. The work was re-scoped and done in three passes instead.
+
+**Both foldings are derived rather than fitted.** Write down the folded vertex
+positions with unknown metric constants, impose edge-length and facet-angle
+preservation, and solve. For the Miura that is three equations in four
+unknowns — a one-parameter family, which is the rigid folding. The construction
+buys something stronger than a numerical result: `fold()` places *vertices* on a
+lattice and every facet reads its corners from that one shared set, so facets
+cannot disagree about a shared crease, and shared vertices plus per-facet
+congruence is exactly what a rigid folding is. Worst facet isometry error over
+the whole sweep is 7.8e-16 (Miura) and 5.6e-16 (Yoshimura), against a contract
+of 1e-10.
+
+**θ is rescaled to [0, 1]**, the fraction of the way to flat-folded. The
+inherited [0, 1.4] was not a dihedral range — the glossary already said that —
+but it was not a legal parameter range either: a Miura with α = π/3 is fully
+collapsed at 1.047. Normalising also makes families comparable at equal fold
+fraction, which is what E1 needs.
+
+**Two measurement defects were found by testing rather than by reading.** The
+Swiss roll's `turns` was adding revolutions at constant sheet spacing, so the
+short-circuit index sat at 0.999 however tightly the roll was wound. And
+`branch_gap()` took its length scale from the sampling density and returned
+g/s = 2.00 for every pattern at every θ — the nearest pair separated by more
+than L sits at about L, so the statistic was measuring its own definition. Both
+fixed; the axis now runs 17.5 → 4.9 (Miura), 18.3 → 3.2 (Yoshimura) and
+21.4 → 1.7 (Swiss roll), which overlap.
+
+Pinning that down produced a constraint the chapters must carry: g is a property
+of the surface and is constant in n, while s falls as n^(-1/2), so g/s grows as
+sqrt(n) — measured 2.832 against sqrt(8) = 2.828. **Comparing g/s across
+families is only meaningful at fixed n.**
+
+**A(k) is verified by two independent routes** and the planned third turned out
+not to exist. The primary gives 2/(Nk(2N−3k−1)); first principles give the same
+number as the reciprocal of the largest attainable penalty sum, brute-forced
+against the closed form. `coRanking`, which S1-4 named as the gate, exports no
+trustworthiness or continuity at all — so that comparison could never have been
+made as written. It still earns its place in the lockfile: `qnx()` agrees with
+`coRanking::Q_NX` to 1e-10 across four values of K.
+
+### E2 — claim-set decision
+
+**Verdict: the waterbomb tessellation folds, but only under an imposed symmetry,
+and it is not usable as a benchmark row.** Evidence and numbers in
+`experiments/e2-waterbomb/README.md`.
+
+Cell-translation uniformity alone leaves a 2-dimensional variety. Adding the
+pattern's vertical mirror leaves exactly one degree of freedom, with the closed
+form `tan(rho_h/2) = -tan(rho_d/2)/sqrt(2)` — found numerically, holding to
+1.7e-15 over 155 points, and cross-checked by an independent developing-map
+reconstruction to 4.2e-15.
+
+The trap `PLAN.md` warned about is real and had to be routed around: at the flat
+state every *z* column of the Jacobian is identically zero, so the non-trivial
+flex count is V − 3 for *any* planar pattern and proves nothing. Second order
+and a finite continuation are what decide.
+
+Three things nonetheless disqualify it as a grid row, and none of the three
+outcomes E2 pre-drafted anticipated them: the embedding is not proved (facet
+clearance falls to 0.026 at θ = 0.9), fold amplitude is *not monotone* in θ (it
+peaks at θ = 0.4 and then falls, so the pattern cannot share the difficulty axis
+the other families use), and θ does not determine the configuration — 27 degrees
+of freedom remain on the free boundary.
+
+So the book ships **two pattern families plus a documented result**, which §8.3
+was already framed to absorb. `waterbomb()` stops with an error and
+`run-benchmark-grid.R` has no waterbomb row, per E2's hard rule.
