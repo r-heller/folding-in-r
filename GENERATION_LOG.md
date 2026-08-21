@@ -122,3 +122,96 @@ list is now empty. `renv.lock` itself never referenced it.
 
 Earlier entries in this log describing `foldbench` as a sibling package are left
 as written. This log is append-only and records what was true at each phase.
+
+## Phase 12 — S0 cleared, and the book renders in CI for the first time
+
+The concept baseline (`PROJECT_CONCEPT.md`, `PLAN.md`, `CHAPTERS.md`) is
+committed rather than kept beside the repository, and all eight S0 blockers are
+closed. Details and acceptance criteria are in `PLAN.md`; what belongs here is
+what was learned doing it.
+
+**The book had never rendered in CI.** Every push since 2026-08-07 failed in
+`renv::restore()` on `libglpk.so.40`, because `render-book.yml` had no
+system-dependency step while `helpers.yml` has had one since it was written.
+Nothing in the plan mentioned it; nobody had opened the log. The whole of S0-3 —
+the elaborate machinery for making a failed render fail loudly — was guarding a
+build that had never succeeded.
+
+Two mechanisms were arranged to hide exactly that. `continue-on-error` on the
+EPUB and PDF steps, and a full-book download link written unconditionally while
+the per-chapter link immediately below it was correctly probed. Both are gone;
+both artefacts are now asserted to exist and clear a size floor, since a
+truncated PDF is as bad as a missing one, and every download link probes its own
+target.
+
+**`packages.bib` was being written 22 times per render**, once per source file,
+from a `.packages()` vector that differs per chapter — so the committed file
+described whichever chapter knitted last. `R-fs` and `R-yaml` were in it because
+some chapter loaded `fs` and `yaml`, not because the book cites them. Generation
+moved to `scripts/write-package-bib.R` with a hand-maintained vector and a
+`--check` mode for CI.
+
+**`r-lib/actions/setup-renv` restores the whole lockfile.** The
+`renv::restore(exclude = "torch")` step that followed it was a no-op, and the
+README's claim that CI runs without `torch` was wrong. Both corrected.
+
+Gates: `renv::restore()` completes in CI; `git add --dry-run` confirms
+`data/processed/*.rds` is committable; a render leaves `packages.bib` untouched;
+`#citing` resolves cross-page to `citing.html#citing`; the `boxempty` block
+renders with its class.
+
+## Phase 13 — the gates that have to precede drafting
+
+`verify-citations.R` could not fail in the two ways that mattered. An entry with
+no identifier returned `NA` and was printed as *tolerated* before exiting 0, so
+an entry written entirely from memory passed CI green — in direct contradiction
+of `CONTRIBUTING.md`. And nothing checked that a key cited in the text existed
+at all. Both fixed, and both fixes tested by breaking the bibliography four ways
+on purpose: no identifier, `% NOIDENT-OK` tolerated, dangling key, bad DOI. All
+four exit 1.
+
+`scripts/lint-chapters.R` is new, with the six checks `PLAN.md` S1-1 specifies.
+Check 1 — no bare decimal or comma-grouped integer in prose — is the
+anti-fabrication gate, and it works: it caught "CC BY 4.0" in the datasets
+appendix on its first run against real text, which is a licence name and now
+carries an explicit `lint-allow-number` escape. Stub chapters are exempt via the
+TODO marker they were created with, so the exemption deletes itself when
+drafting starts. All six checks were tested against a chapter written to violate
+each.
+
+Bibliography 9 → 26 entries, every field transcribed from a fetched metadata
+record. Three things in the notes turned out to be wrong: the Euler Isometric
+Swiss Roll is a *dataset* inside an SDM 2017 paper on streaming error metrics,
+not a paper title, and the second arXiv ID recorded as a co-primary only uses
+it; the Miura repository URL had to be found rather than assumed, since every
+record id on that host returns 200; and the ISSN recorded for that report was
+never confirmed and is dropped.
+
+**A(k) is transcribed from the primary** — Kaski et al. 2003, with Eqs. (3) and
+(4) — and agrees with what had been written from memory. That is the outcome you
+hope for and not one you can assume. The paper's own caveat, that A(k) is a
+scaling rather than a proven worst-case bound, is recorded for Chapter 9.
+
+`render-chapter-pdfs.R` emitted every cross-reference as the literal string
+`\@ref(label)`; it rendered through `rmarkdown::render()` with `--citeproc`,
+which knows nothing about bookdown references. It now renders each chapter
+through `bookdown::pdf_book` in an isolated directory. Two further bugs surfaced
+while fixing it, both of the same species as everything else in this phase:
+`anchor_of()` took the whole `{#id .class}` brace and produced a dead download
+name, and bookdown resolves the project config on its first call in a session,
+so the first chapter of the loop rendered the *entire book* over
+`docs/folding-in-r.pdf` while reporting success. The script now asserts the file
+it asked for exists and counts what is on disk rather than what it attempted.
+
+The ambient contraction was re-derived rather than carried: $|d_A/d_U -
+\sin(\rho/2)|$ is at most $1.11\times10^{-16}$ over 360 configurations. Its
+strictness has a floor — the contraction stops being representable in double
+precision below a fold angle of about $3\times10^{-8}$ rad — which qualifies one
+of the invariants in `R/README.md` and sharpens the Claim C argument.
+
+Chapter 12's three open decisions are closed from primary sources: the dataset
+(Zheng et al. 68k PBMC), the licence (CC BY 4.0, so redistribution is permitted
+and only size constrains what ships), and label provenance — the labels come
+from separately sequenced purified subpopulations, not from clustering the
+matrix under test, so the comparison is not circular in the way that would have
+mattered.
