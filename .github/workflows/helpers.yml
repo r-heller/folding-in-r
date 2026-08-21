@@ -29,10 +29,6 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        r-version: ['release', 'oldrel-1']
 
     steps:
       - name: Checkout
@@ -48,7 +44,6 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         if: steps.have.outputs.count != '0'
         with:
-          r-version: ${{ matrix.r-version }}
           use-public-rspm: true
 
       - name: Install system dependencies
@@ -56,20 +51,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev
+            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev libpng-dev
 
-      - name: Disable renv autoloader in CI
+      # The pinned library, not install.packages().
+      #
+      # This job used to delete .Rprofile and install the latest version of
+      # every package it needed. That tests the helpers against a library the
+      # book is never rendered with -- the whole reason renv.lock exists -- and
+      # it means a test can pass here and fail in the render, or the reverse.
+      # testthat is in the lockfile now, so there is nothing left that
+      # justified the shortcut.
+      #
+      # The oldrel-1 leg of the matrix cannot use the lockfile, which pins an
+      # R-version-specific library, so it is not in the matrix any more: this
+      # book is rendered with one R version and pins it.
+      - uses: r-lib/actions/setup-renv@v2
         if: steps.have.outputs.count != '0'
-        run: rm -f .Rprofile
-
-      - name: Install dependencies
-        if: steps.have.outputs.count != '0'
-        run: |
-          install.packages(c(
-            "testthat", "ggplot2", "viridis", "Matrix", "RSpectra",
-            "igraph", "vegan", "Rtsne", "umap"
-          ))
-        shell: Rscript {0}
 
       - name: Every helper script parses and sources cleanly
         if: steps.have.outputs.count != '0'
