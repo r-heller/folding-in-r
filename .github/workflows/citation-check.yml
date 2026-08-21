@@ -7,11 +7,22 @@ name: Citation Check
 # landing page, which reports the two Science DOIs here as broken because AAAS
 # answers automated requests with 403.
 
+# Runs on push as well as pull request. Work on this book lands directly on
+# main, so a pull-request-only trigger meant this check had never once run.
+
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'book.bib'
+      - 'packages.bib'
+      - 'scripts/verify-citations.R'
+      - '**/*.Rmd'
   pull_request:
     branches: [main]
     paths:
       - 'book.bib'
+      - 'packages.bib'
       - 'scripts/verify-citations.R'
       - '**/*.Rmd'
   workflow_dispatch:

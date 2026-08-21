@@ -1,0 +1,37 @@
+# Chapter lint.
+#
+# Six structural checks over the .Rmd sources, and one of them is the reason
+# the file exists: a bare decimal or comma-grouped integer in prose fails the
+# build. Every number in this book is computed at render time from a committed
+# artefact, or it is not made.
+#
+# This runs on every push and pull request and needs no R library beyond base
+# R -- the script uses nothing but base, deliberately, so the gate cannot be
+# blocked by a package that failed to install.
+name: Lint chapters
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # renv would try to restore a library this job does not need.
+      - name: Disable the renv autoloader
+        run: rm -f .Rprofile
+
+      - name: Lint the chapters
+        run: Rscript scripts/lint-chapters.R
