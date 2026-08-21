@@ -33,7 +33,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev libpng-dev
+            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev libpng-dev \
+            poppler-utils
 
       - uses: r-lib/actions/setup-renv@v2
 
@@ -76,26 +77,16 @@ jobs:
 
       # No continue-on-error above. A failed EPUB or PDF render used to deploy
       # a green build with dead download links pointing at artefacts that were
-      # never produced. A truncated PDF is as bad as a missing one, so the
-      # floor is on size, not existence.
-      - name: Assert both downloadable artefacts exist and are not truncated
-        run: |
-          set -euo pipefail
-          fail=0
-          check() {
-            if [ ! -f "$1" ]; then
-              echo "::error::$1 was not produced"; fail=1; return
-            fi
-            size=$(stat -c%s "$1")
-            if [ "$size" -lt "$2" ]; then
-              echo "::error::$1 is $size bytes, below the $2-byte floor -- truncated render"
-              fail=1; return
-            fi
-            echo "$1 ok ($size bytes)"
-          }
-          check docs/folding-in-r.pdf 200000
-          check docs/folding-in-r.epub 100000
-          exit $fail
+      # never produced.
+      #
+      # Completeness is checked structurally rather than by a byte floor. The
+      # floor was the first instinct and it was wrong: it failed this
+      # repository's first successful render, on a 107 kB PDF and a 67 kB EPUB
+      # that were both complete and both the right size for a book of stubs.
+      # A threshold tuned to a finished book rejects an unfinished one, and one
+      # tuned to an unfinished book stops meaning anything later.
+      - name: Assert both downloadable artefacts are complete
+        run: Rscript scripts/check-render-artefacts.R
 
       # bookdown knits each chapter to <name>.md under new_session and leaves
       # the result in output_dir. Build by-products, not part of the site.
