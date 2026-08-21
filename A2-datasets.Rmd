@@ -1,7 +1,5 @@
 # Datasets and codebook {#datasets}
 
-<!-- TODO: complete once the Chapter 12 single-cell dataset is fixed. -->
-
 ## Generated data {-}
 
 All crease-pattern manifolds are generated, not collected. Every dataset in
@@ -15,5 +13,59 @@ Provenance: `scripts/run-benchmark-grid.R`.
 
 ## External data {-}
 
-<!-- TODO: single-cell dataset for Chapter 12 — source, version, licence,
-     accession, and preprocessing steps. -->
+One dataset, used only in Chapter \@ref(application).
+
+**Fresh 68k PBMCs (Donor A)** — peripheral blood mononuclear cells from a single
+healthy donor, from Zheng et al. [@zheng2017massively]. Obtained from the 10x
+Genomics dataset repository, Cell Ranger 1.1.0 processing, Chromium Universal
+3' chemistry.
+
+`scripts/prepare-single-cell.R` downloads the filtered matrix, applies the
+preprocessing recorded in that script, and writes the artefact Chapter
+\@ref(application) reads. It is not run in CI and not run at render time, on the
+same provenance convention as the benchmark grid: run it once, commit the
+result, keep the script as the record of how.
+
+### Licence, and what may be redistributed {-}
+
+<!-- lint-allow-number: the name of a licence, not a measurement -->
+The dataset is published under **CC BY 4.0**, which permits redistribution with
+attribution. So the processed matrix *may* ship in this repository, and the
+constraint on whether it does is size rather than licence — the full filtered
+matrix is far too large for git, and Chapter \@ref(application) does not need
+it. What is committed is the reduced matrix the chapter actually reads,
+produced by the script above, with the reduction stated there and in the
+chapter.
+
+### Label provenance, and why the comparison is not circular {-}
+
+This matters more than it looks, and it was an open question until it was
+checked. Chapter \@ref(application)'s only external evaluation channel is the
+cell-type labels. If those labels had themselves been derived by clustering one
+of the embeddings under test, the comparison would be circular and the chapter
+would be measuring its own assumptions.
+
+They were not. Zheng et al. generated reference profiles by sequencing ten
+bead-enriched purified subpopulations from the same donor, separately, and
+assigned each cell in the 68k population the identity of the purified
+population with which it had the highest Spearman correlation. The labels come
+from a separate set of experiments, and no clustering or embedding of the
+matrix under test enters the assignment.
+
+Two caveats belong in the chapter rather than in a footnote, because both bound
+what a per-label result can mean.
+
+- The assignment is made in gene-expression space — the same space the
+  embeddings are computed from. It is independent of the *embedding*, which is
+  the circularity that would matter here, but it is not an independent
+  measurement of cell identity, and the chapter should not describe it as
+  ground truth. The book reserves that phrase for the crease patterns, where it
+  is earned.
+- The authors flag their own assignments as unreliable in specific places: the
+  gap between the highest and second-highest correlation is small for some
+  cells, cytotoxic T against NK being the example they give, and the purified
+  populations are nested — CD4+ T-helper contains all CD4+ cells — so a
+  hand-written rule reassigns cells to the next-highest correlation within a
+  nested family. Any per-label accuracy in Chapter \@ref(application) inherits
+  that, and the pre-registered selection rule of Chapter \@ref(results) is what
+  keeps it from being read as a ranking.
