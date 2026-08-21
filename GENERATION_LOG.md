@@ -3,10 +3,17 @@
 Build record for *Folding in R*. One entry per merged phase, newest last.
 Each entry names the branch, the gate that was checked, and the resulting SHA.
 
-Scope note: this scaffold was generated locally. Nothing has been pushed to
-`origin`, no release was cut, and the sibling package `foldbench` exists as a
-local directory rather than a GitHub repository. Phases 1–10 of the scaffold
-prompt are therefore executed up to, but not including, their remote steps.
+Scope note, **superseded at Phase 12** and kept because the phase entries below
+were written under it: *"this scaffold was generated locally. Nothing has been
+pushed to `origin`, no release was cut, and the sibling package `foldbench`
+exists as a local directory rather than a GitHub repository. Phases 1–10 of the
+scaffold prompt are therefore executed up to, but not including, their remote
+steps."*
+
+As of Phase 12 the work is on `origin/main`, CI runs on every push, and
+`foldbench` no longer exists in any form (Phase 11). No release has been cut and
+GitHub Pages is not yet enabled — the render workflow had never completed a run
+until Phase 12, so there has never been anything to deploy.
 
 ---
 
