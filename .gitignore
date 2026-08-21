@@ -2,17 +2,16 @@
 _bookdown_files/
 *_cache/
 *_files/
-!docs/*_files/
+
+# The rendered site. Built by render-book.yml and deployed to gh-pages with
+# clean: true, so nothing here needs to be tracked -- and a tracked copy means
+# whoever clones the repository gets a rendered book older than the sources.
+docs/
 
 # R session
 .Rhistory
 .RData
 .Rproj.user/
-
-# bookdown new_session intermediates: each chapter is knitted to <name>.md and
-# the result lands in output_dir. They are a build by-product, not part of the
-# published site.
-docs/*.md
 
 # renv: track the lockfile and settings, not the library
 renv/library/
@@ -33,4 +32,11 @@ renv/sandbox/
 Thumbs.db
 
 # bookdown new_session cache
+#
+# Under new_session: yes bookdown drops a <chapter>.rds beside each source file.
+# The book's own artefacts live under data/processed/ and are committed: the
+# grid is precomputed once, scripts/run-benchmark-grid.R is kept as the
+# provenance record, and every chapter from Chapter 4 onward opens by reading
+# one of them. They are negated back in below, and the negation is load-bearing.
 *.rds
+!data/processed/*.rds
