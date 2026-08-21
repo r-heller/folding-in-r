@@ -1,0 +1,33 @@
+# Citing this book {#citing .unnumbered}
+
+This book is published under CC BY 4.0, which asks for attribution and nothing
+else. Quote it, teach from it, adapt it, use its figures — the licence permits
+all of that, and a citation is the whole of what is expected in return.
+
+Cite the book itself for the argument and the benchmark design. Cite the
+repository when what you are relying on is the code: the pattern constructors,
+the folding maps, the metrics, or a committed artefact under `data/processed/`.
+They carry the same version number, and the repository is the only one of the
+two that pins a commit.
+
+```{block, type='boxempty'}
+Heller, R. (2026). *Folding in R: Origami, Manifolds, and Dimension Reduction.*
+Version 0.1.0. <https://r-heller.github.io/folding-in-r/>
+```
+
+The BibTeX entry is in `citation.bib`, and `CITATION.cff` carries the same
+metadata in a form GitHub and Zenodo read directly:
+
+```bibtex
+@book{heller2026folding,
+  title     = {Folding in R: Origami, Manifolds, and Dimension Reduction},
+  author    = {Heller, R.},
+  year      = {2026},
+  publisher = {Self-published},
+  url       = {https://r-heller.github.io/folding-in-r/},
+  note      = {Version 0.1.0}
+}
+```
+
+Both files are generated from the same source and should not be edited by hand;
+if a version number here disagrees with one of them, the files are right.

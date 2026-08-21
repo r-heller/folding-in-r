@@ -18,13 +18,73 @@ Three rules apply throughout and are not restated in each chapter.
 ## What you need {-}
 
 R 4.1 or newer and the packages pinned in `renv.lock`. Run `renv::restore()`
-once after cloning. The companion package `foldbench` provides the pattern
-constructors, the sampler, and the evaluation metrics; the book loads it but
-does not reproduce its source.
+once after cloning. There is nothing else to install: the pattern
+constructors, the sampler and the evaluation metrics are plain scripts in `R/`,
+sourced by `_common.R` when the book renders. The code that produces every
+result in this book is in the same repository as the book, at the same commit.
 
 The Chapter \@ref(results) benchmark grid takes hours to compute. It is
 precomputed and committed under `data/processed/`; `scripts/run-benchmark-grid.R`
 is kept as the provenance record rather than run during the build.
+
+## How the chapters are shaped {-}
+
+Every body chapter uses the same nine sections, in the same order, with the same
+anchors. The anchors are namespaced by a short chapter mnemonic — `geom-`,
+`intro-`, `eval-` — because pandoc slugs headings by their text, and twelve
+chapters each carrying a heading called "Results" would otherwise collide and
+silently renumber each other's cross-references.
+
+```
+## What this chapter answers  {#<mn>-question}
+## Setup                      {#<mn>-setup}
+## Background                 {#<mn>-background}
+## <free-wording core>        {#<mn>-core}
+## Results                    {#<mn>-results}
+## Diagnostics                {#<mn>-diagnostics}
+## Where it fails             {#<mn>-limits}
+## Reproduce this             {#<mn>-reproduce}
+## Further reading            {#<mn>-reading}
+```
+
+Only the core section is freely worded — it is the one that carries the
+chapter's actual argument, and calling it "Core" in every chapter would be
+worse than useless. Everything else is fixed, and `scripts/lint-chapters.R`
+fails the build on a chapter that is missing a slot, has them out of order, or
+anchors one to the wrong namespace.
+
+Read it as a contract with you rather than a template for us. *Where it fails*
+is in every chapter because every method in this book fails somewhere, and a
+chapter that could not fill that section would not be finished. *Reproduce this*
+names the artefact and the script that produced it, so any number in the chapter
+can be traced to the run that generated it.
+
+## Callouts {-}
+
+Five callout classes are defined in `style/style.css`, each with a LaTeX
+fallback so they survive into the PDF.
+
+- `boxinfo` — context a reader can skip without losing the thread.
+- `boximportant` — a result that is easy to misread, or a default that will bite.
+- `boxquestion` — something to try, with the answer available in the sources.
+- `boxreport` — an aside on provenance, attribution or the state of the
+  literature.
+- `boxempty` — an unadorned block, no icon and no colour. It carries the
+  suggested citation in [Citing this book](#citing).
+
+Write them as knitr block chunks:
+
+````
+```{block, type='boximportant'}
+umap::umap() defaults to preserve.seed = TRUE.
+```
+````
+
+Never as a raw `<div class="boxinfo">` and never as a pandoc fenced div
+(`::: boxinfo`). Those two forms are not what the stylesheet targets: they
+render as unstyled markup in HTML and disappear entirely in PDF, where the
+boxes are LaTeX environments declared in `style/preamble.tex`. That is how a
+sibling volume shipped eighty unstyled boxes.
 
 ## How to read it {-}
 

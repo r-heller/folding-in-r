@@ -37,4 +37,5 @@ rmd_files:
   - '90-glossary.Rmd'
   - '95-colophon.Rmd'
   - '96-about-the-author.Rmd'
+  - '98-citing-this-guide.Rmd'
   - '99-references.Rmd'
