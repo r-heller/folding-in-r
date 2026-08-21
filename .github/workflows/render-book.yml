@@ -37,11 +37,12 @@ jobs:
 
       - uses: r-lib/actions/setup-renv@v2
 
-      # torch is recorded in renv.lock but only Chapter 7 needs it, and it
-      # pulls a large binary backend. Excluding it keeps the job inside the
-      # 90-minute ceiling; see the README.
-      - name: Restore the pinned library, minus torch
-        run: Rscript -e 'renv::restore(exclude = "torch", prompt = FALSE)'
+      # No explicit restore step. r-lib/actions/setup-renv already runs
+      # renv::restore() over the whole lockfile, so the
+      # `renv::restore(exclude = "torch")` that used to sit here was a no-op
+      # running after the fact -- torch was installed either way. It is cheap
+      # enough from the binary repository that excluding it was never buying
+      # what the README claimed; the README is corrected to match.
 
       - name: Install TinyTeX (TinyTeX-2 bundle — includes hyperref + common packages)
         run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'

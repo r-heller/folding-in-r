@@ -96,8 +96,14 @@ One package needs a word of explanation.
 `torch` **is** in the lockfile but is not installed in the working checkout.
 Only Chapter 7 needs it, it pulls a large binary backend on first use, and the
 rest of the book renders without it. `renv::status()` therefore reports one
-package recorded-but-not-installed; that is the intended state. Install it when
-Chapter 7 is written.
+package recorded-but-not-installed; that is the intended state locally. Install
+it when Chapter 7 is written.
+
+CI is a different matter, and the README used to get this wrong.
+`r-lib/actions/setup-renv` restores the whole lockfile, so the render job has
+`torch` installed whatever the workflow asks for afterwards. The
+`renv::restore(exclude = "torch")` step that used to follow it was a no-op.
+
 
 Supporting scripts:
 

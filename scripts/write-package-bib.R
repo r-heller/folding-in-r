@@ -122,10 +122,31 @@ if (check) {
   # cannot see is never counted as a difference.
   old_blocks <- read_blocks(OUT)
   visible <- names(fresh)
-  gone    <- setdiff(visible, names(old_blocks))
-  changed <- setdiff(visible, gone)
+
+  # An optional package is optional in both directions. torch is in the
+  # lockfile, and r-lib/actions/setup-renv restores the whole lockfile, so CI
+  # has it installed even though render-book.yml never asks for it -- but the
+  # author's checkout usually does not, and a check that demanded an R-torch
+  # entry would fail every local run and every CI run in turn depending on who
+  # generated the file last. Missing an optional entry is a warning. Losing a
+  # generated one is not, and that is what the carry-over above protects.
+  opt_keys <- if (length(PKGS_OPTIONAL)) {
+    grep(paste0("^(R-)?(", paste(PKGS_OPTIONAL, collapse = "|"), ")[0-9]*$"),
+         visible, value = TRUE)
+  } else character(0)
+
+  gone    <- setdiff(setdiff(visible, opt_keys), names(old_blocks))
+  changed <- setdiff(setdiff(visible, opt_keys), gone)
   changed <- changed[!vapply(changed, function(k) identical(fresh[[k]], old_blocks[[k]]),
                              logical(1))]
+
+  opt_absent <- setdiff(opt_keys, names(old_blocks))
+  if (length(opt_absent)) {
+    message("optional entries not in the committed file (not an error): ",
+            paste(opt_absent, collapse = ", "),
+            "\n  Run the generator on a machine that has them to add them.")
+  }
+
   if (length(gone) || length(changed)) {
     stop("packages.bib is out of date.",
          if (length(gone))    paste0("\n  missing: ", paste(gone, collapse = ", ")) else "",

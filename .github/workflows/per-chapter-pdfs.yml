@@ -25,10 +25,17 @@ jobs:
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-renv@v2
+      # Same missing system library that kept render-book.yml from ever
+      # completing a run: igraph links against GLPK and the restore dies
+      # without it. setup-renv restores the whole lockfile on its own, so
+      # there is no separate restore step to add here.
+      - name: System libraries the pinned packages link against
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev libpng-dev
 
-      - name: Restore the pinned library, minus torch
-        run: Rscript -e 'renv::restore(exclude = "torch", prompt = FALSE)'
+      - uses: r-lib/actions/setup-renv@v2
 
       - name: Install TinyTeX (TinyTeX-2 bundle)
         run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'
