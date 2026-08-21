@@ -19,13 +19,21 @@ quick <- "--quick" %in% commandArgs(trailingOnly = TRUE)
 
 source("_common.R")   # BENCH_SEEDS, N_SEEDS
 
+# No waterbomb row. PLAN.md E2's hard rule: no PATTERNS entry may exist for a
+# pattern that cannot be built, because a grid row that silently fails is worse
+# than a missing one. Whether the waterbomb tessellation admits a one-parameter
+# rigid folding is an open question, not a coding task -- waterbomb() stops with
+# a message saying so, and this list will gain a third row if and only if that
+# question is answered yes.
 PATTERNS <- list(
   miura     = function() miura_ori(6, 6),
-  yoshimura = function() yoshimura(6, 6),
-  waterbomb = function() waterbomb(6, 6)
+  yoshimura = function() yoshimura(6, 6)
 )
 
-THETA <- if (quick) c(0, 0.6) else seq(0, 1.4, by = 0.1)
+# THETA_GRID comes from R/constants.R: theta is the fraction of the way to the
+# flat-folded state, on [0, 1], not the [0, 1.4] this script used to sweep --
+# see the note there and in R/folding.R.
+THETA <- if (quick) c(0, 0.5) else THETA_GRID
 NOISE <- list(
   none    = list(type = "none",    sd = 0),
   ambient = list(type = "ambient", sd = 0.02),
