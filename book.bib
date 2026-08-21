@@ -1,9 +1,16 @@
 % Bibliography for "Folding in R".
 %
-% Rule: every entry carries a resolving DOI, arXiv ID, or ISBN. Nothing is
-% added from memory alone. Entries whose identifier could not be confirmed are
-% listed at the bottom under UNVERIFIED and must be checked before the claim
-% that needs them is written. See scripts/verify-citations.R.
+% Rule: every entry carries a resolving DOI, arXiv ID, ISBN or URL, and every
+% field is transcribed from a metadata record rather than written from memory.
+% scripts/verify-citations.R enforces the first half of that and fails the
+% build on an entry with no identifier at all; the second half is on whoever
+% adds the entry.
+%
+% An entry that genuinely cannot carry an identifier -- a 1966 report with no
+% scan, a society magazine -- needs an explicit "% NOIDENT-OK" line above it.
+% That makes each tolerance deliberate and greppable instead of silent, which
+% is what the earlier version of the checker got wrong: it reported
+% identifier-less entries as "tolerated" and exited 0.
 
 % ── Dimension reduction ─────────────────────────────────────────────────────
 
@@ -103,18 +110,221 @@
   doi       = {10.1017/9781108778633}
 }
 
-% ── UNVERIFIED — do not cite until the identifier is confirmed ───────────────
+% ── Evaluation metrics and their limits ─────────────────────────────────────
 %
-% Venna & Kaski — trustworthiness and continuity. Needed as the primary
-% citation in Chapter 9. Several candidate papers carry the idea (ICANN 2001;
-% Neural Networks 2006) and the correct one was not confirmed here. Resolve
-% before Chapter 9 is written; do not cite from memory.
+% Every entry below was written from a metadata record fetched from the
+% registration agency or the publisher, not from memory. Where the title in a
+% design note disagreed with the record, the record won.
+
+@article{kaski2003trustworthiness,
+  title   = {Trustworthiness and metrics in visualizing similarity of gene
+             expression},
+  author  = {Kaski, Samuel and Nikkil{\"a}, Janne and Oja, Merja and
+             Venna, Jarkko and T{\"o}r{\"o}nen, Petri and Castr{\'e}n, Eero},
+  journal = {BMC Bioinformatics},
+  volume  = {4},
+  number  = {1},
+  pages   = {48},
+  year    = {2003},
+  doi     = {10.1186/1471-2105-4-48}
+}
+
+@incollection{venna2001neighborhood,
+  title     = {Neighborhood Preservation in Nonlinear Projection Methods:
+               An Experimental Study},
+  author    = {Venna, Jarkko and Kaski, Samuel},
+  booktitle = {Artificial Neural Networks --- ICANN 2001},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {485--491},
+  year      = {2001},
+  publisher = {Springer Berlin Heidelberg},
+  doi       = {10.1007/3-540-44668-0_68}
+}
+
+@article{venna2006local,
+  title   = {Local multidimensional scaling},
+  author  = {Venna, Jarkko and Kaski, Samuel},
+  journal = {Neural Networks},
+  volume  = {19},
+  number  = {6-7},
+  pages   = {889--899},
+  year    = {2006},
+  doi     = {10.1016/j.neunet.2006.05.014}
+}
+
+@article{venna2010information,
+  title   = {Information Retrieval Perspective to Nonlinear Dimensionality
+             Reduction for Data Visualization},
+  author  = {Venna, Jarkko and Peltonen, Jaakko and Nybo, Kristian and
+             Aidos, Helena and Kaski, Samuel},
+  journal = {Journal of Machine Learning Research},
+  volume  = {11},
+  number  = {13},
+  pages   = {451--490},
+  year    = {2010},
+  url     = {https://jmlr.org/papers/v11/venna10a.html}
+}
+
+@article{lee2009quality,
+  title   = {Quality assessment of dimensionality reduction: Rank-based
+             criteria},
+  author  = {Lee, John A. and Verleysen, Michel},
+  journal = {Neurocomputing},
+  volume  = {72},
+  number  = {7-9},
+  pages   = {1431--1443},
+  year    = {2009},
+  doi     = {10.1016/j.neucom.2008.12.017}
+}
+
+@book{lee2007nonlinear,
+  title     = {Nonlinear Dimensionality Reduction},
+  author    = {Lee, John A. and Verleysen, Michel},
+  publisher = {Springer New York},
+  year      = {2007},
+  isbn      = {9780387393506},
+  doi       = {10.1007/978-0-387-39351-3}
+}
+
+@article{machado2025necessary,
+  title   = {Necessary but not Sufficient: Limitations of Projection Quality
+             Metrics},
+  author  = {Machado, A. and Behrisch, M. and Telea, A.},
+  journal = {Computer Graphics Forum},
+  volume  = {44},
+  number  = {3},
+  pages   = {e70101},
+  year    = {2025},
+  doi     = {10.1111/cgf.70101}
+}
+
+@article{espadoto2021survey,
+  title   = {Toward a Quantitative Survey of Dimension Reduction Techniques},
+  author  = {Espadoto, Mateus and Martins, Rafael M. and Kerren, Andreas and
+             Hirata, Nina S. T. and Telea, Alexandru C.},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {27},
+  number  = {3},
+  pages   = {2153--2173},
+  year    = {2021},
+  doi     = {10.1109/TVCG.2019.2944182}
+}
+
+@article{kruskal1964fit,
+  title   = {Multidimensional Scaling by Optimizing Goodness of Fit to a
+             Nonmetric Hypothesis},
+  author  = {Kruskal, J. B.},
+  journal = {Psychometrika},
+  volume  = {29},
+  number  = {1},
+  pages   = {1--27},
+  year    = {1964},
+  doi     = {10.1007/BF02289565}
+}
+
+@article{kruskal1964numerical,
+  title   = {Nonmetric Multidimensional Scaling: A Numerical Method},
+  author  = {Kruskal, J. B.},
+  journal = {Psychometrika},
+  volume  = {29},
+  number  = {2},
+  pages   = {115--129},
+  year    = {1964},
+  doi     = {10.1007/BF02289694}
+}
+
+@article{balasubramanian2002isomap,
+  title   = {The Isomap Algorithm and Topological Stability},
+  author  = {Balasubramanian, Mukund and Schwartz, Eric L.},
+  journal = {Science},
+  volume  = {295},
+  number  = {5552},
+  pages   = {7},
+  year    = {2002},
+  doi     = {10.1126/science.295.5552.7a}
+}
+
+@article{lause2024elephant,
+  title   = {The art of seeing the elephant in the room: 2D embeddings of
+             single-cell data do make sense},
+  author  = {Lause, Jan and Berens, Philipp and Kobak, Dmitry},
+  journal = {PLOS Computational Biology},
+  volume  = {20},
+  number  = {10},
+  pages   = {e1012403},
+  year    = {2024},
+  doi     = {10.1371/journal.pcbi.1012403}
+}
+
+% ── The isometric Swiss roll ────────────────────────────────────────────────
 %
-% Miura — "Method of packaging and deployment of large membranes in space",
-% Institute of Space and Astronautical Science report, 1985. Universally cited
-% as the origin of the Miura-ori fold, but the report number was not confirmed
-% here. Chapter 3 needs it.
+% Cited by their real titles. Neither paper is called "The Euler Isometric
+% Swiss Roll" -- that is the name of a dataset proposed inside the first one,
+% in a paper about error metrics for streaming manifold learning. The second
+% only uses it, citing the first as its [30].
+
+@inproceedings{schoeneman2017error,
+  title     = {Error Metrics for Learning Reliable Manifolds from Streaming
+               Data},
+  author    = {Schoeneman, Frank and Mahapatra, Suchismit and
+               Chandola, Varun and Napp, Nils and Zola, Jaroslaw},
+  booktitle = {Proceedings of the 2017 SIAM International Conference on Data
+               Mining},
+  pages     = {750--758},
+  year      = {2017},
+  publisher = {Society for Industrial and Applied Mathematics},
+  doi       = {10.1137/1.9781611974973.84}
+}
+
+@misc{mahapatra2018learning,
+  title         = {Learning Manifolds from Non-stationary Streaming Data},
+  author        = {Mahapatra, Suchismit and Chandola, Varun},
+  year          = {2018},
+  eprint        = {1804.08833},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  doi           = {10.48550/arXiv.1804.08833}
+}
+
+% ── Origami, continued ──────────────────────────────────────────────────────
+
+@article{miura1985method,
+  title     = {Method of Packaging and Deployment of Large Membranes in Space},
+  author    = {Miura, Koryo},
+  journal   = {The Institute of Space and Astronautical Science report},
+  volume    = {618},
+  pages     = {1--9},
+  year      = {1985},
+  month     = {12},
+  publisher = {Institute of Space and Astronautical Science},
+  url       = {https://jaxa.repo.nii.ac.jp/records/31382},
+  note      = {No DOI was ever assigned. The JAXA repository record is the
+               identifier scripts/verify-citations.R checks; CiNii carries the
+               same record at https://cir.nii.ac.jp/crid/1050003824960950144}
+}
+
+@article{schenk2013geometry,
+  title   = {Geometry of Miura-folded metamaterials},
+  author  = {Schenk, Mark and Guest, Simon D.},
+  journal = {Proceedings of the National Academy of Sciences},
+  volume  = {110},
+  number  = {9},
+  pages   = {3276--3281},
+  year    = {2013},
+  doi     = {10.1073/pnas.1217998110}
+}
+
+% ── PARKED — no resolvable identifier exists ────────────────────────────────
 %
-% Maekawa's and Kawasaki's theorems — both are stated in Chapter 2 and both
-% need primary citations rather than a textbook secondary. Hull's Origametry
-% (above) covers them and is verified; use it until the primaries are checked.
+% These three are the primaries for the flat-foldability theorems, and none of
+% them resolves. Kawasaki (1989, 1OSME Ferrara) has no identifier; Justin
+% (1986, British Origami 118) is a society magazine with no DOI; Murata (1966)
+% has no scan or resolver record. Hull's Origametry is verified above and is
+% the honest citation until a primary resolves.
+%
+% Say in the text that the attribution history is tangled. That is true, and
+% more interesting than a fabricated primary.
+%
+% Entries added here later must carry the % NOIDENT-OK marker that
+% scripts/verify-citations.R requires, so that each tolerance is deliberate
+% and greppable rather than silent.

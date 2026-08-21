@@ -446,6 +446,46 @@ in CI; all nine are committed and read.
 
 ## Progress log
 
+- **2026-08-21, later** — **S0 closed, all eight.** `.gitignore` negation
+  verified with `git add --dry-run`; Phase-11 tree committed; `docs/` untracked;
+  render tolerance removed and replaced with a size-floor assertion on both
+  artefacts; every download link probed; one `render_book` call; `write_bib()`
+  moved to `scripts/write-package-bib.R` and `packages.bib` regenerated (`R-fs`
+  and `R-yaml`, the fingerprint of the per-chapter overwrite, are gone); the
+  three wrong sentences corrected; the nine-slot contract written into
+  `00-how-to-use.Rmd`.
+
+  Two items were not in this plan and had to be:
+
+  - **The book had never rendered in CI.** Every push since 2026-08-07 died in
+    `renv::restore()` on `libglpk.so.40`. `render-book.yml` had no apt step;
+    `helpers.yml` has had one since it was written. Fixed, and the restore now
+    passes.
+  - **S1-7** (the citation page) was pulled forward, because the callout
+    section of the section contract needs a call site for `boxempty` and
+    inventing a cross-reference to a file that does not exist is how dead links
+    start.
+
+- **2026-08-21, later still** — **S1-2, S1-3 and S1-4 closed.**
+
+  `verify-citations.R` hardened: identifier-less entries now fail unless marked
+  `% NOIDENT-OK` in the bib file, and a bidirectional key check catches a `@key`
+  cited in the sources but absent from the bibliography. Both holes were tested
+  by deliberately breaking the bibliography four ways; all four now exit 1.
+
+  Bibliography 9 → 25 entries, every field transcribed from a fetched metadata
+  record. Three corrections came out of doing that, all recorded in
+  `PROJECT_CONCEPT.md`: the Euler Isometric Swiss Roll is a *dataset* inside an
+  SDM 2017 paper about streaming error metrics, not a paper title, and the
+  second arXiv ID was a user of it rather than a co-primary; the Miura
+  repository URL had to be found rather than assumed, since every record id on
+  that host returns 200; and the unconfirmed ISSN was dropped.
+
+  **$A(k)$ is transcribed from the primary** — Kaski et al. 2003, section
+  *Measuring trustworthiness…*, with Eqs. (3) and (4). It matches what had been
+  written from memory. The paper's own caveat, that $A(k)$ is a scaling and not
+  a proven worst-case bound, is now recorded and belongs in Chapter 9.
+
 - **2026-08-21** — Concept baseline. `foldbench` dissolved into `R/` (Phase 11,
   `GENERATION_LOG.md`); Miura and Yoshimura folding maps derived and numerically
   verified; Machado et al. 2025, Lause et al. 2024 and the Euler Isometric Swiss

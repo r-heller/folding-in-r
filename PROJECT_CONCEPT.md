@@ -183,9 +183,30 @@ available desk reject.
   the embeddings to the evaluators — **is the published position of one of the two
   parties.** Cite it as such and claim the increment, not the position.
 
-- **The Euler Isometric Swiss Roll** (arXiv `1611.04067`, `1804.08833`).
-  **Verified.** Replaces the standard spiral with an Euler spiral precisely so
-  isometry holds. Chapter 11's "genuine technical contribution" — that the
+- **The Euler Isometric Swiss Roll.** **Verified, and the citation corrected.**
+  It is not the title of a paper. It is a *dataset* proposed inside
+  Schoeneman, Mahapatra, Chandola, Napp & Zola, *Error Metrics for Learning
+  Reliable Manifolds from Streaming Data*, SDM 2017, pp. 750–758,
+  `10.1137/1.9781611974973.84` (arXiv `1611.04067`). The second arXiv ID this
+  file previously listed as a co-primary, `1804.08833`, is Mahapatra &
+  Chandola, *Learning Manifolds from Non-stationary Streaming Data* — it only
+  *uses* the dataset, citing the first as its reference [30]. Cite the SDM
+  paper as the primary and the second only if the streaming context is
+  relevant.
+
+  Their construction and their stated reason for it are worth separating. They
+  replace $\hat{x}(t) = \alpha t\cos\beta t$, $\hat{y}(t) = \alpha t\sin\beta t$
+  with the Fresnel integrals $x(t) = \int_0^t \sin(s^2)\,ds$,
+  $y(t) = \int_0^t \cos(s^2)\,ds$, and justify it by the Euler spiral having
+  "curvature proportional to the distance from the origin", giving "constant
+  angular acceleration along the curve thus ensuring that isometry is
+  preserved". The construction is right; the reason is not quite. What makes it
+  isometric is that the Fresnel parameterisation is **unit speed** —
+  $|(x'(t), y'(t))| = 1$ — so $t$ *is* arc length. Chapter 11 can say that in
+  one line, and it should, because it is checkable and the paper's own
+  phrasing is not.
+
+  Either way, Chapter 11's "genuine technical contribution" — that the
   customary Swiss-roll answer key is not the isometric one — is a **known**
   defect, already corrected.
 
@@ -203,20 +224,56 @@ Kruskal 1964, Balasubramanian & Schwartz 2002.
 Two of the three UNVERIFIED entries are now resolved and may be written.
 
 - **Trustworthiness and continuity do not come from one paper.** Venna & Kaski
-  (ICANN 2001, `10.1007/3-540-44668-0_68`) propose trustworthiness alone.
-  **Kaski et al. (BMC Bioinformatics 4:48, 2003, `10.1186/1471-2105-4-48`) is
-  where both measures appear with the scaling $A(k) = 2/(Nk(2N-3k-1))$** that R
-  implementations use. Venna & Kaski (Neural Networks 19(6–7), 2006,
-  `10.1016/j.neunet.2006.05.014`) is where the pair is named and framed as a
-  tradeoff. The authors' own attribution in Venna et al. (JMLR 2010) settles it:
-  *"Our fourth pair of measures is trustworthiness-continuity (Kaski et al.,
-  2003)."* **Chapter 9's primary is `kaski2003`**, with 2001 for priority and 2006
-  for the names.
+  (ICANN 2001, `10.1007/3-540-44668-0_68` — *Neighborhood Preservation in
+  Nonlinear Projection Methods: An Experimental Study*) propose trustworthiness
+  alone. **Kaski et al. (BMC Bioinformatics 4:48, 2003,
+  `10.1186/1471-2105-4-48`) is where both measures appear with their scaling.**
+  Venna & Kaski (Neural Networks 19(6–7):889–899, 2006,
+  `10.1016/j.neunet.2006.05.014`) is *Local multidimensional scaling* — a
+  method paper that uses the pair, not a paper about the measures; cite it for
+  the tradeoff framing and not as their definition. **Chapter 9's primary is
+  `kaski2003trustworthiness`**, with 2001 for priority.
 
-- **Miura's report number is 618.** Institute of Space and Astronautical Science
-  report No. 618, pp. 1–9, December 1985, ISSN 0285-6808. Confirmed from the JAXA
-  repository record and CiNii. No DOI was ever assigned; the repository URL is
-  the identifier `verify-citations.R` will check, and it returns 200.
+  **$A(k)$ is transcribed and it was right.** Verbatim from the paper's section
+  *Measuring trustworthiness and detecting genes for which the visualization is
+  suspect*: "where $A(k) = 2/(Nk(2N-3k-1))$ scales the values between zero and
+  one." Equations (3) and (4):
+
+  $$M_1(k) = 1 - A(k)\sum_{i=1}^{N}\sum_{x_j \in U_k(x_i)}\big(r(x_i,x_j) - k\big)$$
+  $$M_2(k) = 1 - A(k)\sum_{i=1}^{N}\sum_{x_j \in V_k(x_i)}\big(\hat{r}(x_i,x_j) - k\big)$$
+
+  with $r$ the rank in the **original** space, $\hat{r}$ the rank in the
+  **display**, $U_k(x_i)$ the points in the display neighbourhood but not the
+  original (trustworthiness, $M_1$), and $V_k(x_i)$ the points in the original
+  neighbourhood but not the display (continuity, $M_2$). Ties are handled by
+  averaging over all compatible rank orders.
+
+  One caveat the book must carry, because the authors state it and most
+  re-implementations drop it: $A(k)$ is a *scaling*, not a proven worst-case
+  bound. The paper says "the worst attainable values of $M_1$ may, at least in
+  principle, vary with $k$, and were estimated in Figures 2 and 3 with random
+  projections and with random neighborhoods." So a value slightly below zero is
+  not necessarily a bug, and Chapter 9 should say so rather than clamping.
+
+- **Miura's report number is 618, and the record URL is now pinned.** Koryo
+  Miura, *Method of Packaging and Deployment of Large Membranes in Space*, The
+  Institute of Space and Astronautical Science report **618**, pp. 1–9,
+  December 1985. No DOI was ever assigned. The identifier
+  `verify-citations.R` checks is the JAXA repository record,
+  <https://jaxa.repo.nii.ac.jp/records/31382>; CiNii carries the same record at
+  CRID `1050003824960950144`, which is where the volume and page range come
+  from. Note that *any* record id on that host returns 200, so "it returns 200"
+  is not on its own evidence that the URL is the right one — this one was
+  checked by reading the record.
+
+  The ISSN previously recorded here (0285-6808) is **not** confirmed and is
+  dropped rather than carried; the entry does not need it.
+
+  Miura's own abstract is worth quoting in Chapter 3, because he frames the
+  construction exactly as this book does: the result "represents the isometric
+  transfer of an infinite plane subject to biaxial shortening", giving "the
+  concave polyhedral surface … composed of a repetition of a fundamental
+  region, which is further composed of four congruent parallelograms."
 
 - **Maekawa/Kawasaki primaries stay parked.** Kawasaki (1989, 1OSME Ferrara) has
   no resolvable identifier; Justin (1986, *British Origami* 118) is a society
@@ -225,9 +282,10 @@ Two of the three UNVERIFIED entries are now resolved and may be written.
   primary resolves. Say in the text that the attribution history is tangled —
   that is true and more interesting than a fake primary.
 
-**The normalising constant $A(k)$ must be transcribed from Kaski et al. 2003
-before Chapter 9 is drafted.** Every number in that chapter depends on it, and it
-has so far only ever been written from memory.
+**The normalising constant $A(k)$ has been transcribed from Kaski et al. 2003**
+and is recorded above with both equations. It agrees with what had been written
+from memory — but it was checked, and that is the difference between a gate and
+a hope.
 
 ---
 
