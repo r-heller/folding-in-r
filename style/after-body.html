@@ -78,48 +78,76 @@
     var chapterPdf = current.replace(/\.html$/, ".pdf");
     var isLanding = current === "" || current === "index.html";
 
-    var wrap = document.createElement("div");
-    wrap.className = "book-downloads";
+    // Every link in this block is probed before it is offered.
+    //
+    // The full-book link used to be written unconditionally while the chapter
+    // link below it was probed -- and that asymmetry was the bug. The render
+    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
+    // so a build could deploy green with a "Downloads" box pointing at a PDF
+    // that was never produced. The workflow no longer tolerates that (it
+    // asserts both artefacts exist and clear a size floor), but a link that
+    // checks its own target is cheap, and the two mechanisms fail
+    // independently: a deploy that partially clears gh-pages would leave the
+    // assertion satisfied and the link dead.
+    //
+    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
+    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
+    // often legitimately absent. Probing beats keeping a second copy of that
+    // skip list here in sync with the R script.
 
-    var heading = document.createElement("h6");
-    heading.className = "book-downloads-heading";
-    heading.textContent = "Downloads";
-    wrap.appendChild(heading);
+    var TARGETS = [
+      { href: "folding-in-r.pdf",
+        id:   "book-download-full",
+        text: "Entire book (PDF) ",
+        icon: "fa-solid fa-book",
+        skip: false },
+      { href: "pdf-chapters/" + chapterPdf,
+        id:   "book-download-chapter",
+        text: "This chapter (PDF) ",
+        icon: "fa-solid fa-file-pdf",
+        skip: isLanding }
+    ];
 
-    var list = document.createElement("ul");
-    list.className = "list-unstyled";
+    var exists = function (t) {
+      if (t.skip) return Promise.resolve(false);
+      return fetch(t.href, { method: "HEAD" })
+        .then(function (r) { return r.ok; })
+        .catch(function () { return false; });
+    };
 
-    var liBook = document.createElement("li");
-    var aBook = document.createElement("a");
-    aBook.id = "book-download-full";
-    aBook.href = "folding-in-r.pdf";
-    aBook.textContent = "Entire book (PDF) ";
-    var iconBook = document.createElement("i");
-    iconBook.className = "fa-solid fa-book";
-    aBook.appendChild(iconBook);
-    liBook.appendChild(aBook);
-    list.appendChild(liBook);
+    Promise.all(TARGETS.map(exists)).then(function (found) {
+      // Resolved together rather than appended as each probe lands, so the
+      // order is the order of TARGETS and not the order of the network.
+      var live = TARGETS.filter(function (t, i) { return found[i]; });
+      if (!live.length) return;              // nothing to offer, no empty box
+      if (document.querySelector(".book-downloads")) return;
 
-    wrap.appendChild(list);
-    bookExtra.parentNode.insertBefore(wrap, bookExtra);
+      var wrap = document.createElement("div");
+      wrap.className = "book-downloads";
 
-    // Front and back matter — Impressum, Acknowledgments, Colophon — are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter link is
-    // added only once the file is known to exist. Probing beats keeping a
-    // second copy of the skip list here in sync with the R script.
-    if (isLanding) return;
-    fetch("pdf-chapters/" + chapterPdf, { method: "HEAD" }).then(function (r) {
-      if (!r.ok) return;
-      var liChapter = document.createElement("li");
-      var aChapter = document.createElement("a");
-      aChapter.id = "book-download-chapter";
-      aChapter.href = "pdf-chapters/" + chapterPdf;
-      aChapter.textContent = "This chapter (PDF) ";
-      var iconCh = document.createElement("i");
-      iconCh.className = "fa-solid fa-file-pdf";
-      aChapter.appendChild(iconCh);
-      liChapter.appendChild(aChapter);
-      list.appendChild(liChapter);
+      var heading = document.createElement("h6");
+      heading.className = "book-downloads-heading";
+      heading.textContent = "Downloads";
+      wrap.appendChild(heading);
+
+      var list = document.createElement("ul");
+      list.className = "list-unstyled";
+
+      live.forEach(function (t) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.id = t.id;
+        a.href = t.href;
+        a.textContent = t.text;
+        var icon = document.createElement("i");
+        icon.className = t.icon;
+        a.appendChild(icon);
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+
+      wrap.appendChild(list);
+      bookExtra.parentNode.insertBefore(wrap, bookExtra);
     });
   });
 </script>

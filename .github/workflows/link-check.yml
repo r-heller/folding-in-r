@@ -1,0 +1,78 @@
+# Dead-link surveillance.
+#
+# Two things are checked, in two places, because neither alone is enough:
+#
+#   * here -- every URL written into the sources, plus the deployed site if
+#     there is one. Runs weekly, so link rot is found on a schedule rather than
+#     by a reader.
+#   * render-book.yml -- every link in the freshly rendered docs/, which is a
+#     build product and does not exist anywhere this workflow could reach it.
+#     Internal links there block the deploy.
+#
+# The sibling volume methods-in-r shipped with 4,093 dead links. Nothing was
+# wrong with its writing; nothing ever looked.
+name: Link check
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"        # Mondays, 06:17 UTC
+  pull_request:
+    paths:
+      - "**/*.Rmd"
+      - "**/*.md"
+      - "style/**"
+      - ".github/workflows/link-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sources:
+    name: URLs written in the sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sources, not the rendered book: this catches a bad URL before it is
+      # ever published, and needs no render to do it.
+      - name: Check links in Rmd, Markdown and style includes
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-retries 3
+            --timeout 30
+            --accept 200,206,429
+            '*.Rmd' '*.md' 'style/*.html' '.github/**/*.md'
+          fail: true
+
+  site:
+    name: The deployed site
+    runs-on: ubuntu-latest
+    steps:
+      # GitHub Pages is not enabled for this repository yet -- render-book.yml
+      # has never completed a run, so gh-pages does not exist. Rather than fail
+      # every scheduled run until it does, probe first and skip.
+      - name: Is the site up?
+        id: probe
+        run: |
+          url="https://r-heller.github.io/folding-in-r/"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$url" || echo 000)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" != "200" ]; then
+            echo "::notice::$url returned $code -- no deployed site to check yet."
+          fi
+
+      - name: Crawl the published book
+        if: steps.probe.outputs.code == '200'
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-retries 3
+            --timeout 30
+            --accept 200,206,429
+            --include-fragments
+            'https://r-heller.github.io/folding-in-r/'
+          fail: true

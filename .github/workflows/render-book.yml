@@ -21,6 +21,20 @@ jobs:
         with:
           use-public-rspm: true
 
+      # renv::restore() below builds igraph, which links against GLPK, and
+      # vegan/Matrix which want the usual headers. Without this step the
+      # restore aborts before a single chapter is knitted -- which is what has
+      # happened on every push to this repository so far. Run 31155400211:
+      # "error testing if 'igraph' can be loaded ... libglpk.so.40: cannot open
+      # shared object file". helpers.yml has carried this step since it was
+      # written; render-book.yml never did, so the book has not once rendered
+      # in CI.
+      - name: System libraries the pinned packages link against
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev libpng-dev
+
       - uses: r-lib/actions/setup-renv@v2
 
       # torch is recorded in renv.lock but only Chapter 7 needs it, and it
@@ -28,21 +42,6 @@ jobs:
       # 90-minute ceiling; see the README.
       - name: Restore the pinned library, minus torch
         run: Rscript -e 'renv::restore(exclude = "torch", prompt = FALSE)'
-
-      # foldbench is a sibling repository. It is not needed to render the
-      # scaffold — every chunk is eval = FALSE until a chapter is written — so
-      # the checkout is allowed to fail and the render continues without it.
-      - name: Check out foldbench
-        id: foldbench
-        continue-on-error: true
-        uses: actions/checkout@v4
-        with:
-          repository: r-heller/foldbench
-          path: .foldbench-src
-
-      - name: Install foldbench
-        if: steps.foldbench.outcome == 'success'
-        run: R CMD INSTALL .foldbench-src
 
       - name: Install TinyTeX (TinyTeX-2 bundle — includes hyperref + common packages)
         run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'
@@ -61,21 +60,87 @@ jobs:
           ))'
         continue-on-error: true
 
-      - name: Render HTML (bs4_book)
-        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::bs4_book")'
+      # packages.bib is committed, not generated at render time -- see
+      # scripts/write-package-bib.R. This asserts the committed copy still
+      # matches the installed versions; it never rewrites the file, so the
+      # entry for torch (excluded above) is left alone rather than dropped.
+      - name: packages.bib is up to date
+        run: Rscript scripts/write-package-bib.R --check
 
-      - name: Render EPUB
-        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::epub_book")'
-        continue-on-error: true
+      # One call, not three. Rendering each format separately re-knits all 22
+      # chapters three times over, and this job already sits close to the
+      # 90-minute ceiling.
+      - name: Render the book in all three formats
+        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "all")'
 
-      - name: Render PDF
-        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::pdf_book")'
-        continue-on-error: true
+      # No continue-on-error above. A failed EPUB or PDF render used to deploy
+      # a green build with dead download links pointing at artefacts that were
+      # never produced. A truncated PDF is as bad as a missing one, so the
+      # floor is on size, not existence.
+      - name: Assert both downloadable artefacts exist and are not truncated
+        run: |
+          set -euo pipefail
+          fail=0
+          check() {
+            if [ ! -f "$1" ]; then
+              echo "::error::$1 was not produced"; fail=1; return
+            fi
+            size=$(stat -c%s "$1")
+            if [ "$size" -lt "$2" ]; then
+              echo "::error::$1 is $size bytes, below the $2-byte floor -- truncated render"
+              fail=1; return
+            fi
+            echo "$1 ok ($size bytes)"
+          }
+          check docs/folding-in-r.pdf 200000
+          check docs/folding-in-r.epub 100000
+          exit $fail
 
       # bookdown knits each chapter to <name>.md under new_session and leaves
       # the result in output_dir. Build by-products, not part of the site.
+      # Dropped before the link check so lychee does not walk them.
       - name: Drop knit intermediates
         run: rm -f docs/*.md
+
+      # The site is checked where it exists. docs/ is a build product and is
+      # not tracked (see .gitignore), so there is no standalone workflow that
+      # could scan it without re-rendering the whole book -- this is the one
+      # job that already has it on disk.
+      #
+      # Internal links block the deploy: a dead relative href is a broken
+      # \@ref(), a renamed anchor or a download target that was not produced,
+      # and every one of those is our own bug. The sibling volume shipped 4,093
+      # dead links because nothing ever looked.
+      - name: Check internal links in the rendered site
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --offline
+            --no-progress
+            --include-fragments
+            --root-dir "$GITHUB_WORKSPACE/docs"
+            'docs/**/*.html'
+          fail: true
+
+      # External links do not block the deploy -- a rate-limited DOI resolver
+      # is not a reason to withhold the book -- but they are reported, and the
+      # scheduled run in link-check.yml is what turns a report into a task.
+      - name: Check external links in the rendered site
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-retries 3
+            --timeout 30
+            --accept 200,206,429
+            --exclude-path docs/libs
+            'docs/**/*.html'
+          fail: false
+          output: lychee-external.md
+
+      - name: Publish the external-link report
+        if: always()
+        run: cat lychee-external.md >> "$GITHUB_STEP_SUMMARY" || true
 
       # Per-chapter PDFs are rendered by the manual workflow in
       # .github/workflows/per-chapter-pdfs.yml, which deploys them to

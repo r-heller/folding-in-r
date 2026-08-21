@@ -14,11 +14,17 @@ bookdown::bs4_book:
     in_header: style/header.html
     after_body: style/after-body.html
   split_by: chapter
+  # `config:` is a gitbook option. bs4_book absorbs it through ... and ignores
+  # it -- the rendered pages carry no download markup and no collapse
+  # behaviour from these keys, which was checked against docs/index.html.
+  # `download: ["pdf", "epub"]` is dropped rather than left as decoration: it
+  # read as a second, unguarded source of download links beside the probed
+  # block in style/after-body.html, which is the mechanism that actually
+  # builds them.
   config:
     toc:
       collapse: section
       scroll_highlight: yes
-    download: ["pdf", "epub"]
 
 bookdown::pdf_book:
   latex_engine: xelatex
