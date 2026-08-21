@@ -84,3 +84,41 @@ Gates: `render_book(output_format = "all")` clean; 18 chapter PDFs, each
 matching an HTML page; 9 identifiers resolve; `foldbench` checks 0/0/0.
 
 Not done, per the scope note: push, release, GitHub Pages.
+
+## Phase 11 — `foldbench` dissolved into the book
+
+The companion package is gone. Its contents move into `R/` as plain scripts,
+sourced by `_common.R` the same way `scientometrics-in-r` sources its helpers.
+
+Rationale. `foldbench` was never published — Phase 5 built it as a local
+sibling directory and `github.com/r-heller/foldbench` returned 404 — so the
+book has always described an install step no reader could perform. Keeping the
+code in the book repository also removes the failure mode the package
+introduced: a reader rendering the book at commit X against helpers at some
+other version, with nothing recording which. The helpers are now versioned with
+the chapters that use them, at the same commit.
+
+Changes:
+
+- `R/` added, with `R/README.md` documenting the intended file layout
+  (`patterns.R`, `folding.R`, `sampling.R`, `constructions.R`, `metrics.R`,
+  `plotting.R`). One file per concern, sourced alphabetically, so no file may
+  depend on another at source time — only at call time.
+- `_common.R` sources `R/*.R`. Tolerant of an empty `R/` while the chapters are
+  still stubs and every chunk is `eval = FALSE`; this must become a hard error
+  once the first chapter goes live.
+- `.github/workflows/r-cmd-check.yml` replaced by `helpers.yml`, which sources
+  every script in `R/` and runs testthat. Inert while `R/` is empty, matching
+  the behaviour of the workflow it replaces.
+- `render-book.yml` no longer checks out and installs `r-heller/foldbench`.
+- `scripts/run-benchmark-grid.R` sources `R/` instead of `library(foldbench)`,
+  and its provenance note now records the commit SHA of `R/` rather than a
+  package version.
+- README, `00-how-to-use.Rmd` and `08-building-benchmarks.Rmd` updated; the
+  install line `R CMD INSTALL ../foldbench` is removed from the build recipe.
+
+`renv/settings.json` no longer lists `foldbench` under `ignored.packages`; the
+list is now empty. `renv.lock` itself never referenced it.
+
+Earlier entries in this log describing `foldbench` as a sibling package are left
+as written. This log is append-only and records what was true at each phase.

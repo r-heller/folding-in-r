@@ -1,0 +1,84 @@
+# Tests for the book's helper scripts in R/.
+#
+# This replaces an R-CMD-check workflow that checked a companion package,
+# foldbench, in a sibling repository. That package was dissolved into the book
+# before it was ever published: R/ holds plain scripts sourced by _common.R, so
+# there is nothing to install and nothing to keep in step with the chapters.
+#
+# While R/ is still empty the job reports success without doing work, the same
+# way the old workflow reported skipped.
+name: Helper tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "R/**"
+      - "tests/**"
+      - ".github/workflows/helpers.yml"
+  pull_request:
+    paths:
+      - "R/**"
+      - "tests/**"
+      - ".github/workflows/helpers.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        r-version: ['release', 'oldrel-1']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Are there helpers to test yet?
+        id: have
+        run: |
+          n=$(ls R/*.R 2>/dev/null | wc -l)
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          [ "$n" -eq 0 ] && echo "R/ holds no scripts yet — nothing to test." || true
+
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.have.outputs.count != '0'
+        with:
+          r-version: ${{ matrix.r-version }}
+          use-public-rspm: true
+
+      - name: Install system dependencies
+        if: steps.have.outputs.count != '0'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev libglpk-dev
+
+      - name: Disable renv autoloader in CI
+        if: steps.have.outputs.count != '0'
+        run: rm -f .Rprofile
+
+      - name: Install dependencies
+        if: steps.have.outputs.count != '0'
+        run: |
+          install.packages(c(
+            "testthat", "ggplot2", "viridis", "Matrix", "RSpectra",
+            "igraph", "vegan", "Rtsne", "umap"
+          ))
+        shell: Rscript {0}
+
+      - name: Every helper script parses and sources cleanly
+        if: steps.have.outputs.count != '0'
+        run: |
+          helpers <- sort(list.files("R", pattern = "\\.R$", full.names = TRUE))
+          for (f in helpers) source(f)
+          cat("sourced", length(helpers), "helper scripts\n")
+        shell: Rscript {0}
+
+      - name: Run testthat
+        if: steps.have.outputs.count != '0' && hashFiles('tests/testthat/**') != ''
+        run: Rscript tests/testthat.R

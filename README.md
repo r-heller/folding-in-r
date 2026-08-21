@@ -73,16 +73,17 @@ completeness.
 - References
 <!-- TOC:END -->
 
-## Companion package
+## The code
 
-`foldbench` provides the pattern constructors, the folding and sampling
-interface, the product and lift constructions, and the evaluation metrics.
-The book loads it; it does not reproduce its source.
+The pattern constructors, the folding and sampling interface, the product and
+lift constructions, and the evaluation metrics live in `R/` as plain scripts,
+sourced by `_common.R` at render time. There is no companion package to
+install, and no way for the helpers to drift from the chapters that use them:
+they are versioned together, in this repository, at the same commit.
 
 ## Building the book
 
 ```sh
-R CMD INSTALL ../foldbench
 R -e 'renv::restore()'
 R -e 'bookdown::render_book("index.Rmd", output_format = "all")'
 ```
@@ -90,12 +91,7 @@ R -e 'bookdown::render_book("index.Rmd", output_format = "all")'
 Two passes are not required, but `renv::restore()` is: the package versions are
 pinned in `renv.lock`.
 
-Two packages need a word of explanation.
-
-`foldbench` is deliberately absent from `renv.lock` — it is a sibling source
-repository, not a CRAN package, so it is installed by hand as shown above and
-listed under `ignored.packages` in `renv/settings.json`. `renv::status()` will
-not mention it.
+One package needs a word of explanation.
 
 `torch` **is** in the lockfile but is not installed in the working checkout.
 Only Chapter 7 needs it, it pulls a large binary backend on first use, and the

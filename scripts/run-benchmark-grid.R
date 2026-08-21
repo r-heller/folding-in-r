@@ -6,14 +6,14 @@
 # NOT run in CI and not run at render time -- the full grid takes hours. Run it
 # locally, commit the .rds, and keep this script as the provenance record for
 # how that file was produced. If the grid is regenerated, note the date and the
-# foldbench version in GENERATION_LOG.md.
+# commit SHA of R/ in GENERATION_LOG.md.
 #
 # Usage:  Rscript scripts/run-benchmark-grid.R [--quick]
 #         --quick  runs a small grid for smoke-testing the pipeline
 
-suppressPackageStartupMessages({
-  library(foldbench)
-})
+# The helpers are plain scripts in R/, not a package — source them the same way
+# _common.R does. Run this script from the repository root.
+for (f in sort(list.files("R", pattern = "\\.R$", full.names = TRUE))) source(f)
 
 quick <- "--quick" %in% commandArgs(trailingOnly = TRUE)
 

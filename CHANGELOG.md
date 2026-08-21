@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Style assets: Hugo Coder palette, Inter and JetBrains Mono, LaTeX preamble.
 - Chapter stubs for twelve body chapters in four parts, front and back matter,
   and two appendices.
-- Companion package `foldbench` (local sibling directory).
+- Book helper scripts in `R/`, sourced directly by `_common.R`.
 - Verified bibliography and a citation checker.
-- Render, citation-check and package-check workflows.
+- Render, citation-check and helper-test workflows.
 - `README.md`, `CITATION.cff` and contribution guide.
 - VG Wort instrumentation scaffold.
