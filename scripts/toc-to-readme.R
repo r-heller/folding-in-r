@@ -25,7 +25,14 @@ heading_of <- function(f) {
   h1 <- h1[1]
   ttl <- sub("^#\\s+", "", h1)
   ttl <- sub("\\s*\\{[^}]*\\}\\s*$", "", ttl)   # drop {#anchor} or {-}
-  list(title = trimws(ttl), numbered = !grepl("\\{-\\}", h1))
+  # A heading is unnumbered if its attribute block carries "-" or the explicit
+  # ".unnumbered" class. Pandoc treats them as synonyms; this script used to
+  # know only the first, so "# Citing this book {#citing .unnumbered}" was
+  # given a chapter number in the README while being unnumbered in the book.
+  attrs <- regmatches(h1, regexpr("\\{[^}]*\\}\\s*$", h1))
+  unnumbered <- length(attrs) > 0 &&
+    grepl("(^|[{ ])-($|[ }])|\\.unnumbered\\b", attrs)
+  list(title = trimws(ttl), numbered = !unnumbered)
 }
 
 lines <- character()

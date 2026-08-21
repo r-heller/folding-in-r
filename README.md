@@ -70,6 +70,7 @@ completeness.
 - Glossary
 - Colophon
 - About the author
+- Citing this book
 - References
 <!-- TOC:END -->
 
