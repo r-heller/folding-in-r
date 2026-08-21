@@ -6,17 +6,36 @@
 **Developable surface**
 : A surface that can be flattened into a plane without stretching or tearing.
 
-**Fold angle ($\theta$)**
-: The dihedral angle at a crease. Runs from 0 (flat sheet) to $\theta_{\max}$
-  (fully compressed) and serves as the difficulty parameter throughout.
+**Dihedral angle ($\rho$)**
+: The angle between the two facets meeting at a crease, measured in the ambient
+  space. A crease in an unfolded sheet has $\rho = \pi$, not 0, and $\rho$
+  decreases as the sheet folds. It is *derived* from $\theta$ and is never a
+  synonym for it.
 
-**Isometry**
-: A map that preserves distances measured *along* the surface. Rigid folding is
-  an isometry; this is the property the whole book rests on.
+**Folding parameter ($\theta$)**
+: The parameter of the folding map, and the difficulty axis of the whole book.
+  $\theta = 0$ is the flat sheet, and the pattern folds monotonically as
+  $\theta$ grows. It is a parameter, not an angle read off a figure; the map
+  $\rho(\theta)$ from it to the dihedral angle is stated once per pattern in
+  Chapter \@ref(folding-geometry).
+
+**Isometry, intrinsic and ambient**
+: An *intrinsic* isometry preserves distances measured **along** the surface.
+  An *ambient* isometry preserves straight-line distance in the space the
+  surface sits in. Rigid folding is the first and emphatically not the second:
+  it contracts ambient distance strictly for every $\theta > 0$. Which of the
+  two a method consumes is the distinction the book turns on, and the reason
+  Chapter \@ref(evaluation) reports two headline numbers rather than one.
 
 **Mountain / valley assignment**
 : The direction of each crease. Written M and V; encoded by linetype as well as
   colour in every figure.
+
+**Reach**
+: The largest $r$ such that every point within $r$ of the surface has a unique
+  nearest point on it. Most manifold-learning guarantees are stated in terms of
+  a positive reach; a creased surface has reach exactly zero, which is what puts
+  these objects outside the theory rather than merely at its edge.
 
 **Rigid origami**
 : Folding in which facets stay flat and all deformation happens at creases.

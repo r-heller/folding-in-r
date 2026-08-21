@@ -4,9 +4,38 @@
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
+- Intrinsic versus ambient isometry — the distinction the whole book turns on.
+  A rigid folding preserves the *path* metric exactly. It is not an isometry of
+  the *ambient* metric: across a crease of dihedral angle $\rho$, the ratio of
+  ambient to geodesic distance for a symmetric pair is exactly $\sin(\rho/2)$,
+  so folding strictly contracts ambient distance for every $\theta > 0$.
 - Developability and why a folded sheet has zero Gaussian curvature on facets.
+- Curvature is **not** concentrated at the vertices, and the chapter argues
+  against that reading rather than merely avoiding it — it is the natural wrong
+  intuition. A folded flat sheet has vertex angle sums of exactly $2\pi$, so
+  discrete Gaussian curvature is identically zero; were it otherwise the
+  isometry claim would collapse. What concentrates on the creases is the
+  *extrinsic* second fundamental form, as a measure on the 1-skeleton, and the
+  consequence that matters for manifold learning is that the **reach is exactly
+  zero**.
 - Rigid vs. non-rigid folding; why only rigid folding preserves the isometry we rely on.
 - Maekawa's theorem: $|M - V| = 2$ at every interior vertex of a flat-foldable pattern.
 - Kawasaki's theorem: alternating angle sums at an interior vertex are equal.
+  Say plainly that the attribution history here is tangled: Kawasaki 1989,
+  Justin 1986 and Murata 1966 have no resolvable identifiers between them, and
+  Hull's *Origametry* is the honest citation until one does.
 - Boxed aside, one page, labelled background: the Huzita–Hatori axioms.
-- Piecewise-flat surfaces sit *outside* the smoothness assumptions of manifold-learning theory. Stated as realism, not as a caveat — real data manifolds have creases too.
+- **Proposition (the stress inversion).** Ambient-referenced stress measures
+  reproduction of $d_A$; the contraction result above gives $d_A < d_U$ strictly
+  for every $\theta > 0$; two-component PCA is the least-squares-optimal linear
+  approximant to that same ambient configuration. Therefore
+  $\mathrm{stress}(\mathcal{U}) > \mathrm{stress}(\mathrm{PCA})$ — the exact
+  answer key scores worse than a plainly wrong embedding. One line, no
+  simulation. It arrives here rather than in Chapter \@ref(evaluation) because
+  it is a theorem about a definition, and spending grid cells to demonstrate a
+  definition invites exactly the objection it should be immune to.
+- Piecewise-flat surfaces sit *outside* the smoothness assumptions of
+  manifold-learning theory. Stated as realism, not as a caveat. The transfer
+  argument is by **disqualification**, and it asserts nothing about biology: a
+  method that fails where an exact answer exists has no claim on a problem
+  where none does.

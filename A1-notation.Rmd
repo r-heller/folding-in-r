@@ -4,10 +4,13 @@
 
 | Symbol | Meaning |
 |---|---|
-| $\theta$ | Fold angle; the difficulty parameter |
+| $\theta$ | Folding parameter; the difficulty axis. $\theta = 0$ is the flat sheet |
+| $\rho$ | Dihedral angle at a crease. $\rho = \pi$ when $\theta = 0$; derived from $\theta$, not a second name for it |
 | $a, b, \alpha$ | Miura-ori cell parameters |
 | $M, V$ | Mountain and valley creases |
 | $k$ | Neighbourhood size for kNN-graph methods |
 | $D$ | Ambient dimension after linear lift |
 | $\mathcal{M}$ | The folded manifold in $\mathbb{R}^3$ |
 | $\mathcal{U}$ | The exact unfolding — ground truth in $\mathbb{R}^2$ |
+| $d_A$ | Ambient distance, measured in $\mathbb{R}^3$ through the fold |
+| $d_U$ | Intrinsic (path) distance, measured along the surface — equal to Euclidean distance in $\mathcal{U}$ |
