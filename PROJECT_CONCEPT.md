@@ -18,8 +18,32 @@ A rigid folding of a flat sheet is an isometry of the **intrinsic** (path)
 metric. It is emphatically **not** an isometry of the ambient metric: for a
 symmetric pair of points across a crease of dihedral angle $\rho$, the ratio of
 ambient to geodesic distance is exactly $\sin(\rho/2)$ — folding is a strict
-ambient contraction for every $\theta > 0$. This was verified in closed form to
-$1.06\times10^{-15}$.
+ambient contraction for every $\theta > 0$.
+
+Re-derived and re-checked here rather than carried over: over 360 configurations
+spanning $\rho \in (0, \pi]$ and varying both the distance from the crease and
+the position along it, $|d_A/d_U - \sin(\rho/2)|$ has a maximum of
+$1.11\times10^{-16}$ — one unit in the last place. The ratio depends on $\rho$
+alone, which is the substance of the claim; it is not an approximation that
+degrades with distance.
+
+**The strictness has a numerical floor, and the book should say so.** Since
+$1 - \sin(\rho/2) \approx (\pi-\rho)^2/8$, the contraction falls below machine
+epsilon while the fold angle is still far above it: it stops being representable
+in double precision below a fold angle of about $3\times10^{-8}$ rad, against an
+analytic prediction of $\sqrt{8\varepsilon/2} = 2.98\times10^{-8}$. Two
+consequences.
+
+- A test asserting "ambient distance is strictly less than chart distance for
+  every $\theta > 0$" is false as stated in floating point. It must be qualified
+  by the grid: the book's smallest non-zero $\theta$ is far above the floor, and
+  the test should say that rather than pretend the general statement holds.
+- It sharpens the Claim C argument below. At $\theta = 0.001$ the contraction is
+  of order $10^{-7}$ *relative* — genuinely present, and roughly seven orders of
+  magnitude below anything a rank- or distance-based metric on $n = 800$ sampled
+  points can resolve. "The geometry is fully present where nothing measurable
+  happens" is not hand-waving; it is quantifiable, and quantifying it is a
+  better paragraph than asserting it.
 
 That distinction is the whole book:
 

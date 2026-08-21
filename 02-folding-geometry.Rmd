@@ -9,6 +9,13 @@
   the *ambient* metric: across a crease of dihedral angle $\rho$, the ratio of
   ambient to geodesic distance for a symmetric pair is exactly $\sin(\rho/2)$,
   so folding strictly contracts ambient distance for every $\theta > 0$.
+- The strictness has a floor in floating point, and the chapter states it rather
+  than leaving a reader to trip over it. Because $1 - \sin(\rho/2)$ goes like
+  $(\pi-\rho)^2$, the contraction stops being representable in double precision
+  while the fold angle is still many orders of magnitude above machine epsilon.
+  Compute that threshold in the chunk rather than quoting it, compare it against
+  the smallest $\theta$ on the grid, and note what it implies for the
+  vanishing-$\theta$ end of every curve in Part III.
 - Developability and why a folded sheet has zero Gaussian curvature on facets.
 - Curvature is **not** concentrated at the vertices, and the chapter argues
   against that reading rather than merely avoiding it — it is the natural wrong
