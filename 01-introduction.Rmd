@@ -4,6 +4,33 @@
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
+```{r intro-fold-figure, echo=FALSE, fig.width=9, fig.height=4.2, fig.cap="A flat crease pattern and the same sheet folded. Turning the folded sheet changes which facets you can see; it does not change the pattern.", fig.alt="Two panels side by side. Panel A is a flat Miura-ori crease pattern of sixteen parallelogram facets, each in a different colour, with two facets greyed out. Panel B shows the same sheet folded into a corrugated three-dimensional surface, with the facets in matching colours. The greyed facets in A are the ones hidden behind folds in B."}
+# The interactive form of this figure is the one that makes the point: the
+# reader turns the folded sheet in B and watches facets in A light up and go
+# out. HTML gets that; PDF and EPUB get one fixed view of the same thing,
+# computed by the same code, so the two cannot disagree.
+if (knitr::is_html_output()) {
+  out <- knitr::opts_knit$get("output.dir")
+  if (is.null(out)) out <- "docs"
+  dir.create(out, showWarnings = FALSE, recursive = TRUE)
+  file.copy("js/fold-figure.html", file.path(out, "fold-figure.html"),
+            overwrite = TRUE)
+  knitr::asis_output(paste0(
+    '<iframe src="fold-figure.html" title="Interactive: a crease pattern and ',
+    'the sheet folded from it" loading="lazy" ',
+    'style="width:100%;height:940px;border:1px solid rgba(128,128,128,.25);',
+    'border-radius:8px"></iframe>'))
+} else {
+  grid::grid.draw(fold_figure_static(miura_ori(4L, 4L), theta = FIG_INTRO_THETA))
+}
+```
+
+The pattern in panel A is the same however panel B is turned. What changes is
+how much of it any one view exposes --- and a dimension-reduction method sees
+something closer to B than to A. The gap between the two is what the rest of
+this book measures.
+
+
 - The ground-truth thesis: a rigid crease pattern *is* the answer key, not a proxy for it.
 - What the book claims, and what it explicitly does not claim.
 - The Chari & Pachter challenge to 2D embeddings, stated up front as the target.

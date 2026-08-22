@@ -164,3 +164,8 @@ TOL <- local({
     default     = sqrt(.Machine$double.eps)
   )
 })
+
+# The fold angle the Chapter 1 figure is drawn at, in the formats that cannot
+# be turned. Far enough into the fold that facets genuinely occlude each other,
+# short of the range where the sheet starts closing on itself.
+FIG_INTRO_THETA <- 0.65
