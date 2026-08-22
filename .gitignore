@@ -10,6 +10,7 @@ docs/
 
 # R session
 .Rhistory
+Rplots.pdf   # stray default device output from headless runs
 .RData
 .Rproj.user/
 

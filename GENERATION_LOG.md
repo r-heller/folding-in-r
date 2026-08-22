@@ -302,3 +302,90 @@ of freedom remain on the free boundary.
 So the book ships **two pattern families plus a documented result**, which §8.3
 was already framed to absorb. `waterbomb()` stops with an error and
 `run-benchmark-grid.R` has no waterbomb row, per E2's hard rule.
+
+## Phase 15 — E1, and the claim the book has to give up
+
+### E1 — claim-set decision
+
+**Claim C — "crease patterns are a better benchmark" — is not supported, and the
+evidence points the other way.** Artefacts: `data/processed/e1-difficulty.rds`
+(arm A), `e1-controlled.rds` (arm A2/A3), `e1-armB.rds`. Script:
+`scripts/experiment-e1.R`.
+
+**Arm A, as the plan specified it, could not have answered the question.** It
+sweeps θ and nothing else, and folding a crease pattern raises branch separation
+*and* lifts the sheet out of the plane at the same time. At g/s ≈ 21 a Miura is a
+flat plane and PCA recovers it with error 0.000; a Swiss roll at the same
+separation is still curved and PCA scores 0.403. The families' ranges of ambient
+non-planarity are **disjoint** — crease 0.000–0.056, Swiss roll 0.101–0.126 — so
+over arm A's whole design there is no setting at which they are comparable. It
+reported a family term at F = 1203, p < 2e-16, and that number is a statement
+about the confound, not about creases.
+
+**Arm A2 fixed the design.** θ is not the only knob and it is not the important
+one: *cell count* dominates non-planarity. A 2×2 Miura at α = 1.05, θ = 0.9
+reaches 0.157, above anything the Swiss roll produces, where a 6×6 at the same
+angles reaches 0.027. Sweeping (nx, α, θ) creates the joint overlap arm A lacked
+— 9 crease settings against 5 Swiss rolls, g/s ∈ [3.3, 15.6], non-planarity ∈
+[0.085, 0.129].
+
+The family effect survives controlling for both axes, and its **sign is the
+problem**: crease patterns are *easier*, for every method and both metrics
+(PCA/cMDS RMSE effect −0.674, F = 2211; Isomap RMSE −0.283, F = 22.7; Q_NX +0.148
+and +0.041).
+
+**Arm A3 asks the question that actually matters.** A benchmark earns its keep by
+telling methods apart, so the statistic is the spread across methods within a
+cell at matched difficulty:
+
+| family | mean PCA−Isomap spread | sd | n |
+|:--|--:|--:|--:|
+| Swiss roll | **0.574** | 0.393 | 21 |
+| crease patterns | **0.113** | 0.070 | 35 |
+
+The Swiss roll separates the methods **five times better**. At matched
+difficulty PCA scores 0.922 on a Swiss roll against Isomap's 0.348 — the
+textbook result, and the right one, since Isomap consumes geodesics and PCA does
+not. On crease patterns the same pair is 0.286 against 0.183: PCA does nearly as
+well as Isomap, because a folded Miura is still close to planar in the ambient
+sense.
+
+So crease patterns are not a harder benchmark. They are an easier one that
+discriminates less.
+
+**What replaces it** is what `PLAN.md` D1 pre-drafted for the "families collapse"
+branch, and this result argues for it a fortiori. The crease pattern's
+contribution is not that it is difficult — it is that it comes with an **exact**
+answer key, which permits two things no other benchmark permits: auditing the
+evaluators themselves (Claim A), and computing the smallest error any 2-D
+embedding of a dataset could achieve (Claim B). The Swiss roll can do neither,
+because its truth is a convention — and, as Chapter 11 now measures, usually the
+wrong one: 637% worst local distortion under the customary angle chart against
+2% under arc length.
+
+The honest positioning is **complementary, not competing**. The Swiss roll is the
+better discriminator of methods; the crease pattern is the only one of the two
+with truth. Claim B becomes the spine, as the plan already said it should.
+
+**Caveats that travel with this.** The overlap is a specific corner — 2×2 to 4×4
+Miura at large α and θ ∈ [0.70, 0.95], nine settings. The finding covers three
+methods and two metrics. And under Q_NX, Isomap scores 0.773 on creases against
+0.778 on Swiss rolls: for the neighbourhood metric the families very nearly *do*
+collapse, and the whole difference is concentrated in how badly the linear
+methods fail, which is a fact about ambient non-planarity rather than about
+creases.
+
+### Arm B — crease count
+
+At matched g/s, error is flat in crease count: 9 / 36 / 144 creases give Isomap
+0.0299 / 0.0279 / 0.0381 and PCA 0.0705 / 0.0387 / 0.0513. Not monotone, and the
+differences sit near the seed noise. Crease count does nothing, which is the
+third outcome `PLAN.md` E1 pre-drafted, and Chapter 11 should say so in the
+book's own voice.
+
+### Also settled here
+
+PCA and classical MDS agree to 5.8e-15 across the whole grid, which is correct
+rather than a bug — `cmdscale` on a Euclidean distance matrix *is* PCA. The grid
+carries two distinct linear methods, not three, and `run-benchmark-grid.R`
+should not pretend otherwise.

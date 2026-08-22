@@ -395,34 +395,30 @@ auc_qnx <- function(emb, reference, K = NULL, corrected = TRUE) {
 # Route 2 is worth more than the comparison against coRanking that PLAN.md
 # originally proposed as the gate. Two implementations can inherit the same
 # misremembered constant from each other, which is precisely the failure R7
-# names; an algebraic identity cannot.
+# names; an algebraic identity cannot. That comparison is still written, still
+# skip()ed and still visible in test output, because "no second implementation
+# has ever run this" is a fact about the state of the repository and hiding it
+# would cost nothing to hide and something to have hidden.
+#
+# The identity route in one line. Each point contributes at most k terms --
+# |U_k(i)| <= k -- and the largest ranks available to it are N-k .. N-1, so the
+# largest sum over all N points is N * sum_{r = N-k}^{N-1} (r - k), which is
+# N k (2N - 3k - 1) / 2, which is exactly 1/A(k). That is what makes T = 0 the
+# floor rather than merely a small number.
 #
 # The paper's own caveat travels with the constant and most re-implementations
-# drop it: A(k) is described as a scaling, not a proven bound on what a real
-# projection can attain, and Kaski et al. estimate the worst attainable M_1
-# empirically in their Figures 2 and 3. A value slightly below zero is
-# therefore not automatically a bug, and Chapter 9 must say so rather than
-# clamp it.
+# drop it. A(k) is described as a scaling, not a proven bound on what a real
+# projection can ATTAIN: Kaski et al. estimated the worst attainable M_1
+# empirically, in their Figures 2 and 3, rather than deriving it. So T = 0 is a
+# floor no real embedding is known to reach, and "T = 0.5" does not mean "half
+# as bad as possible".
 #
-# What the constant does is scale the penalty sum by its combinatorial maximum.
-# Each point contributes at most k terms -- |U_k(i)| <= k -- and the largest
-# ranks available are N-k .. N-1, so the largest possible sum over all N points
-# is N * sum_{r = N-k}^{N-1} (r - k) = N k (2N - 3k - 1) / 2, which is exactly
-# 1/A(k). That identity is asserted in the tests, and it is what makes T = 0
-# the floor.
-#
-# The paper's own caveat travels with the constant and Chapter 9 must carry it:
-# A(k) is a scaling, not a proven worst-case bound for an ATTAINABLE
-# configuration. The authors estimated the worst attainable values with random
-# projections rather than deriving them, so T = 0 is a floor no real embedding
-# is known to reach and "T = 0.5" does not mean "half as bad as possible".
-#
-# What does follow from the arithmetic above -- and is asserted in the tests --
-# is that under this file's tie rule, where every neighbourhood holds exactly k
-# points, T cannot fall below 0. Under the paper's tie-averaging rule a
-# boundary tie can put more than k points in a neighbourhood and the sum can
-# then exceed 1/A(k); that is the case where a slightly negative value is not a
-# bug. Nothing here clamps either way.
+# One thing does follow from the arithmetic, and the tests assert it: under
+# this file's tie rule, where every neighbourhood holds exactly k points, T
+# cannot fall below 0. Under the paper's tie-averaging rule a boundary tie can
+# put more than k points in a neighbourhood and the sum can then exceed 1/A(k),
+# which is where a slightly negative value is not a bug. Nothing here clamps
+# either way, and Chapter 9 has to say why rather than quietly truncating.
 .a_k <- function(N, k) {
   if (k < 1L || k >= (2 * N - 1) / 3) {
     stop("k must satisfy 1 <= k < (2N - 1)/3 = ", format((2 * N - 1) / 3),
