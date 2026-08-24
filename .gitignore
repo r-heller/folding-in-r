@@ -41,3 +41,5 @@ Thumbs.db
 # one of them. They are negated back in below, and the negation is load-bearing.
 *.rds
 !data/processed/*.rds
+# ...except smoke-test output, which must never be mistaken for the real grid.
+data/processed/*-quick.rds

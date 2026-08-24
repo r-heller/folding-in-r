@@ -119,3 +119,46 @@ test_that("isomap records the k it actually used, not the k it was asked for", {
   ok <- suppressMessages(embed("isomap", m, k = 10L))
   expect_equal(attr(ok, "k_effective"), 10L)
 })
+
+test_that("diffusion maps is treated as the stochastic method it is", {
+  # Nearly recorded wrongly. diffusionMap::diffuse uses a randomised ARPACK
+  # eigensolver: it advances R's random stream, and on a hard input it converges
+  # or not depending where in that stream it began. Marked deterministic it
+  # would have run unseeded, and twenty replicates would have differed for
+  # reasons nothing recorded.
+  skip_if_not_installed("diffusionMap")
+  expect_true(METHOD_REGISTRY$diffusion$stochastic)
+  expect_error(embed("diffusion", suppressMessages(flat(120L))), "without a seed")
+
+  m <- suppressMessages(flat(150L))
+  a <- suppressMessages(embed("diffusion", m, seed = 3L))
+  b <- suppressMessages(embed("diffusion", m, seed = 3L))
+  expect_equal(a, b)
+})
+
+test_that("a widened diffusion bandwidth is recorded, not hidden", {
+  # The bandwidth comes from the median NEAREST-NEIGHBOUR distance rather than
+  # the median pairwise distance, because the pairwise median is not robust to
+  # the outlier noise model and inflating it broke the eigensolver -- 5 of 24
+  # cells on the quick grid, every one of them an outlier cell. Reporting that
+  # as "diffusion maps fails under outlier noise" would have been a finding
+  # about the heuristic wearing the method's name.
+  #
+  # Where the solver still will not converge the bandwidth escalates, and the
+  # factor that worked travels with the result.
+  skip_if_not_installed("diffusionMap")
+  ran <- 0L; tuned <- 0L
+  for (sd in 1001:1004) {
+    m <- suppressMessages(sample_manifold(
+      yoshimura(6L, 6L), theta = 0, n = 150L,
+      noise = list(type = "outlier", sd = 0.05), seed = sd))
+    e <- suppressMessages(embed("diffusion", m, seed = sd))
+    if (is.null(e)) next
+    ran <- ran + 1L
+    if (!is.null(attr(e, "tuning"))) {
+      tuned <- tuned + 1L
+      expect_match(attr(e, "tuning"), "^eps x")
+    }
+  }
+  expect_gt(ran, 2L)          # the robust bandwidth recovers most cells
+})

@@ -88,12 +88,54 @@ embed_isomap <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
 
 embed_diffusion <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
   if (!requireNamespace("diffusionMap", quietly = TRUE)) return(NULL)
-  D <- stats::dist(m$X)
-  eps <- stats::median(as.matrix(D)[upper.tri(as.matrix(D))])^2 / 10
-  out <- try(diffusionMap::diffuse(D, eps.val = eps, neigen = d, maxdim = d),
-             silent = TRUE)
-  if (inherits(out, "try-error")) return(NULL)
-  as.matrix(out$X)[, seq_len(d), drop = FALSE]
+  D  <- stats::dist(m$X)
+  Dm <- as.matrix(D)
+
+  # The kernel bandwidth is set from the median NEAREST-NEIGHBOUR distance, not
+  # from the median pairwise distance.
+  #
+  # That is not a detail. The pairwise median is the obvious choice and it is
+  # not robust: the outlier noise model displaces a fraction of points far off
+  # the surface, which inflates the median pairwise distance and with it the
+  # bandwidth, and the randomised eigensolver then fails to converge. Measured
+  # on the quick grid, that recipe lost 5 of 24 diffusion cells and every one of
+  # them was an outlier cell.
+  #
+  # Reporting that as "diffusion maps fails under outlier noise" would have been
+  # a finding about the bandwidth heuristic wearing the method's name. The
+  # nearest-neighbour scale is the standard robust choice and is unaffected by a
+  # few displaced points.
+  diag(Dm) <- Inf
+  eps <- stats::median(apply(Dm, 1L, min))^2 * 2
+
+  # Even with a robust bandwidth the ARPACK eigensolver inside diffuse() reaches
+  # its iteration limit on some samples -- about a quarter of the outlier-noise
+  # cells. It is a convergence failure of the solver, not a statement about the
+  # data, and widening the kernel a little conditions the problem better.
+  #
+  # So the bandwidth escalates and the factor that worked is RECORDED, the same
+  # discipline Isomap follows for a repaired neighbourhood graph. A result
+  # obtained at four times the nominal bandwidth is still a result; a result
+  # obtained at four times the nominal bandwidth sitting in a column that says
+  # otherwise is not.
+  .seeded(seed, {
+    for (f in c(1, 2, 4, 8)) {
+      # diffuse() narrates to stdout -- three lines per call. Harmless once,
+      # seven thousand lines across a full grid, and inside a knitted chapter it
+      # lands in the book. Captured rather than merely warning-suppressed,
+      # because it is print output and not a condition.
+      out <- try(utils::capture.output(suppressMessages(suppressWarnings(
+        res <- diffusionMap::diffuse(D, eps.val = eps * f, neigen = d, maxdim = d)
+      ))), silent = TRUE)
+      out <- if (inherits(out, "try-error")) out else res
+      if (!inherits(out, "try-error")) {
+        e <- as.matrix(out$X)[, seq_len(d), drop = FALSE]
+        attr(e, "tuning") <- if (f == 1) NA_character_ else paste0("eps x", f)
+        return(e)
+      }
+    }
+    NULL
+  })
 }
 
 # ── Neighbourhood ───────────────────────────────────────────────────────────
@@ -181,8 +223,13 @@ METHOD_REGISTRY <- list(
   isomap      = list(label = "Isomap",              family = "geodesic",
                      consumes = "geodesic",      stochastic = FALSE, chapter = 5,
                      fn = embed_isomap),
+  # Stochastic, which is not obvious and was nearly recorded wrongly.
+  # diffusionMap::diffuse uses a randomised eigensolver: it advances R's random
+  # stream, and on a hard input it converges or fails depending on where in that
+  # stream it started. Marked deterministic it would have gone unseeded, and
+  # twenty replicates would have differed for reasons nothing recorded.
   diffusion   = list(label = "Diffusion map",       family = "geodesic",
-                     consumes = "ambient",       stochastic = FALSE, chapter = 5,
+                     consumes = "ambient",       stochastic = TRUE,  chapter = 5,
                      fn = embed_diffusion),
   lle         = list(label = "LLE",                 family = "neighbour",
                      consumes = "neighbourhood", stochastic = FALSE, chapter = 6,
@@ -222,6 +269,7 @@ embed <- function(method, sample, d = EMBED_DIM_DEFAULT, k = K_DEFAULT,
   out <- spec$fn(sample, d = d, k = k, seed = seed)
   if (is.null(out)) return(NULL)
   keff <- attr(out, "k_effective")
+  tune <- attr(out, "tuning")
   out <- as.matrix(out)
   if (nrow(out) != nrow(sample$X)) {
     stop(method, " returned ", nrow(out), " rows for ", nrow(sample$X),
@@ -231,6 +279,7 @@ embed <- function(method, sample, d = EMBED_DIM_DEFAULT, k = K_DEFAULT,
   # Carried through, so a caller that stores the embedding also stores the
   # conditions it was produced under.
   if (!is.null(keff)) attr(out, "k_effective") <- keff
+  if (!is.null(tune) && !is.na(tune)) attr(out, "tuning") <- tune
   out
 }
 

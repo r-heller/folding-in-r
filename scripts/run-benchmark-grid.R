@@ -73,6 +73,11 @@ for (pname in names(PATTERNS)) {
             # the artefact records that rather than only warning about it.
             k_effective = if (na) NA_integer_ else
               (attr(emb, "k_effective") %||% NA_integer_),
+            # Anything else a method had to change about its own settings in
+            # order to run at all -- a widened diffusion bandwidth, say. NA
+            # means it ran as asked.
+            tuning = if (na) NA_character_ else
+              (attr(emb, "tuning") %||% NA_character_),
             rmse  = if (na) NA_real_ else reconstruction_error(emb, m$truth),
             qnx   = if (na) NA_real_ else qnx(emb, m$truth, K = 20L),
             trust = if (na) NA_real_ else trustworthiness(dA, emb, k = 10L),
@@ -93,6 +98,30 @@ for (pname in names(PATTERNS)) {
 }
 
 grid <- do.call(rbind, rows)
+
+# A --quick run writes to its own file and is gitignored. It smoke-tests the
+# pipeline on a handful of cells; it is not the grid the chapters read, and
+# giving it the same name as the real artefact is how a book ends up reporting
+# two seeds as twenty. The provenance convention only works if the committed
+# file can only ever have come from a full run.
+# Written as one expression: at top level R closes the `if` at the newline and
+# then meets a bare `else`, which is a syntax error rather than a warning.
+out <- if (quick) "data/processed/benchmark-grid-quick.rds" else
+  "data/processed/benchmark-grid.rds"
+
+attr(grid, "provenance") <- list(
+  quick    = quick,
+  patterns = names(PATTERNS),
+  thetas   = THETA,
+  noise    = names(NOISE),
+  seeds    = SEEDS,
+  n        = N,
+  methods  = METHODS,
+  r_sha    = tryCatch(system2("git", c("rev-parse", "--short", "HEAD"),
+                              stdout = TRUE), error = function(e) NA_character_)
+)
+
 dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
-saveRDS(grid, "data/processed/benchmark-grid.rds")
-message("wrote data/processed/benchmark-grid.rds — ", nrow(grid), " rows")
+saveRDS(grid, out)
+message("wrote ", out, " — ", nrow(grid), " rows",
+        if (quick) "  (QUICK smoke test, not the book's grid)" else "")
