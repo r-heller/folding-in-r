@@ -42,13 +42,9 @@ NOISE <- list(
 SEEDS <- if (quick) BENCH_SEEDS[1:2] else BENCH_SEEDS
 N     <- if (quick) 150L else 800L
 
-# TODO: add the embedding methods (prcomp, cmdscale, Isomap, LLE, Rtsne, umap,
-# torch autoencoder) once the chapters that describe them are written. The grid
-# machinery below is deliberately method-agnostic: add an entry to METHODS and
-# it joins the grid.
-METHODS <- list(
-  pca = function(X, d = 2) stats::prcomp(X, rank. = d)$x[, seq_len(d), drop = FALSE]
-)
+# The methods come from R/methods.R, which is the single registry Chapters 4
+# to 7 all describe. Adding one there adds it here.
+METHODS <- names(METHOD_REGISTRY)
 
 rows <- list()
 for (pname in names(PATTERNS)) {
@@ -58,15 +54,35 @@ for (pname in names(PATTERNS)) {
       for (seed in SEEDS) {
         m <- sample_manifold(pat, theta = th, n = N,
                              noise = NOISE[[nname]], seed = seed)
-        for (mname in names(METHODS)) {
-          emb <- METHODS[[mname]](m$X)
+        dA <- reference_dist(m, "ambient")
+        for (mname in METHODS) {
+          spec <- METHOD_REGISTRY[[mname]]
+          # Stochastic methods are seeded per fit and never left to inherit
+          # position in the RNG stream: umap::umap does not advance it, so a
+          # loop that seeds once collapses every replicate onto one answer.
+          sd  <- if (isTRUE(spec$stochastic)) seed else NULL
+          emb <- tryCatch(embed(mname, m, seed = sd),
+                          error = function(e) NULL)
+          na <- is.null(emb)
           rows[[length(rows) + 1L]] <- data.frame(
             pattern = pname, theta = th, noise = nname,
-            seed = seed, method = mname,
-            rmse  = reconstruction_error(emb, m$truth),
-            trust = trustworthiness(m$X, emb, k = 10),
-            cont  = continuity(m$X, emb, k = 10),
-            knn   = knn_preservation(m$X, emb, k = 10),
+            seed = seed, method = mname, consumes = spec$consumes,
+            ran = !na,
+            # The k Isomap actually used, which is not always the k it was
+            # asked for -- a disconnected graph is repaired by raising k, and
+            # the artefact records that rather than only warning about it.
+            k_effective = if (na) NA_integer_ else
+              (attr(emb, "k_effective") %||% NA_integer_),
+            rmse  = if (na) NA_real_ else reconstruction_error(emb, m$truth),
+            qnx   = if (na) NA_real_ else qnx(emb, m$truth, K = 20L),
+            trust = if (na) NA_real_ else trustworthiness(dA, emb, k = 10L),
+            cont  = if (na) NA_real_ else continuity(dA, emb, k = 10L),
+            knn   = if (na) NA_real_ else knn_preservation(dA, emb, k = 10L),
+            # Reported against the floor, not against zero. E1 made this the
+            # book's spine: an error of 0.31 says little, an error of 0.31
+            # against a floor of 0.30 says the method is at the limit of what
+            # the data permit.
+            floor = irreducible_loss(m, 2L),
             stringsAsFactors = FALSE
           )
         }

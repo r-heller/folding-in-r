@@ -18,6 +18,7 @@ at source time is a file in the wrong place.
 | `constants.R`     | θ grid, sample sizes, palette option, tolerances | Ch 3 |
 | `constructions.R` | product and lift constructions, irreducible-loss bound | Ch 8 |
 | `folding.R`       | `fold()`, the ambient embedding, `branch_gap()` | Ch 2 |
+| `figure-export.R` | geometry for the interactive figures, with isometry asserted | Ch 1 |
 | `metrics.R`       | Procrustes RMSE, $Q_{NX}$, T/C/kNN, `reference_dist()`, `metric_floor()` | Ch 4 |
 | `methods.R`       | the embedding registry — nine methods | Ch 4 |
 | `patterns.R`      | `miura_ori()`, `yoshimura()`, `waterbomb()` | Ch 2 |
