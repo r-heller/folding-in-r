@@ -404,9 +404,40 @@ Reference point: `scientometrics-in-r`, the largest completed sibling, carries
 34,673 prose words across 39 chapter files — 889 per chapter. This plan asks 2,750
 per body chapter.
 
-**Measured compute.** One fit of the nine non-torch methods plus metrics at
-$n = 800$ costs 15.2 s, so the main grid (3 patterns × 15 $\theta$ × 3 noise × 20
-seeds = 2,700 cells) is **11.4 h single-core / 2.9 h on four cores**. Add:
+**Measured compute — revised 2026-08-24, against the real registry.**
+
+The 15.2 s figure below was measured before `R/methods.R` existed. Re-measured
+with all nine methods actually wired up, one cell at $n = 800$ costs **~26 s for
+the eight runnable methods**, before metrics. Scaling from $n = 400$ is 3.3×,
+i.e. roughly $O(n^{1.7})$.
+
+The grid is also smaller than planned: two patterns rather than three (E2), and
+20 $\theta$ values rather than 15. So 2 × 20 × 3 × 20 = **2,400 cells**, at ~30 s
+including metrics — about **20 h single-core / 5 h on four cores**. That is
+roughly twice the estimate below, and the overall 60–100 h envelope still holds
+once the Chapter 9 audit artefacts and the second grid generation are added.
+
+Cost is spread, not concentrated, which matters for any decision to trim:
+
+| method | s at $n = 800$ | | method | s at $n = 800$ |
+|:--|--:|:-:|:--|--:|
+| Laplacian eigenmaps | 5.8 | | UMAP | 3.5 |
+| Isomap | 5.5 | | diffusion map | 2.7 |
+| t-SNE | 4.5 | | LLE | 2.6 |
+| classical MDS | 1.2 | | PCA | 0.0 |
+
+No single method dominates, so dropping one buys little. An earlier reading of
+these timings put diffusion maps at 42% of the cell and named it as the obvious
+trim; that was one noisy measurement at $n = 400$ on a loaded machine and it is
+wrong — at the grid's own sample size it is about a tenth. **Sharding is the
+lever, not method selection.**
+
+Measurements were taken on a contended machine and are therefore upper bounds.
+
+The original estimate, kept for the record: one fit of the nine non-torch methods
+plus metrics at $n = 800$ costs 15.2 s, so the main grid (3 patterns × 15
+$\theta$ × 3 noise × 20 seeds = 2,700 cells) is 11.4 h single-core / 2.9 h on
+four cores. Add:
 
 - Chapter 7's autoencoder row at a measured 9.27 s per fit — plausibly the
   single largest line item, and the reason `torch` gets its own artefacts.
