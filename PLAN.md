@@ -580,7 +580,42 @@ that failed is a result.
 - `experiments/e2-waterbomb/*.R` cannot run: every `source()` points at the
   pre-move directory. E2's numbers exist only as prose in a README.
 
-### R5 — decisions the grid is waiting on
+### R5 — decisions the grid was waiting on, now taken
+
+**The autoencoder is out of the main grid.** It occupied a ninth of every cell
+while having no implementation, no artefact and no script, and `CHAPTERS.md`
+already lists its three artefacts separately (`autoencoder-grid`,
+`autoencoder-example`, `autoencoder-decoder-lattice`) — so Chapter 7 was always
+going to own its own compute. The registry declares it unavailable, `embed()`
+returns NULL before attempting anything, and the grid records the declared
+reason rather than omitting the row. `torch` stays in the lockfile.
+
+**`boundary = TRUE` stands, and the concern it raised has been measured.** The
+worry was real: with `boundary = TRUE` the sampler can draw into the zigzag
+teeth of the unfolded outline, and for pairs straddling a tooth the chart
+distance is a *lower bound* on the geodesic rather than equal to it — a
+corrupted answer key, and one that would penalise the geodesic method
+specifically, which is exactly the comparison arm A3 turns on.
+
+Measured with `chart_exit_fraction()`, on the settings that actually entered
+E1's overlap: between 0.00% and 4.31% of pairs exit. And the conclusion
+**strengthens** as the affected settings are removed —
+
+| overlap settings | Swiss roll | crease | ratio |
+|:--|--:|--:|--:|
+| all | 0.5735 | 0.1133 | 5.1× |
+| excluding those above 0.5% exiting | 0.5735 | 0.1069 | 5.4× |
+| excluding every setting with any exiting pair | 0.5735 | 0.1052 | 5.5× |
+
+— so the approximation biased *against* the finding rather than for it. The
+small patterns E1 needed to reach the Swiss roll's non-planarity leave no room
+for the `boundary = FALSE` margin, so there was no alternative; what there is
+now is a diagnostic that says how much it cost, and the answer is nothing that
+matters.
+
+**The product suite is written** (`scripts/run-product-grid.R`), which is R2-1.
+
+### R5 (original text)
 
 The main grid has never been generated, and three things change what it
 contains, so they come first: the autoencoder (install torch and give Chapter 7

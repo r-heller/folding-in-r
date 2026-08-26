@@ -471,3 +471,61 @@ sample_manifold <- function(pattern, theta, n,
     class = "manifold_sample"
   )
 }
+
+
+# ── Is the chart actually the geodesic for this sample? ─────────────────────
+
+#' Fraction of sampled pairs whose straight chart segment leaves the sheet.
+#'
+#' The book's headline metric scores an embedding against the flat chart, and
+#' the justification is that folding is an intrinsic isometry, so chart distance
+#' IS geodesic distance. That equality needs the straight segment between two
+#' chart points to stay on the paper. For a convex unfolded outline it always
+#' does; neither crease family here has one -- a Miura unfolds to a region whose
+#' edge is a zigzag with teeth -- so for pairs straddling a tooth the chart
+#' distance is a lower bound on the geodesic rather than equal to it.
+#'
+#' `sample_manifold(boundary = FALSE)` avoids this by drawing strictly inside a
+#' convex sub-rectangle. `boundary = TRUE` does not, and small patterns leave
+#' too little room for the margin, so the E1 sweep was forced to use it. This
+#' function is how that was checked rather than assumed.
+#'
+#' Measured on the settings that entered E1's overlap region: between 0.00% and
+#' 4.31% of pairs exit, and the method-separation result strengthens from 5.1x
+#' to 5.5x when the affected settings are dropped -- so the approximation biased
+#' against the finding, not for it.
+#'
+#' @return the fraction of sampled pairs whose chart segment leaves the sheet.
+chart_exit_fraction <- function(sample, pattern, pairs = 1500L, steps = 9L,
+                                seed = 9L) {
+  U <- sample$truth
+  inside <- function(pt) {
+    any(vapply(pattern$facets, function(fv) {
+      P <- pattern$vertices[fv, , drop = FALSE]
+      n <- nrow(P); c <- FALSE; j <- n
+      for (i in seq_len(n)) {
+        if ((P[i, 2] > pt[2]) != (P[j, 2] > pt[2]) &&
+            pt[1] < (P[j, 1] - P[i, 1]) * (pt[2] - P[i, 2]) /
+                    (P[j, 2] - P[i, 2]) + P[i, 1]) c <- !c
+        j <- i
+      }
+      c
+    }, logical(1)))
+  }
+  old <- if (exists(".Random.seed", .GlobalEnv)) get(".Random.seed", .GlobalEnv) else NULL
+  on.exit(if (!is.null(old)) assign(".Random.seed", old, .GlobalEnv), add = TRUE)
+  set.seed(seed)
+
+  N <- nrow(U)
+  ii <- sample.int(N, pairs, replace = TRUE)
+  jj <- sample.int(N, pairs, replace = TRUE)
+  keep <- ii != jj
+  ii <- ii[keep]; jj <- jj[keep]
+  ts <- seq(0.08, 0.92, length.out = steps)
+
+  exits <- vapply(seq_along(ii), function(k) {
+    a <- U[ii[k], ]; b <- U[jj[k], ]
+    any(!vapply(ts, function(t) inside(a + t * (b - a)), logical(1)))
+  }, logical(1))
+  mean(exits)
+}

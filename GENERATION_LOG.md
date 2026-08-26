@@ -463,3 +463,59 @@ derived from the geometry they now satisfy Maekawa at 16 of 16.
   pre-move directory.
 - The ambient contraction and the Swiss-roll chart defect now have producers in
   `tests/testthat/test-contraction.R`, rather than being quoted.
+
+## Phase 17 — the spine gets an artefact, and E1 survives its worst objection
+
+### The boundary convention, checked rather than defended
+
+The audit raised the one thing that could still have overturned E1. Its decisive
+arm sampled with `boundary = TRUE`, and `R/metrics.R` documents that under that
+setting the sampler can draw into the zigzag teeth of the unfolded outline,
+where the chart distance becomes a *lower bound* on the geodesic rather than
+equal to it. That is a corrupted answer key — and one that would penalise the
+geodesic method specifically, which is exactly the comparison arm A3 turns on.
+
+It could not simply be re-run: the small patterns E1 needed in order to reach the
+Swiss roll's ambient non-planarity leave no room for the `boundary = FALSE`
+margin. So it was measured instead. `chart_exit_fraction()` reports the share of
+sampled pairs whose straight chart segment leaves the sheet; across the settings
+that actually entered the overlap it runs from 0.00% to 4.31%.
+
+And the finding **strengthens** as the affected settings are dropped: the
+method-separation ratio goes 5.1× (all settings) → 5.4× (excluding those above
+0.5%) → 5.5× (excluding every setting with any exiting pair). The approximation
+biased against the conclusion, not for it. E1 stands.
+
+### Claim B has an artefact
+
+`scripts/run-product-grid.R`. The spine's operative instruction — report every
+result against the floor — did nothing on the main grid, where a 2-D chart in a
+2-D target makes the floor identically zero. The product construction gives
+intrinsic dimension 4 with the chart still exact and closed-form, so the floor
+is strictly positive, computable, and attained.
+
+The first run, on 64 fits: **no method beat the floor**, and the mean excess
+above it at d = 2 separates the methods cleanly by what they consume —
+
+| method | consumes | excess |
+|:--|:--|--:|
+| PCA, classical MDS | ambient | 0.0060 |
+| Isomap | geodesic | 0.0351 |
+| LLE | neighbourhood | 0.0633 |
+| Laplacian eigenmaps | neighbourhood | 0.1034 |
+| UMAP | neighbourhood | 0.1492 |
+| t-SNE | neighbourhood | 0.1651 |
+| diffusion map | ambient | 0.1682 |
+
+PCA sits six thousandths above the best any 2-D embedding of this data could
+achieve. Reported against zero its raw error reads as failure; reported against
+the floor it says the loss belongs to the data. That contrast is the whole of
+Claim B, and it now has numbers.
+
+### R5 decisions
+
+The autoencoder is out of the main grid — it occupied a ninth of every cell with
+no implementation, and `CHAPTERS.md` already gives Chapter 7 its own three
+artefacts. `torch` stays in the lockfile. The registry declares the method
+unavailable, `embed()` returns NULL before attempting anything, and the grid
+records the declared reason rather than dropping the row.
