@@ -150,6 +150,61 @@ material in the chapter and therefore the most tempting. Hold them to
 `geom-background`. `style/preamble.tex` already loads `amsmath`/`amssymb`
 "because this volume is theorem-heavy", which is now true.
 
+---
+
+**Post-audit additions (2026-08-26). These are not optional colour; they are the
+chapter's strongest material and all of it is computed.**
+
+**`geom-core` gains the numerical floor of the contraction.** The ratio of
+ambient to geodesic distance across a crease of dihedral $\rho$ is exactly
+$\sin(\rho/2)$ — verified over 360 configurations to one unit in the last place,
+and the ratio depends on $\rho$ alone rather than degrading with distance, which
+is the substance of the claim. But the strictness has a floor: since
+$1 - \sin(\rho/2) \approx (\pi-\rho)^2/8$, the contraction stops being
+representable in double precision below a fold angle of about $3\times10^{-8}$
+rad, against an analytic $\sqrt{8\varepsilon/2}$. Say it, because "ambient is
+strictly less than chart for every $\theta > 0$" is false as written in floating
+point, and because it is what makes the vanishing-$\theta$ end of every curve in
+Part III behave as it does. Producer: `tests/testthat/test-contraction.R`.
+
+**`geom-diagnostics` becomes the chapter's best section, and it is about two
+failures of this project's own making.** Both are cheap to state and both
+generalise:
+
+1. *An isometry test cannot tell a fold from a pleat.* The Yoshimura
+   implementation that shipped folded its horizontal creases and left every
+   diagonal at $\rho = \pi$. It passed the facet-isometry test perfectly —
+   because a pleat **is** a rigid folding — and passed Kawasaki, because the flat
+   pattern was never the problem. What caught it was deriving the mountain/valley
+   assignment from the folded dihedral and testing Maekawa on the *result*: 12 of
+   16 interior vertices failed. The same check showed the Miura's hand-assigned
+   labels matched the real folding on 36 of 60 creases.
+
+2. *A first-order flex at the flat state proves nothing.* At $\theta = 0$ every
+   $z$ column of the rigidity Jacobian vanishes, so the non-trivial flex count is
+   $V - 3$ for **any** planar pattern whatsoever. Second order and a finite
+   continuation are what decide. This is E2's finding and it belongs here as much
+   as in Chapter 8.
+
+The moral for the reader is the one this book keeps earning: a test that a
+correct implementation passes is not the same as a test a wrong one fails.
+
+**`geom-limits` gains the boundary caveat.** Chart distance equals geodesic
+distance only when the straight segment between two chart points stays on the
+sheet. A Miura's unfolded outline is not convex — its edge is a zigzag with teeth
+— so for pairs straddling a tooth the chart distance is a *lower bound*.
+`chart_exit_fraction()` measures how often that happens; on the settings E1 used
+it ranges from 0.00% to 4.31%. State it as a bound-not-equality where it applies,
+and say how it was checked.
+
+**Word budget.** 3,400 → **3,900**. The additions are load-bearing and the
+chapter is now the book's methodological anchor: it is where a reader learns why
+the rest of the volume is trustworthy.
+
+**`geom-reproduce` can name real files**, which no other chapter can yet:
+`tests/testthat/test-folding.R`, `test-patterns.R`, `test-contraction.R`. All
+pass; nothing here is promised.
+
 ### `03-generative-model.Rmd` · `{#generative}` · 3,200 w · 5 figs · 11 chunks · 9 cites
 
 > *How do you turn one pattern into a family of test problems?* — **preserve
@@ -206,6 +261,26 @@ should be reported as one, not engineered away.
 `eval = TRUE`, and `R/metrics.R` exporting `reconstruction_error(emb, truth,
 normalise = TRUE)` and `procrustes_align()`. **Chapter 9 owns the alignment
 convention** — Chapter 4 must not invent one.
+
+---
+
+**Respecified 2026-08-26.** The chapter was specified as a comparison between PCA
+and classical MDS. They are the same thing: `cmdscale` on a Euclidean distance
+matrix *is* PCA, and the two agree to 5.8e-15 across the whole E1 grid and to
+1e-8 on every pattern tested.
+
+Make the coincidence the result rather than an unremarked duplication. It is a
+genuinely useful thing for a reader to know, it takes one figure and one
+paragraph, and it sets up the chapter's real subject: what "linear" costs on an
+object that is intrinsically flat but ambiently folded. The registry keeps both
+entries because Chapter 4 shows they coincide; Chapter 10 must not report them as
+two independent results, and `R/methods.R` says so at the definition.
+
+The chapter also gains its best single number from the product suite: on a 4-D
+chart forced into 2-D, PCA lands 0.0060 above the theoretical floor — closer to
+optimal than any other method in the book, on a problem where the answer is
+known exactly. A chapter titled "linear projections and where they break" should
+open by admitting where they emphatically do not.
 
 ### `05-geodesic-methods.Rmd` · `{#geodesic}` · 3,000 w · 5 figs · 15 chunks · 10 cites
 
@@ -298,6 +373,63 @@ is a proposal until `R/` is written. Write `tests/testthat/test-folding.R` — t
 isometry certificate — **before any prose here**, and let the tests fix the
 signatures rather than the prose.
 
+---
+
+**Respecified 2026-08-26, after E1 and E2.**
+
+**§3 is retitled: "One pattern family, and two honest gaps."** The Yoshimura
+joins the waterbomb as a withdrawal, and the chapter is better for carrying both
+than for having quietly shipped either.
+
+- *Waterbomb* (E2). It folds, but only under an imposed symmetry, with the closed
+  form $\tan(\rho_h/2) = -\tan(\rho_d/2)/\sqrt2$ holding to 1.7e-15 and
+  cross-checked by an independent developing-map reconstruction. Three things
+  disqualify it as a grid row: the embedding is unproved (facet clearance falls
+  to 0.026 at $\theta = 0.9$), fold amplitude is not monotone in $\theta$, and 27
+  degrees of freedom remain on the free boundary so $\theta$ does not determine
+  the configuration.
+- *Yoshimura* (2026-08-26). Two rigid foldings were derived and **each leaves one
+  of the three crease families flat**, which makes the folded object a
+  parallelogram tessellation rather than a diamond one — a Miura wearing this
+  pattern's crease lines. Both are exact, which is what makes it a result rather
+  than a bug to patch.
+
+Both withdrawals share a moral and §3 should state it once, plainly: **a test a
+correct implementation passes is not the same as a test a wrong one fails.** An
+isometry check cannot tell a fold from a pleat; a first-order flex at the flat
+state is $V-3$ for any planar pattern whatsoever. Each trap was sprung and each
+was caught only by a second, independent check.
+
+**§5 grows from 450 words into the chapter's spine.** E1 retired Claim C, so the
+irreducible-loss bound is what the book now rests on, and 450 words inside
+someone else's section is not enough to carry it.
+
+State the bound precisely — for normalised Procrustes against a $p$-dimensional
+chart, no $d$-dimensional configuration beats the tail of the chart's spectrum,
+exact, depending on the data alone with no method in it. Then show both
+properties that make it a bound rather than a guess: it is **attained** (the
+optimal rank-$d$ projection sits exactly on it) and it is **unbeaten** (tested
+against all nine methods, not argued).
+
+And then the number that makes the case. On the product construction at intrinsic
+dimension 4 forced into 2, excess over the floor sorts almost exactly by what
+each method consumes: ambient 0.0060, geodesic 0.0351, neighbourhood 0.063–0.165.
+PCA sits six thousandths above the best any 2-D embedding could achieve.
+Reported against zero its raw error reads as failure; reported against the floor
+it says the loss belongs to the data. *That contrast is the book's thesis in one
+table.*
+
+**Say why the main grid's floor is zero.** A 2-D chart in a 2-D target has floor
+0 in every cell, so the `floor` column there is identically zero — which is not a
+defect but a statement worth one sentence: on that grid every error is loss the
+method is responsible for. The product suite is where the bound bites.
+
+*Artefact:* `data/processed/product-grid.rds`, producer
+`scripts/run-product-grid.R`, which self-checks that no method beat the bound.
+
+**Word budget.** §3 loses the third family and gains two negative results, about
+even. §5 goes 450 → 1,100. Chapter total 3,000 → **3,650**.
+
 ### `09-ground-truth-evaluation.Rmd` · `{#evaluation}` · 4,400 w · 6 figs · 13 chunks · 17 cites
 
 > *Your embedding looks good. Is it correct?*
@@ -360,30 +492,80 @@ is set in advance (S2-3) and reported.
 block: repo SHA, `R/` SHA, run date, package versions. `run-benchmark-grid.R` must
 **stop sourcing `_common.R`** — that file ends with `write_bib()` (S0-5).
 
-### `11-versus-swiss-roll.Rmd` · `{#comparison}` · 2,600 w · 3 figs · 8 chunks · 9 cites
+### `11-versus-swiss-roll.Rmd` · `{#comparison}` · 3,000 w · 4 figs · 9 chunks · 11 cites
 
-> *Does the new benchmark actually add anything?*
+**Respecified 2026-08-26. The previous specification was the pre-E1 design: it
+asked whether the rankings flip and whether the families collapse onto one
+curve, and the committed artefacts answer no to both. Drafting from it would
+have produced a chapter whose sections have no content.**
 
-**This chapter is E1 written up**, and E1 runs first (`PLAN.md` D1). §4 *A shared
-difficulty coordinate* and §5 *Do the rankings flip?* are the experiment; if they
-collapse onto one curve, the book's Claim C changes before 41,000 words are
-committed to defending it.
+This chapter is E1 written up, and E1 went against the book. That makes it the
+most interesting chapter in the volume, not the most awkward one, provided it is
+written as a measurement rather than a defence.
 
-§1 *A concession, first* (400 w) — and note this concession **contradicts the
-natural reading of the preface**. If `index.Rmd` is not tightened (P3/P4 above),
-an attentive reader catches it.
+| Section | Anchor | Words |
+|:--|:--|--:|
+| What this chapter answers | `comp-question` | 180 |
+| Setup | `comp-setup` | 60 |
+| Background | `comp-background` | 500 |
+| Difficulty has two axes, not one | `comp-core` | 900 |
+| Results | `comp-results` | 700 |
+| Diagnostics | `comp-diagnostics` | 300 |
+| Where it fails | `comp-limits` | 250 |
+| Reproduce this | `comp-reproduce` | 60 |
+| Further reading | `comp-reading` | 190 |
 
-§2 restates the arc-length point correctly: the customary Swiss-roll answer key is
-not the isometric one — **a defect noted before and corrected in the Euler
-Isometric Swiss Roll** — and here is how large it is: 0.807 normalised Procrustes
-against 0.999 for a random embedding. Quantification of a known problem is
-respectable; claiming the problem is not.
+**`comp-core` — why a $\theta$-only sweep cannot answer the question.** Folding a
+crease pattern raises branch separation *and* lifts the sheet out of the plane,
+together. At $g/s \approx 21$ a Miura is a flat plane that PCA recovers with error
+0.000; a Swiss roll at the same separation is still curved and PCA scores 0.403.
+The families' ranges of ambient non-planarity are disjoint — crease 0.000–0.056,
+Swiss roll 0.101–0.126 — so over the original design there is no setting at which
+they are comparable. The chapter shows the two-axis plane with both families on
+it and the empty overlap; that figure is the argument.
 
-*Needs* `R/baselines.R` (a ninth R file): `swiss_roll()` with arc-length truth,
-`s_curve()`, `severed_sphere()`, and `classic-grid.rds` produced by the same grid
-script under a `--suite classic` flag so the code path is shared.
+Then the fix: cell count, not $\theta$, is what moves non-planarity. Sweeping
+$(n_x, \alpha, \theta)$ creates the overlap.
 
----
+**`comp-results` — the finding.** At matched difficulty on both axes, crease
+patterns are *easier*, and the Swiss roll separates PCA from Isomap five times
+better: spread 0.574 against 0.113. PCA scores 0.922 against Isomap's 0.348 on a
+Swiss roll — the textbook result, and the right one — against 0.286 and 0.183 on
+creases, where PCA nearly matches Isomap because a folded Miura is still close to
+planar.
+
+State the conclusion in the book's own voice: **crease patterns are not a harder
+benchmark; they are an easier one that discriminates less.** The contribution is
+exact truth, not difficulty, and Chapters 8 and 9 are where that pays.
+
+Arm B belongs here too: at matched $g/s$, error is flat in crease count.
+
+**`comp-diagnostics` — the robustness check, and why it is in the chapter rather
+than a footnote.** E1's decisive arm sampled with `boundary = TRUE`, where chart
+distance is a lower bound on the geodesic for pairs straddling a tooth — an
+answer key that would penalise the geodesic method specifically, which is the
+very comparison being made. Measured: 0.00–4.31% of pairs, and the ratio
+*strengthens* 5.1× → 5.5× as the affected settings are dropped. A reader is
+entitled to ask this question and the chapter should answer it before they do.
+
+**`comp-limits`.** The overlap is a corner: nine crease settings, three methods,
+two metrics. And under $Q_{NX}$ Isomap scores 0.773 on creases against 0.778 on
+Swiss rolls — for the neighbourhood metric the families very nearly *do* collapse,
+and the whole difference sits in how badly the linear methods fail, which is a
+fact about ambient non-planarity rather than about creases. Say so.
+
+**Also state what the pre-registration got wrong.** `PLAN.md` pre-drafted three
+outcomes and none occurred: the families neither collapsed nor separated in the
+registered sense, which was *different rankings* — the ranking is identical in
+both. The replacement claim was adopted because it fits the evidence, not because
+its antecedent was met. Recording that is what pre-registration is for.
+
+*Artefacts:* `data/processed/e1-difficulty.rds`, `e1-controlled.rds`,
+`e1-armB.rds`. Producer: `scripts/experiment-e1.R`. All committed with provenance.
+
+*Risk.* The temptation is to soften this into "both benchmarks have their place".
+They do — but the measurement is that one of them discriminates five times better
+and the chapter must say the number before it says the moral.
 
 ## Part IV — Application
 
