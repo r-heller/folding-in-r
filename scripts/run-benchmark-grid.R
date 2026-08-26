@@ -76,7 +76,7 @@ for (pname in names(PATTERNS)) {
             # Anything else a method had to change about its own settings in
             # order to run at all -- a widened diffusion bandwidth, say. NA
             # means it ran as asked.
-            tuning = if (na) NA_character_ else
+            tuning = if (na) (spec$unavailable %||% NA_character_) else
               (attr(emb, "tuning") %||% NA_character_),
             rmse  = if (na) NA_real_ else reconstruction_error(emb, m$truth),
             qnx   = if (na) NA_real_ else qnx(emb, m$truth, K = 20L),

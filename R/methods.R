@@ -207,8 +207,17 @@ embed_autoencoder <- function(m, d = EMBED_DIM_DEFAULT, k = NULL, seed = NULL) {
   # Returning NULL rather than erroring lets the rest of the grid run; the grid
   # records the NULL, so a missing autoencoder row is visible in the artefact
   # rather than absent from it.
-  if (!requireNamespace("torch", quietly = TRUE)) return(NULL)
-  stop("the autoencoder is written in Chapter 7, not here", call. = FALSE)
+  # NULL whether or not torch is installed, until Chapter 7 writes it.
+  #
+  # This used to stop() when torch was present, on the assumption that a working
+  # checkout would not have it. CI does: r-lib/actions/setup-renv restores the
+  # whole lockfile, torch included -- a fact this repository had already
+  # discovered and written into its own README -- so the helper tests failed in
+  # CI while passing locally, and the error was written knowing the cause.
+  #
+  # A method that has not been implemented is a result. The grid records it as
+  # one, with a reason, exactly like a method that could not converge.
+  NULL
 }
 
 # ── The registry ────────────────────────────────────────────────────────────
@@ -245,6 +254,7 @@ METHOD_REGISTRY <- list(
                      fn = embed_umap),
   autoencoder = list(label = "Autoencoder",         family = "learned",
                      consumes = "ambient",       stochastic = TRUE,  chapter = 7,
+                     unavailable = "not implemented until Chapter 7",
                      fn = embed_autoencoder)
 )
 
@@ -261,6 +271,10 @@ embed <- function(method, sample, d = EMBED_DIM_DEFAULT, k = K_DEFAULT,
     stop("no method '", method, "' in the registry. Have: ",
          paste(names(METHOD_REGISTRY), collapse = ", "), call. = FALSE)
   }
+  # A method the registry declares unavailable returns NULL before anything is
+  # attempted, and the reason is the registry's to state rather than the
+  # function's. The grid records it as a result.
+  if (!is.null(spec$unavailable)) return(NULL)
   if (isTRUE(spec$stochastic) && is.null(seed)) {
     stop(method, " is stochastic and was called without a seed. Standing rule 1: ",
          "every stochastic result in this book is reported across BENCH_SEEDS, ",

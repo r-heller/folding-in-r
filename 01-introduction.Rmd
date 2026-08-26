@@ -4,12 +4,15 @@
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
-```{r intro-fold-figure, echo=FALSE, fig.width=9, fig.height=4.2, fig.cap="A flat crease pattern and the same sheet folded. Turning the folded sheet changes which facets you can see; it does not change the pattern.", fig.alt="Two panels side by side. Panel A is a flat Miura-ori crease pattern of sixteen parallelogram facets, each in a different colour, with two facets greyed out. Panel B shows the same sheet folded into a corrugated three-dimensional surface, with the facets in matching colours. The greyed facets in A are the ones hidden behind folds in B."}
+```{r intro-fold-figure, echo=FALSE, eval=TRUE, fig.width=9, fig.height=4.2, fig.cap="A flat crease pattern and the same sheet folded. Turning the folded sheet changes which facets you can see; it does not change the pattern.", fig.alt="Two panels side by side. Panel A is a flat Miura-ori crease pattern of sixteen parallelogram facets, each in a different colour, with two facets greyed out. Panel B shows the same sheet folded into a corrugated three-dimensional surface, with the facets in matching colours. The greyed facets in A are the ones hidden behind folds in B."}
 # The interactive form of this figure is the one that makes the point: the
 # reader turns the folded sheet in B and watches facets in A light up and go
 # out. HTML gets that; PDF and EPUB get one fixed view of the same thing,
 # computed by the same code, so the two cannot disagree.
-if (knitr::is_html_output()) {
+# EPUB counts as HTML output, so it would take the iframe branch and ship a
+# frame pointing at a file the EPUB does not contain. The static panels are the
+# right fallback there, as they are for PDF.
+if (knitr::is_html_output(excludes = c("epub", "markdown"))) {
   out <- knitr::opts_knit$get("output.dir")
   if (is.null(out)) out <- "docs"
   dir.create(out, showWarnings = FALSE, recursive = TRUE)

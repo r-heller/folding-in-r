@@ -126,6 +126,16 @@ source_files <- c(list.files(".", pattern = "\\.Rmd$"),
 cited <- unique(unlist(lapply(source_files, function(f) {
   lines <- readLines(f, warn = FALSE)
 
+  # Roxygen tags are not citations. R/*.R is scanned because a helper may cite a
+  # paper in a comment, but roxygen documentation starts every tag with @ --
+  # @param, @return, @examples -- and this check read them as citation keys,
+  # found them absent from book.bib, and exited 1.
+  #
+  # It had been failing since 22 August, which is worse than the bug: the gate
+  # that stops a fabricated reference reaching the book was red for four days
+  # and nothing noticed. That is the exact failure it exists to prevent.
+  lines <- lines[!grepl("^\\s*#'", lines)]
+
   # Drop fenced code before looking for citations. Done line by line rather
   # than with a regex because the fences are not all three backticks: the
   # callout examples in 00-how-to-use.Rmd wrap a three-backtick chunk inside a

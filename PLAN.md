@@ -458,6 +458,138 @@ re-run and seeding stays reproducible under parallelism.
 triples it by calling `render_book` three times (S0-4). No artefact is generated
 in CI; all nine are committed and read.
 
+## R — remediation, after the 2026-08-26 audit
+
+Six independent read-only sweeps, 108 findings, 30 of them put through
+adversarial verification: 17 confirmed, 11 overstated, 2 refuted. What follows
+is only what survived verification or what I re-checked by hand. Severity here
+is the *verified* severity, not the reported one.
+
+The shape of it: the experiments landed, and almost nothing downstream of them
+was updated. Three of the four confirmed blockers are self-inflicted regressions
+from the last three days.
+
+### R0 — the gates are broken and have been failing silently
+
+**R0-1 — `verify-citations.R` has exited 1 since 22 August.** The bidirectional
+key check added in S1-2 scans `R/*.R`, and roxygen tags start with `@`. It reads
+`@return` as a citation key, finds it absent from `book.bib`, and fails. The
+citation gate — the thing that stops a fabricated reference reaching the book —
+has been red for four days and nobody looked, which is precisely the failure it
+exists to prevent. *Fix:* strip `^\s*#'` lines before scanning; add `R/**` to
+the workflow's path filter so it fires when `R/` changes.
+
+**R0-2 — Helper tests fail in CI.** `setup-renv` restores the whole lockfile, so
+`torch` **is** installed in CI — a fact this repository documented in its own
+README after discovering it — and `embed_autoencoder()` therefore passes its
+`requireNamespace` guard and hits a bare `stop()`. Written knowing the cause.
+*Fix:* return `NULL` with a recorded reason regardless of whether torch is
+present, until Chapter 7 exists.
+
+**R0-3 — Chapter 1's figure renders nothing.** `_common.R` sets
+`opts_chunk$set(eval = FALSE)` and the figure chunk does not override it, so the
+figure, its caption and its alt text all vanish from every format. *Fix:*
+`eval=TRUE` on the chunk now; settle the global eval policy before drafting.
+
+**R0-4 — EPUB takes the iframe branch.** `knitr::is_html_output()` is TRUE for
+EPUB, so EPUB gets an iframe to a file it does not ship rather than the static
+fallback. *Fix:* `is_html_output(excludes = c("epub", "markdown"))`, and a lint
+rule so the next one carries it too.
+
+### R1 — code defects that falsify claims the book makes
+
+**R1-1 — the Yoshimura folding is an accordion pleat.** *(blocker, verified by
+hand.)* At θ = 0.6 the twelve horizontal creases fold to ρ = 1.2566 and all
+twenty-eight diagonals sit at ρ = π: they never fold at all. The diamond
+structure does nothing, so what ships as the second pattern family is a
+one-family pleat. The book's claim to two verified families is false as it
+stands.
+
+*Blast radius, checked:* E1's decisive arms A2 and A3 sweep `miura_ori` only.
+Yoshimura appears solely in arm A, which was already discarded as a confounded
+design. **The E1 verdict is unaffected.** The quick grid and the two-family
+claim are.
+
+*Fix:* derive the real one-parameter Yoshimura rigid folding — the row offset
+must vary with θ rather than stay pinned at a/2 — or withdraw the family and
+say so, exactly as E2's waterbomb was withdrawn.
+
+**R1-2 — the Miura mountain/valley labels do not match the folding.** Against
+the geometry at θ = 0.6, M splits 8/6 and V splits 4/6 between the two fold
+directions; if the labels were derived, each would sit in one column. They were
+assigned combinatorially to satisfy Maekawa and never checked against `fold()`.
+The figure draws mountain solid and valley dashed on this basis. *Fix:* derive
+the assignment from the folded dihedral sign, then re-check Maekawa as a
+consequence rather than as the definition.
+
+**R1-3 — `embed_laplacian()` can return an arbitrary vector.** When the heat
+kernel underflows the graph disconnects at working precision, the null space is
+degenerate, and the function returns whichever eigenvector the solver happened
+to produce, recording nothing. *Fix:* check connectivity and the eigenvalue gap;
+return `NULL` with a reason, like every other method that cannot run.
+
+**R1-4 — `irreducible_loss()` and `metric_floor()` are the same formula** while
+the comments assert they are different and complementary. *Fix:* keep one,
+alias the other, correct the comment.
+
+### R2 — Claim B has no artefact, and no differentiator
+
+**R2-1 — the floor is identically zero on the entire main grid.** Claim B's
+central instruction is "report every result against the floor". The main grid's
+chart is two-dimensional and the target is two-dimensional, so the floor is 0 in
+all 216 rows of the smoke test and would be 0 in all 2,400 of the real one. The
+spine's operative sentence cannot be executed as written. *Fix:* add a
+product/lift suite — `product_manifold()` at intrinsic dimension 4, where the
+floor is genuinely positive — as a numbered artefact, and either drop the
+`floor` column from the main grid or document that it is zero by construction
+and why that is itself the finding.
+
+**R2-2 — "exact ground truth" does not separate the book from its own
+baseline.** Claim B is justified on exact truth, but `R/baselines.R` ships the
+Euler Isometric Swiss Roll with `isometric = TRUE` as its default: published
+prior art, in this repository, with an exact arc-length chart. It supports an
+evaluator audit and a floor just as well. *Fix:* name what a crease pattern has
+that an arc-length-charted Swiss roll does not — zero reach, a non-smooth answer
+key, closed-form facet-level geodesics, products that raise intrinsic dimension
+— and state which of them the book actually measures. This must be settled
+before Chapters 1, 8 and 11 are drafted, because it is what they argue.
+
+### R3 — the planning documents still describe the abandoned book
+
+`PROJECT_CONCEPT.md` and `CHAPTERS.md` have not been touched since before E1
+landed. Confirmed: Claim C is still presented as live and "gated on E1";
+Chapter 11 is still specified as an experiment expecting creases to win;
+three pattern families, 2,700 cells and θ ∈ [0, 1.4] survive throughout;
+`g/s` is still framed as *the* difficulty axis; the risk register carries R1 and
+R6 as open after both have fired.
+
+*Fix:* one reconciliation pass over all three, before any drafting. Record
+Claim C as refuted with the arm A3 numbers rather than deleting it — a claim
+that failed is a result.
+
+### R4 — provenance gaps
+
+- The three E1 artefacts carry no provenance attribute, and `--quick` overwrites
+  them in place; `run-benchmark-grid.R` already does both correctly.
+- The 637% Swiss-roll distortion figure in `GENERATION_LOG.md` matches nothing
+  the repository computes; the measured value is 1059%.
+- The disjoint non-planarity range quoted for arm A does not reproduce from the
+  committed artefact, because arm A never stored an `np` column.
+- The 360-configuration ambient-contraction check has no producer in the
+  repository; it is quoted, not computed.
+- `experiments/e2-waterbomb/*.R` cannot run: every `source()` points at the
+  pre-move directory. E2's numbers exist only as prose in a README.
+
+### R5 — decisions the grid is waiting on
+
+The main grid has never been generated, and three things change what it
+contains, so they come first: the autoencoder (install torch and give Chapter 7
+its own artefacts, or drop it from the registry), the `boundary=` convention
+(E1's decisive arm used `boundary = TRUE`, where the book's own code says the
+chart stops being the geodesic), and the product suite from R2-1.
+
+---
+
 ## Risk register
 
 | # | Risk | Severity | Mitigation |
