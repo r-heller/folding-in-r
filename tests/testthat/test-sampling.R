@@ -20,14 +20,23 @@
 # waterbomb() stops by design while PLAN.md E2 is open, so it drops out here
 # rather than being named and skipped. Any family that builds and folds joins
 # the sweep automatically, which is what makes this file survive E2 either way.
+# Only the Miura folds now: the waterbomb has no certified folding (E2) and the
+# Yoshimura was withdrawn (PLAN.md R1-1). Both drop out here rather than being
+# named and skipped, which is what lets this file survive either outcome. Two
+# Miura shapes are swept in their place so the loops below still vary the
+# geometry rather than testing one object twice.
 sampling_patterns <- function() {
-  builders <- c(miura = "miura_ori", yoshimura = "yoshimura",
-                waterbomb = "waterbomb")
+  candidates <- list(
+    miura       = function() miura_ori(PATTERN_GRID$miura[["nx"]],
+                                       PATTERN_GRID$miura[["ny"]]),
+    miura_steep = function() miura_ori(4L, 6L, b = 1.6, alpha = pi / 4),
+    yoshimura   = function() yoshimura(PATTERN_GRID$yoshimura[["nx"]],
+                                       PATTERN_GRID$yoshimura[["ny"]]),
+    waterbomb   = function() waterbomb(4L, 4L)
+  )
   out <- list()
-  for (fam in names(builders)) {
-    size <- PATTERN_GRID[[fam]]
-    p <- try(do.call(builders[[fam]], list(size[["nx"]], size[["ny"]])),
-             silent = TRUE)
+  for (fam in names(candidates)) {
+    p <- try(candidates[[fam]](), silent = TRUE)
     if (!inherits(p, "crease_pattern")) next
     if (inherits(try(fold(p, 0.8), silent = TRUE), "try-error")) next
     out[[fam]] <- p
@@ -89,10 +98,12 @@ chart_diameter <- function(pattern) {
 
 test_that("the patterns this file samples exist and fold", {
   pats <- sampling_patterns()
-  # Miura and Yoshimura are settled per PROJECT_CONCEPT.md. If either were
-  # missing, every loop below would iterate over a shorter list and pass by
-  # testing less.
-  expect_true(all(c("miura", "yoshimura") %in% names(pats)))
+  # If a pattern silently dropped out, every loop below would iterate over a
+  # shorter list and pass by testing less. Two must survive.
+  expect_true(all(c("miura", "miura_steep") %in% names(pats)))
+  expect_gte(length(pats), 2L)
+  # And the withdrawn families must really be absent, not quietly present.
+  expect_false(any(c("yoshimura", "waterbomb") %in% names(pats)))
   for (p in pats) expect_s3_class(p, "crease_pattern")
 })
 
@@ -371,7 +382,7 @@ test_that("boundary = FALSE clears a margin of the sheet edge", {
 # ── The object contract ──────────────────────────────────────────────────────
 
 test_that("the returned object matches the manifold_sample contract", {
-  p <- sampling_patterns()[["yoshimura"]]
+  p <- sampling_patterns()[["miura_steep"]]
   s <- sample_manifold(p, theta = 0.9, n = 137L, seed = 8L,
                        noise = list(type = "ambient", sd = 0.01))
   expect_s3_class(s, "manifold_sample")

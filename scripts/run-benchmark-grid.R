@@ -25,9 +25,12 @@ source("_common.R")   # BENCH_SEEDS, N_SEEDS
 # rigid folding is an open question, not a coding task -- waterbomb() stops with
 # a message saying so, and this list will gain a third row if and only if that
 # question is answered yes.
+# One family. The waterbomb has no certified folding (E2); the Yoshimura has
+# two, and each leaves a crease family flat, which makes the folded object a
+# parallelogram tessellation rather than a diamond one (PLAN.md R1-1). The rule
+# is the same in both cases: no entry here for a pattern that cannot be built.
 PATTERNS <- list(
-  miura     = function() miura_ori(6, 6),
-  yoshimura = function() yoshimura(6, 6)
+  miura = function() miura_ori(6, 6)
 )
 
 # THETA_GRID comes from R/constants.R: theta is the fraction of the way to the

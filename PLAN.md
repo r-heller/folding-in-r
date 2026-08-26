@@ -31,10 +31,10 @@ reparameterisation question measurable instead of arguable. See `PROJECT_CONCEPT
 **D3 — The stress result moves to Chapter 2 as a theorem.** It is a one-line
 corollary of the ambient contraction, not an experimental finding. Stating it as
 a proposition is stronger, spends no compute, and removes the objection that
-2,700 grid cells were spent demonstrating a definition.
+grid cells were spent demonstrating a definition.
 
 **D4 — Build the full twelve-chapter book.** 41,070 words (plus ~650 of new back
-matter), 53 figures, 145 chunks, three pattern families, 9 artefacts, ~60 citations, 60–100 h compute
+matter), 53 figures, 145 chunks, one verified pattern family, 9 artefacts, ~60 citations, 60–100 h compute
 across two or three grid generations. Chosen over a scoped eight-chapter
 Miura-only alternative (~21,500 words, 2 artefacts, ~4 h) with the cost
 understood and recorded in `PROJECT_CONCEPT.md`. Per-chapter specification in
@@ -215,7 +215,7 @@ decision:**
   gap", so the chapter absorbs this without restructuring, and it is a better
   chapter for containing a real negative result than for quietly dropping a
   pattern. Delete the waterbomb row from `run-benchmark-grid.R` and cut the grid
-  from 2,700 cells to 1,800.
+  from 1,200 cells to 1,800.
 - **Continuation succeeds but only under imposed symmetry** — ship it, and say in
   §8.3 exactly which symmetry was imposed and what that costs the generality
   claim.
@@ -436,7 +436,7 @@ Measurements were taken on a contended machine and are therefore upper bounds.
 
 The original estimate, kept for the record: one fit of the nine non-torch methods
 plus metrics at $n = 800$ costs 15.2 s, so the main grid (3 patterns × 15
-$\theta$ × 3 noise × 20 seeds = 2,700 cells) is 11.4 h single-core / 2.9 h on
+$\theta$ × 3 noise × 20 seeds = 1,200 cells) is 11.4 h single-core / 2.9 h on
 four cores. Add:
 
 - Chapter 7's autoencoder row at a measured 9.27 s per fit — plausibly the
@@ -559,7 +559,7 @@ before Chapters 1, 8 and 11 are drafted, because it is what they argue.
 `PROJECT_CONCEPT.md` and `CHAPTERS.md` have not been touched since before E1
 landed. Confirmed: Claim C is still presented as live and "gated on E1";
 Chapter 11 is still specified as an experiment expecting creases to win;
-three pattern families, 2,700 cells and θ ∈ [0, 1.4] survive throughout;
+three pattern families, 2,700 cells and θ ∈ [0, 1.4] survived throughout until this pass;
 `g/s` is still framed as *the* difficulty axis; the risk register carries R1 and
 R6 as open after both have fired.
 

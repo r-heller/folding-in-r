@@ -360,8 +360,17 @@ answer key, which permits two things no other benchmark permits: auditing the
 evaluators themselves (Claim A), and computing the smallest error any 2-D
 embedding of a dataset could achieve (Claim B). The Swiss roll can do neither,
 because its truth is a convention — and, as Chapter 11 now measures, usually the
-wrong one: 637% worst local distortion under the customary angle chart against
-2% under arc length.
+wrong one: the customary angle chart is off by
+about 1070% in worst local distortion against roughly 2% under arc length,
+measured at the 2% neighbourhood quantile on a two-turn roll
+(`tests/testthat/test-contraction.R`).
+
+**Correction, 2026-08-26.** This entry originally read 637%, and nothing in the
+repository produced that number — it was quoted rather than computed, which is
+the practice this book forbids. The measured value is about 1070% and is stable
+across neighbourhood quantiles; the ratio between the two charts is what should
+be reported, since the absolute figure depends on the quantile chosen. There is
+now a test that computes it.
 
 The honest positioning is **complementary, not competing**. The Swiss roll is the
 better discriminator of methods; the crease pattern is the only one of the two
@@ -389,3 +398,68 @@ PCA and classical MDS agree to 5.8e-15 across the whole grid, which is correct
 rather than a bug — `cmdscale` on a Euclidean distance matrix *is* PCA. The grid
 carries two distinct linear methods, not three, and `run-benchmark-grid.R`
 should not pretend otherwise.
+
+## Phase 16 — audit, and the remediation it started
+
+Six independent read-only sweeps against what E1 and E2 actually decided. 108
+findings; 30 put through adversarial verification, which confirmed 17,
+downgraded 11 as overstated and refuted 2. Only what survived is acted on. The
+roadmap is `PLAN.md` § "R — remediation".
+
+The uncomfortable pattern: **three of the four confirmed blockers were
+regressions introduced in the previous three days**, and all three are the same
+shape — a guard written against a condition that had already been shown to be
+false.
+
+- `verify-citations.R` had exited 1 since 22 August. The bidirectional key check
+  scans `R/*.R`; roxygen tags begin with `@`, so it read `@return` as a citation
+  key. The gate that stops a fabricated reference reaching the book was red for
+  four days and nothing noticed — precisely the failure it exists to prevent.
+- Helper tests failed in CI because `torch` **is** installed there. This
+  repository discovered that `setup-renv` restores the whole lockfile, wrote it
+  into its own README, and then shipped a torch-conditional `stop()` anyway.
+- Chapter 1's figure rendered nothing: it inherited `eval = FALSE`.
+- EPUB took the iframe branch, because `is_html_output()` is TRUE for EPUB.
+
+### The Yoshimura is withdrawn
+
+The shipped folding was **an accordion pleat**: twelve horizontal creases folded
+and all twenty-eight diagonals sat at ρ = π. It passed the facet-isometry test
+perfectly, because a pleat *is* a rigid folding, and it passed Kawasaki, because
+the flat pattern was never the problem.
+
+Two corrected foldings were derived, one with the corrugation along the rows and
+one with a checkerboard height. **Each leaves one of the three crease families
+flat.** Both are exact — isometry 7.8e-16, flat at θ = 0 — which is what makes
+the result worth recording rather than patching around. A folding that leaves a
+family flat is a folding of a coarser pattern: fuse the facets across the
+unfolded creases and what remains is a parallelogram tessellation. It is a Miura
+wearing the Yoshimura's crease pattern, and shipping it as a second independent
+family would have been a claim about pattern variety the geometry does not
+support.
+
+So the book ships **one verified family and two documented kinematics results**.
+E1's decisive arms swept `miura_ori` only, so nothing downstream depends on it.
+
+**What caught it is the transferable part.** An isometry test cannot tell a fold
+from a pleat. Deriving the mountain/valley assignment from the folded dihedral
+and testing Maekawa on the result can: 12 of 16 interior vertices failed. That
+diagnostic also found the Miura's labels had been assigned by a parity rule
+chosen to satisfy Maekawa and matched the actual folding on 36 of 60 creases;
+derived from the geometry they now satisfy Maekawa at 16 of 16.
+
+### Other remediation in this phase
+
+- `irreducible_loss()` and `metric_floor()` were separate implementations of the
+  same bound, each documented as the complement of the other. They agree to
+  1.1e-16 — classical-MDS eigenvalues of a centred chart are the squared
+  singular values. One is now an alias.
+- `embed_laplacian()` could return an arbitrary vector out of a degenerate null
+  space when the heat kernel underflowed, recording nothing. It now detects the
+  disconnection and returns NULL.
+- The E1 artefacts carry provenance, and `--quick` writes its own files rather
+  than overwriting the evidence for the decision that changed the book's spine.
+- `experiments/e2-waterbomb/*.R` could not run: every `source()` pointed at the
+  pre-move directory.
+- The ambient contraction and the Swiss-roll chart defect now have producers in
+  `tests/testthat/test-contraction.R`, rather than being quoted.

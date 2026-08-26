@@ -103,8 +103,9 @@ Fix these before drafting. All three are in files that render today.
 3. **`90-glossary.Rmd`** and `A1-notation.Rmd` — $\theta$ is defined as "the
    dihedral angle at a crease. Runs from 0 (flat sheet)". A crease dihedral angle
    in a flat sheet is $\pi$, not 0. $\theta$ is the **folding parameter**, and
-   `scripts/run-benchmark-grid.R` already sweeps it over $[0, 1.4]$, which is not
-   a dihedral range. Define it once, as the parameter of the folding map, and
+   `scripts/run-benchmark-grid.R` swept it over $[0, 1.4]$, which is neither
+   a dihedral range nor a legal parameter range — it is now the fraction of the
+   way to flat-folded, on $[0, 1]$ (`R/folding.R`). Define it once, as the parameter of the folding map, and
    derive the dihedral angle from it.
 
 ---
@@ -142,41 +143,115 @@ of the inversion threshold as a function of $(\theta, k, n)$, and its coincidenc
 with the short-circuit onset predicted analytically in Chapter 5. Nobody has
 drawn that curve and it needs exact truth to draw.
 
-### Claim B — the irreducible-loss bound **(strongest available, currently buried)**
+### Claim B — the irreducible-loss bound **(the spine, after E1)**
 
 The product construction gives "here is the exact smallest error any 2-D
 embedding of this dataset could possibly achieve." No existing benchmark can
 compute that number. It speaks directly to Chari & Pachter's actual complaint
-about unavoidable distortion, and — decisively — **it does not depend on creases
-being special**, so it survives every objection to Claim C.
+about unavoidable distortion, and it does not depend on creases being special,
+so it survived E1 intact while Claim C did not.
 
-Currently one subsection of Chapter 8. **Promote it.** It is the book's spine.
+**Two things it needs before Chapters 1, 8 and 11 can be drafted.**
 
-Report every result against this bound rather than against zero, so the hard end
-of the range stops being "everything failed" and becomes "the best achievable
-error here is $X$ and every method achieves $0.98X$" — a substantive finding
-about a regime rather than a shrug.
+**(i) An artefact where the bound is not zero.** The floor for a $p$-dimensional
+chart embedded in $d$ dimensions is the tail of the chart's spectrum, so on the
+main grid — a 2-D chart embedded in 2-D — it is **identically zero in every
+cell**. Claim B's operative instruction, *report every result against the floor*,
+therefore cannot be executed on the book's own grid. The product construction is
+what makes it positive: `product_manifold()` at intrinsic dimension 4 forced
+into 2-D gives a floor around 0.61–0.66 depending on the factors. That needs to
+be a numbered artefact with its own suite, and the main grid should either drop
+the `floor` column or say in Chapter 10 that it is zero by construction — which
+is itself worth one sentence, because it means every error on that grid is loss
+the method is responsible for.
 
-### Claim C — "crease patterns are a better benchmark" **(unsupported; gated on E1)**
+**(ii) A differentiator that survives the book's own baseline.** "Exact ground
+truth" does not distinguish a crease pattern from an arc-length-charted Swiss
+roll. `R/baselines.R` ships exactly that, with `isometric = TRUE` as the default,
+and it is published prior art (Schoeneman et al. 2017). It supports an evaluator
+audit and a floor just as well. Claiming exactness as the differentiator would
+be a plausible-but-wrong claim of precisely the kind this project keeps getting
+caught by.
 
-This is the claim the book currently leads with, and the book's own numbers
-undercut it. Short-circuit fraction is exactly **0.00** at $\theta = 0.0, 0.2,
-0.4, 0.6, 0.8$; the transition is confined to $[0.9, 1.4]$. But piecewise
-flatness, curvature on the 1-skeleton and zero reach are all fully present at
-$\theta = 0.001$ where nothing measurable happens, and unchanged at $\theta =
-1.4$ where all of it happens. **A property constant across the entire phenomenon
-cannot be its cause.**
+What a crease pattern has that the Euler Swiss roll does not:
 
-What does vary and does track difficulty is $g/s$ — gap-to-spacing — falling
-monotonically 21.8 → 4.2. That is exactly the ratio Balasubramanian & Schwartz
-identified for Isomap's topological instability, and exactly what tightening a
-Swiss roll's turn count varies.
+- **Zero reach and a non-smooth answer key.** The Swiss roll is a smooth
+  developable surface with positive reach; every manifold-learning guarantee
+  that assumes smoothness applies to it. A creased sheet has reach exactly zero,
+  so it sits outside that theory rather than at its edge. This is the honest
+  differentiator and the book measures it.
+- **Intrinsic dimension above two, still in closed form.** Products of crease
+  patterns raise intrinsic dimension while keeping the chart exact. A Swiss roll
+  is 2-D and stays 2-D. This is what makes (i) possible at all, and it is why
+  the product construction is load-bearing rather than decorative.
+- **A difficulty parameter with a computable critical value**, rather than one
+  found by sweeping and looking.
 
-So Claim C is **not yet supported by anything in the plan**, and the experiment
-that would decide it currently sits in chapter 11 of 12. It runs first instead.
-See `PLAN.md` E1.
+The chapters must argue from those, not from exactness alone.
 
----
+### Claim C — "crease patterns are a better benchmark" **(REFUTED by E1, retired)**
+
+Kept rather than deleted. A claim that failed is a result, and this one is the
+reason the book has the spine it now has.
+
+E1 ran on 2026-08-22. Evidence in `data/processed/e1-*.rds`, method in
+`scripts/experiment-e1.R`, decision recorded in `GENERATION_LOG.md` Phase 15.
+
+**The experiment as this plan specified it could not have answered the
+question.** Arm A sweeps $\theta$ alone, and folding a crease pattern raises
+branch separation *and* lifts the sheet out of the plane at the same time. At
+$g/s \approx 21$ a Miura is a flat plane that PCA recovers with error 0.000,
+while a Swiss roll at the same separation is still curved and PCA scores 0.403.
+The two families' ranges of ambient non-planarity are **disjoint** — crease
+0.000–0.056, Swiss roll 0.101–0.126 — so across arm A's whole design there is no
+setting at which they are comparable. Arm A reports a family term at
+$F = 1203$, $p < 2\times10^{-16}$, and that number is about the confound.
+
+**Arm A2 fixed the design.** $\theta$ is not the important knob; *cell count*
+dominates non-planarity. Sweeping $(n_x, \alpha, \theta)$ creates the overlap
+arm A lacked. The family effect survives control for both axes — and crease
+patterns come out **easier**.
+
+**Arm A3 asks what a benchmark is for.** A benchmark earns its keep by telling
+methods apart, so the statistic is the spread across methods within a cell at
+matched difficulty: **Swiss roll 0.574, crease patterns 0.113**. The Swiss roll
+separates PCA from Isomap five times better. At matched difficulty PCA scores
+0.922 against Isomap's 0.348 on a Swiss roll — the textbook result, and the
+right one, since Isomap consumes geodesics and PCA does not — against 0.286 and
+0.183 on creases, where PCA does nearly as well because a folded Miura is still
+close to planar.
+
+Crease patterns are not a harder benchmark. They are an easier one that
+discriminates less.
+
+**Arm B**: at matched $g/s$, error is flat in crease count. Crease count does
+nothing.
+
+**Caveats that travel with this.** The overlap is a specific corner — nine
+crease settings, 2×2 to 4×4 Miura at large $\alpha$ and $\theta \in [0.70,
+0.95]$. Three methods, two metrics. And under $Q_{NX}$ Isomap scores 0.773 on
+creases against 0.778 on Swiss rolls, so for the neighbourhood metric the
+families very nearly *do* collapse, and the whole difference sits in how badly
+the linear methods fail — a fact about ambient non-planarity rather than about
+creases.
+
+**What E1's pre-registration got wrong.** `PLAN.md` pre-drafted three outcomes
+and none occurred. The families neither collapsed nor "separated" in the sense
+registered, which was *different rankings*; the ranking is identical in both
+families. What happened was a fourth thing: they separate, in the opposite
+direction, with less method discrimination. The replacement claim from outcome 2
+is adopted because it fits the evidence, not because its antecedent was met, and
+saying so is the whole point of pre-registering.
+
+### The difficulty axis is two-dimensional, not one
+
+$g/s$ alone is not it, and every place this document previously implied
+otherwise was wrong. Difficulty here has at least two axes — branch separation
+**and** ambient non-planarity — and a $\theta$-only sweep moves both together,
+which is what made arm A uninterpretable. Any comparison across families must
+control both, and because $g$ is a property of the surface while $s$ falls as
+$n^{-1/2}$, $g/s$ grows as $\sqrt{n}$: comparisons are only meaningful at fixed
+$n$.
 
 ## Prior work the book must cite before drafting
 
@@ -318,8 +393,7 @@ a hope.
 ### The full twelve-chapter book
 
 Twelve body chapters in four parts, plus front and back matter: **41,070 words,
-53 figures, 145 code chunks, ~60 citations, 9 committed artefacts**, three
-pattern families, and 60–100 h of compute across two or three grid generations.
+53 figures, 145 code chunks, ~60 citations, 9 committed artefacts**, one verified pattern family, and 60–100 h of compute across two or three grid generations.
 Chapter-by-chapter specification is in `CHAPTERS.md`.
 
 This is the ambitious version and it was chosen deliberately over a scoped
@@ -332,37 +406,49 @@ a surprise:
   in a day does not transfer. Prose cannot outrun the grid.
 - **Compute.** ~11.4 h single-core for the main grid alone (measured: 15.2 s per
   fit of nine non-torch methods plus metrics at $n=800$; 3 patterns × 15 $\theta$
-  × 3 noise × 20 seeds = 2,700 cells). Chapter 7's autoencoder row plausibly
+  × 3 noise × 20 seeds = 1,200 cells). Chapter 7's autoencoder row plausibly
   dominates everything else at a measured 9.27 s per fit. Chapter 9's two audit
   artefacts multiply every cell by 3 reference geometries — one of which needs an
   all-pairs Dijkstra, i.e. Isomap's cost again — × 4 values of $k$.
 - **Two grid generations minimum.** Every number currently in hand was measured on
   a rigid accordion-fold stand-in, not on a Miura. All of it must be re-measured.
 
-### Three patterns, and one honest gap
+### One verified pattern, and two honest gaps
 
-Miura and Yoshimura are **derived and numerically verified**. Miura: all six
-pairwise facet distances preserved to $<10^{-12}$ for $\alpha \in [20°, 85°]$,
-$\theta \in [0, \pi/2]$, reducing exactly to the flat sheet at $\theta = 0$, and
-satisfying an independent identity not built into the derivation (major-crease
-dihedral exactly $2\theta$). Yoshimura: edge error $<10^{-15}$, and the ring
-closes at $\theta = \pi/2$ giving a perfect short-circuit — ambient distance 0
-against true geodesic 6.0. The literature's negative result about Yoshimura
-concerns the closed **cylinder**, where circumferential closure kills the
-mechanism; a finite planar patch is a different object.
+**Miura is derived and numerically verified.** All pairwise facet distances
+preserved to $<10^{-15}$ across $\alpha \in [20°, 85°]$ and the whole $\theta$
+sweep, reducing exactly to the flat sheet at $\theta = 0$, and satisfying an
+independently derived closed form for the major-crease dihedral that was not
+built into the construction (agreement $3.6\times10^{-15}$). Its mountain/valley
+assignment is derived from the folded dihedral, and Maekawa's theorem then holds
+at every interior vertex as a consequence rather than as an input.
 
-**Waterbomb is unresolved, and this is mathematics rather than scheduling.** No
-closed-form rigid folding could be certified. The degree-6 vertex with sectors
-(45, 45, 90, 45, 45, 90) satisfies Kawasaki, so it is flat-foldable as an
-*isolated vertex* — that does not imply the *tessellation* admits a one-parameter
-rigid folding without imposing extra symmetry. Do not assert one.
+**Yoshimura is withdrawn** (2026-08-26). The implementation that shipped was an
+accordion pleat: the horizontal creases folded and every diagonal sat at
+$\rho = \pi$. Two corrected foldings were derived, and *each leaves one of the
+three crease families flat* — which makes the folded object a parallelogram
+tessellation rather than a diamond one, a Miura wearing this pattern's crease
+lines. Shipping it as a second independent family would have claimed a variety
+the geometry does not support.
 
-E2 attempts it by bar-and-joint continuation with a documented fallback. Chapter
-8 §3 is already titled *"Three pattern families, and one honest gap"*, which is
-the right posture: if waterbomb does not fold, the chapter ships **two families
-plus a documented negative result**, and that is a better chapter than one that
-quietly drops a pattern. What must not happen is a `PATTERNS` entry in
-`run-benchmark-grid.R` that cannot be built.
+**Waterbomb is withdrawn** (E2). It folds, but only under an imposed symmetry,
+and three things disqualify it as a grid row: the embedding is unproved (facet
+clearance falls to 0.026 at $\theta = 0.9$), fold amplitude is not monotone in
+$\theta$, and $\theta$ does not determine the configuration — 27 degrees of
+freedom remain on the free boundary.
+
+So Chapter 8 §3 ships **one family and two documented negative results**. That is
+a smaller chapter than planned and a true one, and §3's existing title — "Three
+pattern families, and one honest gap" — needs to become "One pattern family, and
+two honest gaps".
+
+**What the two withdrawals have in common is the lesson.** An isometry test
+cannot tell a fold from a pleat, because a pleat *is* a rigid folding. A
+first-order flex at the flat state proves nothing, because at the flat state
+every $z$ column of the Jacobian vanishes for *any* planar pattern. Both traps
+were sprung and both were caught by a second, independent check — Maekawa on
+derived labels in one case, a second-order test and finite continuation in the
+other.
 
 ### What this book is not
 

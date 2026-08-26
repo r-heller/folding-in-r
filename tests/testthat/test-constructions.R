@@ -3,7 +3,7 @@
 mk <- function(n = 200L) {
   a <- sample_manifold(miura_ori(3L, 3L), theta = 0.6, n = n, seed = 1001L,
                        boundary = TRUE)
-  b <- sample_manifold(yoshimura(3L, 3L), theta = 0.5, n = n, seed = 1002L,
+  b <- sample_manifold(miura_ori(3L, 3L, alpha = pi / 4), theta = 0.5, n = n, seed = 1002L,
                        boundary = TRUE)
   list(a = a, b = b, p = product_manifold(a, b))
 }

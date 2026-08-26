@@ -5,7 +5,7 @@
 # that is not true, and this checks the refusal works.
 
 test_that("exported geometry is isometric between the panels", {
-  for (p in list(miura_ori(4L, 4L), yoshimura(4L, 4L))) {
+  for (p in list(miura_ori(4L, 4L), miura_ori(3L, 5L))) {
     for (th in c(0, 0.4, 0.85)) {
       g <- figure_geometry(p, th)
       expect_lt(g$isometry_error, 1e-12)

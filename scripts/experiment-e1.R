@@ -91,6 +91,31 @@ METHODS <- list(
   }
 )
 
+
+# Provenance travels with every artefact, and a --quick run writes its own file.
+# run-benchmark-grid.R already does both; these three did neither, so a smoke
+# test overwrote the committed evidence in place and nothing recorded what had
+# produced it. The E1 artefacts are the record of the decision that changed the
+# book's spine.
+.e1_out <- function(stem) {
+  file.path("data/processed",
+            paste0(stem, if (quick) "-quick" else "", ".rds"))
+}
+.e1_save <- function(x, stem, ...) {
+  attr(x, "provenance") <- c(list(
+    quick = quick, n = N, seeds = SEEDS, k_nn = K_NN, k_qnx = K_QNX,
+    methods = names(METHODS),
+    r_sha = tryCatch(system2("git", c("rev-parse", "--short", "HEAD"),
+                             stdout = TRUE), error = function(e) NA_character_)
+  ), list(...))
+  out <- .e1_out(stem)
+  dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
+  saveRDS(x, out)
+  message("wrote ", out, " -- ", nrow(x), " rows",
+          if (quick) "  (QUICK smoke test, not the book's evidence)" else "")
+  invisible(out)
+}
+
 # ── One cell ────────────────────────────────────────────────────────────────
 
 one_cell <- function(fam, fname, p, seed) {
@@ -135,8 +160,8 @@ for (fname in names(FAMILIES)) {
 }
 armA <- do.call(rbind, rows)
 
-dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
-saveRDS(armA, "data/processed/e1-difficulty.rds")
+.e1_save(armA, "e1-difficulty", arm = "A", families = names(FAMILIES),
+         theta = THETA, turns = TURNS)
 
 # ── Arm A2 — the redesign that arm A forced ─────────────────────────────────
 #
@@ -210,7 +235,7 @@ for (tn in ARM2_TURNS) for (s in ARM2_SEEDS) {
   }
 }
 armA2 <- do.call(rbind, a2)
-saveRDS(armA2, "data/processed/e1-controlled.rds")
+.e1_save(armA2, "e1-controlled", arm = "A2/A3", crease = ARM2_CREASE, turns = ARM2_TURNS)
 
 cat("\n== arm A2: family effect once BOTH axes are controlled ==\n")
 for (mn in names(METHODS)) for (metric in c("rmse", "qnx")) {
@@ -317,7 +342,7 @@ for (g in GRIDS) {
   message("  done: ", g[1], "x", g[2], " at theta ", format(fit$theta, digits = 3))
 }
 armB <- do.call(rbind, rowsB)
-saveRDS(armB, "data/processed/e1-armB.rds")
+.e1_save(armB, "e1-armB", arm = "B", grids = GRIDS)
 
 # ── Report ──────────────────────────────────────────────────────────────────
 #
@@ -396,6 +421,6 @@ cat("\n== arm B: error against crease count at matched g/s ==\n")
 print(stats::aggregate(cbind(gs, rmse, qnx) ~ creases + method, data = armB,
                        FUN = function(x) round(mean(x), 4)), row.names = FALSE)
 
-cat("\nWrote data/processed/e1-difficulty.rds (", nrow(armA), " rows) and ",
-    "data/processed/e1-armB.rds (", nrow(armB), " rows).\n", sep = "")
+cat("\nWrote ", .e1_out("e1-difficulty"), ", ", .e1_out("e1-controlled"),
+    " and ", .e1_out("e1-armB"), ".\n", sep = "")
 cat("Record the claim-set decision in GENERATION_LOG.md before drafting.\n")

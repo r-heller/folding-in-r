@@ -1,6 +1,6 @@
 # E2 -- does the waterbomb tessellation admit a rigid folding?
 #
-# Run with:  cd <repo> && Rscript scratch-waterbomb/waterbomb-spike.R
+# Run with:  cd <repo> && Rscript experiments/e2-waterbomb/waterbomb-spike.R
 #
 # Answer, ahead of the evidence: yes, and there is a one-parameter folding, but
 # only after imposing one symmetry beyond periodicity. The numbers below are the
@@ -21,10 +21,10 @@
 # whatever the pattern is -- it says nothing about folding. What decides is the
 # second-order condition and then an actual finite motion.
 
-source("scratch-waterbomb/wb-core.R")
-source("scratch-waterbomb/wb-angles.R")
-source("scratch-waterbomb/wb-develop.R")
-source("scratch-waterbomb/wb-b.R")
+source("experiments/e2-waterbomb/wb-core.R")
+source("experiments/e2-waterbomb/wb-angles.R")
+source("experiments/e2-waterbomb/wb-develop.R")
+source("experiments/e2-waterbomb/wb-b.R")
 set.seed(1)
 
 hr <- function(s) cat("\n", s, "\n", strrep("-", nchar(s)), "\n", sep = "")

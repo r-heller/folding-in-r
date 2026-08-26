@@ -172,10 +172,27 @@ embed_laplacian <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL
   W <- matrix(0, n, n)
   for (i in seq_len(n)) W[i, nb[i, ]] <- exp(-D[i, nb[i, ]]^2 / t2)
   W <- pmax(W, t(W))                       # symmetrise
-  Dg <- diag(rowSums(W))
+
+  # The heat kernel underflows on a spread sample: exp(-d^2/t2) goes to zero,
+  # rows of W go to zero, and the graph disconnects at working precision even
+  # though the k-NN graph that built it is connected. The null space of L is
+  # then degenerate -- its dimension is the number of components, not one -- and
+  # taking "the second eigenvector" returns whichever vector the solver happened
+  # to produce out of a space where every direction is equally valid.
+  #
+  # That is a number with no meaning arriving in a column that claims one, which
+  # is the failure mode this book cares about most. Detected and refused.
+  deg <- rowSums(W)
+  if (min(deg) < 1e-12 * stats::median(deg)) return(NULL)
+
+  Dg <- diag(deg)
   L <- Dg - W
   e <- try(eigen(solve(Dg + diag(1e-9, n)) %*% L, symmetric = FALSE), silent = TRUE)
   if (inherits(e, "try-error")) return(NULL)
+  vals <- sort(Re(e$values))
+  # One trivial zero eigenvalue means one component. A second near-zero one
+  # means the embedding is being read out of a degenerate space.
+  if (vals[2] < 1e-10 * max(abs(vals))) return(NULL)
   v <- Re(e$vectors)
   idx <- order(Re(e$values))[2:(d + 1L)]
   v[, idx, drop = FALSE]

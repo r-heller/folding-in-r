@@ -132,7 +132,7 @@ gives $d_A < d_U$ strictly for every $\theta > 0$; two-component PCA is the
 least-squares-optimal linear approximant to that same ambient configuration.
 Therefore `stress(truth) > stress(PCA)` — one line, no simulation. It is stronger
 as a theorem than as an experiment, and moving it here removes the objection that
-2,700 grid cells were spent demonstrating a definition.
+1,200 grid cells were spent demonstrating a definition.
 
 **Three corrections land here** (`PROJECT_CONCEPT.md`): curvature is *not*
 concentrated at vertices — write *against* that misconception rather than merely

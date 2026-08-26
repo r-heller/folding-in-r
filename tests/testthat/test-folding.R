@@ -18,7 +18,7 @@ test_that("folding is an isometry on every facet, for every theta", {
   # Pairwise distances, not edge lengths. An implementation that preserves every
   # edge of a parallelogram while shearing it passes an edge test and is not a
   # rigid folding.
-  for (p in list(miura_ori(5L, 5L), yoshimura(5L, 5L))) {
+  for (p in list(miura_ori(5L, 5L))) {
     worst <- max(vapply(THETAS, function(t) facet_isometry_error(p, t), numeric(1)))
     expect_lt(worst, 1e-10)          # the contract in R/README.md
     expect_lt(worst, 1e-12)          # what it actually achieves
@@ -37,7 +37,7 @@ test_that("the Miura is isometric across the alpha range the book sweeps", {
 })
 
 test_that("theta = 0 is the flat sheet exactly, not in the limit", {
-  for (p in list(miura_ori(5L, 5L), yoshimura(5L, 5L))) {
+  for (p in list(miura_ori(5L, 5L))) {
     f <- fold(p, 0)
     expect_equal(max(abs(f$vertices3[, 3])), 0)
     expect_equal(f$vertices3[, 1:2], p$vertices, ignore_attr = TRUE)
@@ -56,7 +56,7 @@ test_that("theta is a parameter on [0, 1] and says so when it is not", {
 })
 
 test_that("folding is monotone over the whole sweep", {
-  for (p in list(miura_ori(4L, 4L), yoshimura(4L, 4L))) {
+  for (p in list(miura_ori(4L, 4L))) {
     ts <- seq(0, 1, by = 0.02)
     z <- vapply(ts, function(t) diff(range(fold(p, t)$vertices3[, 3])), numeric(1))
     y <- vapply(ts, function(t) diff(range(fold(p, t)$vertices3[, 2])), numeric(1))
@@ -68,7 +68,7 @@ test_that("folding is monotone over the whole sweep", {
 test_that("folding contracts ambient distance and never expands it", {
   # The book's crux. Pairs inside one facet keep their distance exactly; every
   # pair separated by a fold is strictly closer in R^3 than along the surface.
-  for (p in list(miura_ori(4L, 4L), yoshimura(4L, 4L))) {
+  for (p in list(miura_ori(4L, 4L))) {
     dU <- as.matrix(stats::dist(p$vertices))
     for (t in c(0.1, 0.5, 0.9)) {
       dA <- as.matrix(stats::dist(fold(p, t)$vertices3))
@@ -119,7 +119,7 @@ test_that("dihedral angles decrease monotonically from pi as the sheet folds", {
 test_that("no two distinct vertices collide before the flat-folded state", {
   # A self-intersecting surface would invalidate every ambient distance measured
   # on it, so this is a precondition for the benchmark rather than a nicety.
-  for (p in list(miura_ori(4L, 4L), yoshimura(4L, 4L))) {
+  for (p in list(miura_ori(4L, 4L))) {
     for (t in c(0.5, 0.9, 0.99)) {
       d <- as.matrix(stats::dist(fold(p, t)$vertices3))
       diag(d) <- Inf
@@ -137,4 +137,28 @@ test_that("the folded object satisfies its contract", {
   expect_equal(ncol(f$vertices3), 3L)
   expect_equal(length(f$rho), nrow(p$creases))
   expect_true(all(f$rho[p$creases$assignment == "B"] == pi))
+})
+
+test_that("the Yoshimura refuses to fold, and says why", {
+  # Withdrawn (PLAN.md R1-1). Two rigid foldings were derived and each leaves one
+  # of the three crease families flat, which makes the folded object a
+  # parallelogram tessellation rather than a diamond one. The flat pattern is
+  # still built -- it is a valid crease pattern and Chapter 8 discusses it.
+  expect_s3_class(yoshimura(3L, 3L), "crease_pattern")
+  expect_error(fold(yoshimura(3L, 3L), 0.5), "three crease families")
+})
+
+test_that("mountain and valley are derived from the fold, and Maekawa follows", {
+  # The labels used to be assigned by a parity rule chosen to satisfy Maekawa,
+  # and matched the actual folding on barely half the creases. Deriving them
+  # from the folded dihedral makes Maekawa a consequence to test rather than an
+  # assumption -- and it is the test that caught the Yoshimura being a pleat.
+  p <- miura_ori(5L, 5L)
+  a <- crease_assignment(p)
+  expect_setequal(unique(a), c("M", "V", "B"))
+  for (v in interior_vertices(p)) {
+    sel <- (p$creases$i == v | p$creases$j == v) & a != "B"
+    expect_equal(abs(sum(a[sel] == "M") - sum(a[sel] == "V")), 2,
+                 info = paste("vertex", v))
+  }
 })

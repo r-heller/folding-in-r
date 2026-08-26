@@ -88,34 +88,32 @@ lift <- function(sample, D = 50L, seed = NULL) {
 
 #' The smallest reconstruction error any d-dimensional embedding could achieve.
 #'
-#' Stated precisely, because a bound whose statement is vague is not a bound.
+#' An alias for `metric_floor()` in R/metrics.R, kept because Chapter 8 argues
+#' about the *construction* and Chapter 9 argues about the *metric*, and a
+#' reader following either should find the bound under the name that chapter
+#' uses.
 #'
-#' The book's headline metric is normalised Procrustes RMSE against the exact
-#' chart U, which lives in R^p. When p > d, no d-dimensional configuration can
-#' reproduce U exactly, and the best possible is the optimal rank-d
-#' approximation of U in the Procrustes sense. Because Procrustes permits
-#' translation, rotation, reflection and isotropic scale, that optimum is the
-#' rank-d truncation of the singular value decomposition of the centred chart,
-#' and the residual is the tail of the singular spectrum.
+#' They were separate implementations, with comments in both files asserting
+#' they measured different things -- one "for the Procrustes side", one "for the
+#' co-ranking side". They did not. Measured across a product chart at every
+#' target dimension, the two agree to 1.1e-16: classical-MDS eigenvalues of a
+#' centred chart are the squared singular values, so
+#' sqrt(tail(lambda)/sum(lambda)) and sqrt(tail(s^2)/sum(s^2)) are the same
+#' number written twice. Two implementations of one bound, each documented as
+#' the complement of the other, is how a book ends up quoting a floor in one
+#' chapter that contradicts the floor in the next.
 #'
-#' So the floor is
+#' What the bound is, stated once: for normalised Procrustes error against a
+#' p-dimensional chart, no d-dimensional configuration can do better than the
+#' tail of the chart's spectrum, because Procrustes permits translation,
+#' rotation, reflection and isotropic scale, and the optimum over that group is
+#' the rank-d truncation. It is exact, it depends on the data alone, and no
+#' method appears in it.
 #'
-#'     sqrt( sum_{j>d} s_j^2 / sum_j s_j^2 )
-#'
-#' with s the singular values of the centred chart. It is exact, not estimated,
-#' and it depends on the DATA only -- no method appears in it.
-#'
-#' What it does NOT bound: any metric that is not this one. A rank-based score
-#' has its own floor and this is not it. `metric_floor()` in R/metrics.R is the
-#' companion for the co-ranking side; keeping the two separate is deliberate,
-#' because a single number called "the floor" that silently changed meaning
-#' between chapters would be worse than no floor at all.
+#' It does NOT bound a rank-based score. A co-ranking metric has its own floor
+#' and this is not it.
 irreducible_loss <- function(sample, d = EMBED_DIM_DEFAULT) {
-  U <- as.matrix(sample$truth)
-  U <- sweep(U, 2L, colMeans(U))
-  s <- svd(U)$d
-  if (length(s) <= d) return(0)
-  sqrt(sum(s[-seq_len(d)]^2) / sum(s^2))
+  metric_floor(sample, d)
 }
 
 #' Report a method's error against the floor rather than against zero.

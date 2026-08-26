@@ -150,7 +150,7 @@ test_that("a widened diffusion bandwidth is recorded, not hidden", {
   ran <- 0L; tuned <- 0L
   for (sd in 1001:1004) {
     m <- suppressMessages(sample_manifold(
-      yoshimura(6L, 6L), theta = 0, n = 150L,
+      miura_ori(6L, 6L), theta = 0, n = 150L,
       noise = list(type = "outlier", sd = 0.05), seed = sd))
     e <- suppressMessages(embed("diffusion", m, seed = sd))
     if (is.null(e)) next

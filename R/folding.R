@@ -122,21 +122,47 @@ fold <- function(pattern, theta) {
 # The literature's negative result about Yoshimura rigid-foldability is about
 # the closed CYLINDER, where circumferential closure removes the mechanism. A
 # finite planar patch has free boundary and is a different object.
+# ── Yoshimura: WITHDRAWN, and why ───────────────────────────────────────────
+#
+# No certified one-parameter rigid folding of this pattern in which all three
+# crease families fold. Two were derived, implemented and verified here, and
+# each leaves one family flat:
+#
+#   z = (i mod 2) H            horizontals and one slanted family fold;
+#                              19 of 25 diagonals sit at rho = pi.
+#   z = ((i + j) mod 2) H      horizontals and the diagonals fold;
+#                              17 of 20 of the other slanted family sit at pi.
+#
+# Both are exact rigid foldings -- facet isometry 7.8e-16 across the whole theta
+# sweep, flat at theta = 0 -- which is exactly what makes this worth recording
+# rather than quietly patching. A folding that leaves a family flat is a folding
+# of a DIFFERENT, coarser pattern: fuse the facets across the unfolded creases
+# and what remains is a parallelogram tessellation. It is a Miura wearing the
+# Yoshimura's crease pattern, and shipping it as a second, independent family
+# would have been a claim about pattern variety that the geometry does not
+# support.
+#
+# The first version of this function shipped for three days and was worse: a
+# plain accordion pleat. It passed the facet-isometry test perfectly, because a
+# pleat IS a rigid folding, and it passed Kawasaki, because the flat pattern was
+# never the problem. What caught it was deriving the mountain/valley assignment
+# from the folded geometry and testing Maekawa on the result -- 12 of 16
+# interior vertices failed. An isometry test alone cannot tell a fold from a
+# pleat; a Maekawa test on derived labels can.
+#
+# So the pattern is withdrawn from the benchmark on the same rule the waterbomb
+# was: no PATTERNS entry may exist for a pattern that cannot be built. The book
+# ships ONE verified family and two documented kinematics results, which is a
+# smaller book and a true one. E1's decisive arms swept miura_ori only, so
+# nothing downstream of this depends on it.
 .fold_yoshimura <- function(pattern, theta) {
-  p <- pattern$params
-  nx <- p$nx; ny <- p$ny; a <- p$a; h <- p$height
-
-  psi <- theta * pi / 2
-  Ly  <- h * cos(psi)
-  H   <- h * sin(psi)
-
-  ii <- rep(0:nx, times = ny + 1L)
-  jj <- rep(0:ny, each  = nx + 1L)
-  cbind(
-    x = ii * a + (jj %% 2L) * a / 2,
-    y = jj * Ly,
-    z = (jj %% 2L) * H
-  )
+  stop("no rigid folding of the Yoshimura pattern is certified in which all ",
+       "three crease families fold. Two were derived and each leaves one ",
+       "family flat, which makes the folded object a parallelogram ",
+       "tessellation rather than a diamond one -- a Miura in this pattern's ",
+       "clothing. See the note above this function and PLAN.md R1-1. Until it ",
+       "is resolved the book ships one verified family plus two documented ",
+       "negative results.", call. = FALSE)
 }
 
 # ── Derived quantities ──────────────────────────────────────────────────────
@@ -172,6 +198,52 @@ fold <- function(pattern, theta) {
     w <- off[, 2] / sqrt(sum(off[, 2]^2))
     acos(max(-1, min(1, sum(u * w))))
   }, numeric(1))
+}
+
+#' Mountain or valley, derived from the folded geometry.
+#'
+#' The assignment is a PROPERTY of the folding, not an input to it. Written by
+#' hand it is decorative at best: the Miura's labels were originally assigned by
+#' a parity rule chosen to satisfy Maekawa's theorem, and when finally checked
+#' against `fold()` they matched the geometry on barely half the creases. The
+#' figure had been drawing mountain-solid and valley-dashed on that basis.
+#'
+#' So it is computed. For each interior crease, take the two facets that share
+#' it and the outward normal of each; the crease is a mountain when the surface
+#' is locally convex seen from +z and a valley when it is concave. Boundary
+#' edges fold not at all and stay "B".
+#'
+#' Maekawa's theorem then becomes something to TEST -- |M - V| = 2 at every
+#' interior vertex of a flat-foldable pattern -- rather than something asserted
+#' and then quietly relied upon.
+crease_assignment <- function(pattern, theta = 0.5) {
+  f <- fold(pattern, theta)
+  V3 <- f$vertices3
+
+  vapply(seq_len(nrow(pattern$creases)), function(e) {
+    i <- pattern$creases$i[e]; j <- pattern$creases$j[e]
+    fs <- which(vapply(pattern$facets, function(v) all(c(i, j) %in% v), logical(1)))
+    if (length(fs) < 2L) return("B")
+
+    axis <- V3[j, ] - V3[i, ]
+    axis <- axis / sqrt(sum(axis^2))
+    mid  <- (V3[i, ] + V3[j, ]) / 2
+
+    # A point of each facet, off the crease and projected perpendicular to it.
+    arm <- lapply(fs[1:2], function(k) {
+      o <- setdiff(pattern$facets[[k]], c(i, j))
+      w <- colMeans(V3[o, , drop = FALSE]) - mid
+      w - sum(w * axis) * axis
+    })
+
+    # The dihedral turns one way for a mountain and the other for a valley;
+    # which way is fixed by the sign of the triple product with the crease
+    # direction, so it is consistent along the whole crease and across facets.
+    cr <- c(arm[[1]][2] * arm[[2]][3] - arm[[1]][3] * arm[[2]][2],
+            arm[[1]][3] * arm[[2]][1] - arm[[1]][1] * arm[[2]][3],
+            arm[[1]][1] * arm[[2]][2] - arm[[1]][2] * arm[[2]][1])
+    if (sum(cr * axis) > 0) "M" else "V"
+  }, character(1))
 }
 
 #' Worst departure from isometry within any facet.
