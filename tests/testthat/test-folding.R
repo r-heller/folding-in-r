@@ -162,3 +162,54 @@ test_that("mountain and valley are derived from the fold, and Maekawa follows", 
                  info = paste("vertex", v))
   }
 })
+
+test_that("facet_gap is the exact minimum, and brute force converges to it", {
+  # CHAPTERS.md Ch 5 asks for exactly this check: test the analytic
+  # polygon-to-polygon distance against a dense sampled minimum, where brute
+  # force is affordable and unambiguous.
+  #
+  # A point sample can only ever OVERestimate a true minimum, so the exact value
+  # must sit below it and the sample must converge down onto it. That is a
+  # stronger test than agreement at one resolution, which a wrong constant would
+  # also pass.
+  p <- miura_ori(3L, 3L)
+  th <- 0.7
+  exact <- facet_gap(p, th)$gap
+
+  brute <- function(m) {
+    V3 <- fold(p, th)$vertices3
+    fs <- p$facets
+    best <- Inf
+    pts <- function(P) {
+      g <- seq(0, 1, length.out = m)
+      do.call(rbind, lapply(g, function(u) do.call(rbind, lapply(g, function(v)
+        (1 - u) * (1 - v) * P[1, ] + u * (1 - v) * P[2, ] +
+          u * v * P[3, ] + (1 - u) * v * P[4, ]))))
+    }
+    for (i in seq_along(fs)) for (j in seq_along(fs)) {
+      if (j <= i || length(intersect(fs[[i]], fs[[j]]))) next
+      A <- pts(V3[fs[[i]], , drop = FALSE]); B <- pts(V3[fs[[j]], , drop = FALSE])
+      D <- as.matrix(stats::dist(rbind(A, B)))
+      best <- min(best, min(D[seq_len(nrow(A)), nrow(A) + seq_len(nrow(B))]))
+    }
+    best
+  }
+
+  b8 <- brute(8L); b20 <- brute(20L)
+  expect_lte(exact, b8  + 1e-12)          # never above a sampled minimum
+  expect_lte(exact, b20 + 1e-12)
+  expect_lt(b20, b8)                       # the sample descends toward it
+  expect_lt(b20 / exact - 1, 0.01)         # and gets within one per cent
+})
+
+test_that("facet_gap falls as the sheet folds, and needs no sample to say so", {
+  # The point of having it alongside branch_gap(): this is a property of the
+  # surface, so it carries no dependence on n. branch_gap() grows as sqrt(n) by
+  # construction, which is right for what it measures and wrong for predicting
+  # an onset analytically.
+  p <- miura_ori(3L, 3L)
+  g <- vapply(c(0.2, 0.5, 0.8, 0.95), function(t) facet_gap(p, t)$gap, numeric(1))
+  expect_false(is.unsorted(rev(g)))
+  expect_gt(g[1] / g[length(g)], 1.5)
+  expect_true(all(g > 0))                  # nothing touches before flat-folded
+})

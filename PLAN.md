@@ -33,7 +33,8 @@ corollary of the ambient contraction, not an experimental finding. Stating it as
 a proposition is stronger, spends no compute, and removes the objection that
 grid cells were spent demonstrating a definition.
 
-**D4 — Build the full twelve-chapter book.** 41,070 words (plus ~650 of new back
+**D4 — Build the full twelve-chapter book.** ~36,700 words after the 2026-08-26
+re-budget (originally 41,070, plus ~650 of new back
 matter), 53 figures, 145 chunks, one verified pattern family, 9 artefacts, ~60 citations, 60–100 h compute
 across two or three grid generations. Chosen over a scoped eight-chapter
 Miura-only alternative (~21,500 words, 2 artefacts, ~4 h) with the cost
@@ -391,7 +392,7 @@ number a build failure, so there is no way to write ahead of the data.
 | | Full book (D4) | Scoped alternative, not taken |
 |:--|--:|--:|
 | Body chapters | 12 + front/back | 8 + front/back |
-| Prose words | **41,070** (+650 new back matter) | ~21,500 |
+| Prose words | **~36,700** after re-budget (was 41,070) | ~21,500 |
 | Figures | **53** | ~30 |
 | Code chunks | **145** | ~85 |
 | Patterns | **3** (2 verified, 1 unresolved) | 1 (Miura) |

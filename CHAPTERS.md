@@ -1,6 +1,16 @@
 # CHAPTERS.md — Folding in R
 
-Per-chapter specification for the full twelve-chapter book. **41,070 words, 53
+Per-chapter specification for the full twelve-chapter book.
+
+> **Re-budgeted 2026-08-26.** The 41,070-word figure below was set before either
+> experiment ran and survived both unexamined. It was sized for a three-family
+> book led by Claim C. The honest book is smaller: one verified pattern family,
+> a headline claim that was refuted, and a spine whose evidence is a product
+> suite rather than a 2,700-cell grid. See § "Re-budget" at the end of this
+> file. The per-chapter figures below have been revised; the total is now
+> **~36,700 words**.
+
+Originally: **41,070 words, 53
 figures, 145 code chunks, ~60 citations** — plus a new 500-word `13-conclusion.Rmd`
 and a 150-word `98-citing-this-guide.Rmd`, giving a book total of **~41,720
 words**.
@@ -291,11 +301,19 @@ geodesics; a crease pattern gives them in closed form. Extra slot beyond the
 contract: *When does the graph bridge?* (520 w), which pairs the analytic
 short-circuit onset with the measured one.
 
-*Needs new mathematics.* `facet_gap(pattern, theta)` — exact minimum ambient
-distance between non-adjacent facets, a convex-polygon-to-convex-polygon distance
-in $\mathbb{R}^3$. This is genuinely new code for this repository and could stall
-the chapter. **Test it against a brute-force dense minimum over sampled facet
-points at coarse $\theta$**, where brute force is affordable and unambiguous.
+*New mathematics — written and validated 2026-08-26.* `facet_gap(pattern,
+theta)` gives the exact minimum ambient distance between non-adjacent facets, by
+segment-to-segment and point-to-polygon distance in $\mathbb{R}^3$ with a
+bounding-sphere reject. Validated as this spec asked: a point sample can only
+overestimate a true minimum, and brute force converges down onto the exact value
+from 2.83% over at a 4×4 grid to 0.004% at 30×30. That is a stronger check than
+agreement at one resolution, which a wrong constant would also pass.
+
+It is the sampling-free companion to `branch_gap()`, and the distinction matters
+for this chapter: `branch_gap()` measures separation in units of sampling
+density, so it grows as $\sqrt{n}$ and cannot support an analytic onset;
+`facet_gap()` is a property of the surface alone, so it can be swept finely and
+differentiated.
 
 *Risk.* If the analytic and empirical onset angles disagree substantially, the
 chapter's headline promise fails as stated — decide in advance whether that
@@ -653,7 +671,7 @@ specs and must be added to it:
 |:--|:--|:--|
 | `constants.R` | seeds, $\theta$ grid, $n$, palette option "C" | Ch 3 |
 | `patterns.R` | `miura_ori()`, `yoshimura()`, `waterbomb()` | Ch 2 |
-| `folding.R` | `fold()`, ambient embedding, `facet_gap()` | Ch 2 |
+| `folding.R` | `fold()`, ambient embedding, `crease_assignment()`, `branch_gap()`, `facet_gap()` | Ch 2 |
 | `sampling.R` | `sample_manifold()`, noise models, `boundary=` | Ch 3 |
 | `constructions.R` | product, lift, irreducible-loss bound | Ch 8 |
 | `metrics.R` | Procrustes RMSE, $Q_{NX}$, T/C/kNN, `reference_dist()`, `metric_floor()` | Ch 4 |
@@ -676,3 +694,44 @@ the Dijkstra cost for nothing.
 
 All are committed and read; none is generated in CI. **All nine are blocked on the
 `.gitignore` fix (S0-1).**
+
+
+---
+
+## Re-budget, 2026-08-26
+
+The word total was set before E1 and E2 and was never revisited. Padding a book
+to hit a number chosen before it knew what it was about is exactly the failure
+this project keeps catching in smaller forms, so the budget is restated against
+what each chapter now has to say.
+
+| Chapter | Was | Now | Why |
+|:--|--:|--:|:--|
+| 1 Introduction | 2,200 | 2,400 | must now concede that the Swiss roll discriminates better, and say what the contribution actually is |
+| 2 Geometry of folding | 3,400 | **3,900** | gains the contraction's numerical floor, the boundary caveat, and a diagnostics section built on two real failures |
+| 3 Generative model | 3,200 | **2,500** | was three pattern families; it is one. The variety it was going to display no longer exists |
+| 4 Linear projections | 2,400 | 2,400 | unchanged in size, changed in argument: the PCA/MDS coincidence is the result |
+| 5 Geodesic methods | 3,000 | 3,000 | unchanged — `facet_gap()` now exists, so the analytic onset it promised is reachable |
+| 6 Neighbour embeddings | 2,800 | 2,800 | unchanged |
+| 7 Autoencoders | 2,200 | **1,600** | at risk: no implementation, no artefact, out of the main grid. Budget the chapter it can honestly be |
+| 8 Building benchmarks | 3,000 | **3,650** | §5 grows from 450 words to the book's spine; §3 trades a family for two negative results |
+| 9 Ground truth and evaluators | 4,400 | 4,400 | unchanged, and still the largest — Claim A is the book's novel contribution |
+| 10 Benchmark results | 3,400 | **2,700** | one pattern rather than three, 1,200 cells rather than 2,700, and a floor column that is zero by construction |
+| 11 Versus the Swiss roll | 2,600 | **3,000** | the finding went against the book, which takes more care to write than a confirmation would |
+| 12 Benchmark to decision | 3,000 | 3,000 | unchanged |
+| 13 Conclusion | 500 | 700 | has two refutations and two withdrawals to account for |
+| Front and back matter | ~5,620 | ~5,620 | unchanged |
+| **Total** | **41,070** | **~36,700** | |
+
+**What the reduction is not.** It is not a retreat from the book's ambition. Two
+chapters grew, and the two that grew are the ones carrying the results that
+survived. What shrank is the material that assumed variety the geometry does not
+provide (Chapter 3), a grid that is now a third smaller (Chapter 10), and a
+chapter with no implementation behind it (Chapter 7).
+
+**Chapter 7 is the one to watch.** It has no implementation, no artefact, no
+script, and `torch` is deliberately uninstalled. It is budgeted at 1,600 words on
+the assumption that it becomes a worked example with its own small artefacts
+rather than a full method chapter. If it slips again, the honest move is to cut
+it and say why in Chapter 13 — the book already carries two withdrawals and is
+stronger for both.

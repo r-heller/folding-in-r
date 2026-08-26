@@ -307,3 +307,125 @@ branch_gap <- function(sample, L_frac = 0.25) {
 
   list(g = g, s = s, ratio = g / s, L = L, L_frac = L_frac)
 }
+
+
+# ── Exact facet separation ──────────────────────────────────────────────────
+#
+# branch_gap() answers the question a METHOD faces: how close do distant parts
+# of the surface come, in units of how densely it was sampled. That makes it
+# sample-dependent by design -- s falls as n^(-1/2), so g/s grows as sqrt(n) and
+# comparisons only mean anything at fixed n.
+#
+# facet_gap() answers the question the SURFACE poses: the exact minimum ambient
+# distance between two facets that do not touch. No sampling, no density, no n.
+# It is a property of the folded object alone, so it can be swept finely and
+# differentiated, and it is what Chapter 5 needs to predict the short-circuit
+# onset analytically rather than by looking at where the curves bend.
+
+# Distance between two segments in R^3, clamped to the segments.
+.seg_seg <- function(p1, q1, p2, q2) {
+  d1 <- q1 - p1; d2 <- q2 - p2; r <- p1 - p2
+  a <- sum(d1 * d1); e <- sum(d2 * d2); f <- sum(d2 * r)
+  EPS <- 1e-12
+  if (a <= EPS && e <= EPS) return(sqrt(sum(r * r)))
+  if (a <= EPS) { s <- 0; t <- max(0, min(1, f / e)) }
+  else {
+    c0 <- sum(d1 * r)
+    if (e <= EPS) { t <- 0; s <- max(0, min(1, -c0 / a)) }
+    else {
+      b <- sum(d1 * d2); den <- a * e - b * b
+      s <- if (den > EPS) max(0, min(1, (b * f - c0 * e) / den)) else 0
+      t <- (b * s + f) / e
+      if (t < 0)      { t <- 0; s <- max(0, min(1, -c0 / a)) }
+      else if (t > 1) { t <- 1; s <- max(0, min(1, (b - c0) / a)) }
+    }
+  }
+  sqrt(sum((p1 + s * d1 - (p2 + t * d2))^2))
+}
+
+# Distance from a point to a planar convex polygon in R^3: project onto the
+# plane, and if the projection lands inside use the perpendicular distance,
+# otherwise fall back to the boundary.
+.pt_poly <- function(x, P) {
+  n <- .polygon_normal(P)
+  w <- x - P[1, ]
+  h <- sum(w * n)
+  proj <- x - h * n
+  if (.inside_planar(proj, P, n)) return(abs(h))
+  m <- nrow(P)
+  min(vapply(seq_len(m), function(i) {
+    .seg_seg(x, x, P[i, ], P[if (i == m) 1L else i + 1L, ])
+  }, numeric(1)))
+}
+
+.polygon_normal <- function(P) {
+  n <- c(0, 0, 0)
+  m <- nrow(P)
+  for (i in seq_len(m)) {
+    a <- P[i, ]; b <- P[if (i == m) 1L else i + 1L, ]
+    n <- n + c(a[2] * b[3] - a[3] * b[2],
+               a[3] * b[1] - a[1] * b[3],
+               a[1] * b[2] - a[2] * b[1])
+  }
+  L <- sqrt(sum(n^2))
+  if (L < 1e-14) c(0, 0, 1) else n / L
+}
+
+.inside_planar <- function(x, P, n) {
+  m <- nrow(P)
+  sgn <- 0
+  for (i in seq_len(m)) {
+    a <- P[i, ]; b <- P[if (i == m) 1L else i + 1L, ]
+    e <- b - a; w <- x - a
+    cr <- c(e[2] * w[3] - e[3] * w[2],
+            e[3] * w[1] - e[1] * w[3],
+            e[1] * w[2] - e[2] * w[1])
+    d <- sum(cr * n)
+    if (abs(d) < 1e-12) next
+    if (sgn == 0) sgn <- sign(d) else if (sign(d) != sgn) return(FALSE)
+  }
+  TRUE
+}
+
+#' Exact minimum ambient distance between two facets that share no vertex.
+#'
+#' Facets that touch are excluded: they meet at a crease and their distance is
+#' zero by construction, which says nothing about whether the sheet is
+#' approaching itself.
+#'
+#' @return a list with the gap, the facet pair attaining it, and the number of
+#'   pairs considered.
+facet_gap <- function(pattern, theta) {
+  V3 <- fold(pattern, theta)$vertices3
+  fs <- pattern$facets
+  nf <- length(fs)
+
+  best <- Inf; who <- c(NA_integer_, NA_integer_); considered <- 0L
+  for (i in seq_len(nf - 1L)) {
+    Pi <- V3[fs[[i]], , drop = FALSE]
+    for (j in (i + 1L):nf) {
+      if (length(intersect(fs[[i]], fs[[j]]))) next   # adjacent or touching
+      considered <- considered + 1L
+      Pj <- V3[fs[[j]], , drop = FALSE]
+
+      # Cheap reject: if the bounding spheres are already further apart than the
+      # best gap so far, no pair of points inside them can beat it.
+      ci <- colMeans(Pi); cj <- colMeans(Pj)
+      ri <- max(sqrt(rowSums(sweep(Pi, 2L, ci)^2)))
+      rj <- max(sqrt(rowSums(sweep(Pj, 2L, cj)^2)))
+      if (sqrt(sum((ci - cj)^2)) - ri - rj >= best) next
+
+      d <- Inf
+      ni <- nrow(Pi); nj <- nrow(Pj)
+      for (a in seq_len(ni)) for (b in seq_len(nj)) {
+        d <- min(d, .seg_seg(Pi[a, ], Pi[if (a == ni) 1L else a + 1L, ],
+                             Pj[b, ], Pj[if (b == nj) 1L else b + 1L, ]))
+      }
+      for (a in seq_len(ni)) d <- min(d, .pt_poly(Pi[a, ], Pj))
+      for (b in seq_len(nj)) d <- min(d, .pt_poly(Pj[b, ], Pi))
+
+      if (d < best) { best <- d; who <- c(i, j) }
+    }
+  }
+  list(gap = best, facets = who, pairs = considered, theta = theta)
+}

@@ -17,7 +17,7 @@ at source time is a file in the wrong place.
 | `baselines.R`     | `swiss_roll()`, `s_curve()`, `severed_sphere()` | Ch 11 |
 | `constants.R`     | θ grid, sample sizes, palette option, tolerances | Ch 3 |
 | `constructions.R` | product and lift constructions, irreducible-loss bound | Ch 8 |
-| `folding.R`       | `fold()`, the ambient embedding, `branch_gap()` | Ch 2 |
+| `folding.R`       | `fold()`, the ambient embedding, `crease_assignment()`, `branch_gap()`, `facet_gap()` | Ch 2 |
 | `figure-export.R` | geometry for the interactive figures, with isometry asserted | Ch 1 |
 | `metrics.R`       | Procrustes RMSE, $Q_{NX}$, T/C/kNN, `reference_dist()`, `metric_floor()` | Ch 4 |
 | `methods.R`       | the embedding registry — nine methods | Ch 4 |
