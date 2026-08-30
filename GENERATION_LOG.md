@@ -1120,3 +1120,66 @@ it cannot omit. `lang`, `identifier`, `rights`, `publisher` and `keywords` are i
 `index.Rmd`'s front matter, along with `papersize: a4` and a list of figures --
 53 figures is past the point where a reader finds one by leafing.
 
+### One cell, three producers -- and two methods that ignored their own k
+
+**`one_cell()` lived inside `run-benchmark-grid.R`**, so the other two grids the
+book specifies could not have it. That is a large part of why they did not
+exist: `part2-sweeps.rds` and `classic-grid.rds` were two of the nine specified
+artefacts with no producer, and the reason was not that the work was hard.
+
+`R/grid.R`'s `grid_cell()` is that cell. Verified numerically identical on the
+smoke grid -- every numeric column unchanged, plus a `d` column recording the
+target dimension. `scripts/run-part2-sweeps.R` sweeps k where the main grid
+holds it fixed; `scripts/run-classic-grid.R` scores the Swiss roll, the S-curve
+and the severed sphere through the same function, the same metrics and the same
+floor. A comparison in which the two sides are scored by two code paths is not a
+comparison.
+
+**Writing the k-sweep found that two methods never used k.** The audit had
+flagged `embed_tsne()`, which declared `k` and passed a fixed perplexity of 30.
+`embed_diffusion()` does the same thing: it took `k` and set its kernel bandwidth
+from the 1-NN distance regardless.
+
+Both would have drawn a flat curve, and a flat curve is a finding -- it reads as
+"insensitive to neighbourhood size", which for t-SNE is the opposite of what it
+is known for. Perplexity IS t-SNE's neighbourhood parameter, so k maps to it
+directly; the diffusion bandwidth now comes from the k-th neighbour, which is
+what `embed_laplacian()` already did, so the two kernel methods finally set their
+scale the same way. Measured at n = 400 over k in {5, 10, 20, 40}, Q_NX@10 goes
+0.759 to 0.871 for t-SNE and 0.762 to 0.847 for diffusion; both were constant
+before.
+
+This changes both methods at `K_DEFAULT`. That is deliberate and it is made
+**now, before the main grid has ever been generated**, so no committed artefact
+is invalidated by it. A grid that states a k which does not reach the method has
+a column that lies.
+
+The sweep carries the check that makes this catchable next time: it names PCA
+and classical MDS as the genuinely k-free methods and fails if anything else
+draws a flat curve. The first version of that check compared raw spreads and
+passed on a method that ignores k entirely, because seed variation swamps
+k-insensitivity -- it compares the mean at each k now, and reverting `embed_tsne`
+turns it red and names t-SNE.
+
+### A check that was not running
+
+`check-artefact-producers.R` and `check-contrast.R` were described in two commit
+messages as running in CI. They were not. The artefact step was added to
+`lint.yml`, then removed again so that a commit would not land knowingly red
+while the E1 artefacts were regenerating -- and the removal was never undone. The
+later edit that meant to add the contrast step anchored on the text of the step
+that had been removed, so it matched nothing and silently did nothing.
+
+Both are in `lint.yml` now, and the edit that put them there asserts its anchor
+rather than replacing on a best-effort basis. Recorded here rather than quietly
+fixed, because it is precisely the failure this phase is about: a change that
+looks applied and is not, described in prose as done.
+
+The check, once running, immediately earned its keep. It refused three `OPEN`
+entries that had stopped being true -- `evaluator-audit`, `part2-sweeps` and
+`classic-grid` all have producers now -- and it refused the committed
+`product-grid.rds`, which had been produced across ten seeds. That artefact is
+removed from the tree rather than exempted: unlike E1's arms, which trade seeds
+for coverage of a setting space and say so, ten seeds here was a default nobody
+had defended.
+

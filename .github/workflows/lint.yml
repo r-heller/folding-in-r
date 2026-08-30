@@ -35,3 +35,16 @@ jobs:
 
       - name: Lint the chapters
         run: Rscript scripts/lint-chapters.R
+
+      # Base R only, and for the same reason the lint is: the check that the
+      # evidence layer is intact must not be gated on a library restore. Each of
+      # the book's three claims broke at a different joint of producer ->
+      # artefact -> prose, and nothing checked the chain as a whole.
+      - name: Every artefact has a producer, and every producer runs
+        run: Rscript scripts/check-artefact-producers.R
+
+      # The book shipped a dark mode whose search dropdown rendered at 1.40:1 and
+      # whose code comments rendered at 1.90:1 -- invisible to anyone developing
+      # in light mode, and undetectable by any check the repository had.
+      - name: Every colour pair clears WCAG AA in both themes
+        run: Rscript scripts/check-contrast.R

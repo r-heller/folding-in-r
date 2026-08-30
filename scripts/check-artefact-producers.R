@@ -38,11 +38,12 @@ note <- function(...) notes    <<- c(notes,    paste0(...))
 # that appears without its OPEN line being removed is as much a drift as one
 # that disappears.
 OPEN <- list(
-  "evaluator-audit.rds" = "ROADMAP.md item 1.5 -- Claim A has no producer yet",
-  "part2-sweeps.rds"    = "ROADMAP.md item 3.6",
-  "classic-grid.rds"    = "ROADMAP.md item 3.6",
   "autoencoder-grid.rds" = "ROADMAP.md -- gated on the Chapter 7 cut decision",
-  "metric-calibration.rds" = "ROADMAP.md item 1.5 -- folded into the evaluator audit"
+  "metric-calibration.rds" = paste(
+    "PLAN.md S2-2 merges this into the evaluator audit: the two share every",
+    "cell and every distance matrix, so computing them separately doubles the",
+    "Dijkstra cost for nothing. run-evaluator-audit.R is that merge, and the",
+    "name survives only in the specification")
 )
 
 # ── The seed floor ──────────────────────────────────────────────────────────

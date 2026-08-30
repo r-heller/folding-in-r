@@ -109,8 +109,22 @@ embed_diffusion <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   # a finding about the bandwidth heuristic wearing the method's name. The
   # nearest-neighbour scale is the standard robust choice and is unaffected by a
   # few displaced points.
+  # ...and from the k-th nearest neighbour, not the first.
+  #
+  # This function accepted `k` and never used it, exactly as embed_tsne() did:
+  # the bandwidth came from the 1-NN distance whatever k the caller asked for, so
+  # a k-sweep over diffusion maps drew a flat line. scripts/run-part2-sweeps.R
+  # exists to sweep k and would have reported that as insensitivity to
+  # neighbourhood size.
+  #
+  # The k-th neighbour is also the right scale on its own terms and is what
+  # embed_laplacian() already uses, so the two kernel methods now set their
+  # bandwidth the same way. The robustness argument above is unchanged: any
+  # small-k neighbour distance is unaffected by a few displaced points, which is
+  # the whole reason this is not the median pairwise distance.
   diag(Dm) <- Inf
-  eps <- stats::median(apply(Dm, 1L, min))^2 * 2
+  kk  <- max(1L, min(as.integer(k), nrow(Dm) - 1L))
+  eps <- stats::median(apply(Dm, 1L, function(r) sort.int(r, partial = kk)[kk]))^2 * 2
 
   # Even with a robust bandwidth the ARPACK eigensolver inside diffuse() reaches
   # its iteration limit on some samples -- about a quarter of the outlier-noise
@@ -202,11 +216,32 @@ embed_laplacian <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   v[, idx, drop = FALSE]
 }
 
+# k reaches the algorithm, which it did not.
+#
+# This function declared `k` and used a fixed perplexity of 30, so every k the
+# caller asked for produced the same embedding -- and Chapter 6 sweeps k. A
+# k-sweep over a method that ignores k draws a flat curve, and a flat curve is a
+# finding: it would have been read as "t-SNE is insensitive to neighbourhood
+# size", which is false and is the opposite of what t-SNE is famous for.
+#
+# Perplexity IS t-SNE's neighbourhood parameter -- van der Maaten and Hinton
+# describe it as a smooth measure of the effective number of neighbours -- so k
+# maps to it directly rather than through a factor chosen to make a curve look
+# good. The ceiling is Rtsne's own constraint, 3 * perplexity < n.
+#
+# This changes t-SNE's results at K_DEFAULT from perplexity 30 to perplexity 10.
+# That is a real change to a method in the registry and it is deliberate: the
+# grid states a k, and a k that does not reach the method is a column that lies.
+# It is made now, before the main grid has ever been generated, so no committed
+# artefact is invalidated by it.
 embed_tsne <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   .seeded(seed, {
-    p <- min(30, floor((nrow(m$X) - 1) / 3))
-    Rtsne::Rtsne(m$X, dims = d, perplexity = p, check_duplicates = FALSE,
-                 verbose = FALSE)$Y
+    p <- min(k, floor((nrow(m$X) - 1) / 3))
+    e <- Rtsne::Rtsne(m$X, dims = d, perplexity = p, check_duplicates = FALSE,
+                      verbose = FALSE)$Y
+    if (p != k) attr(e, "tuning") <- paste0("perplexity capped at ", p,
+                                            " by Rtsne's 3p < n constraint")
+    e
   })
 }
 

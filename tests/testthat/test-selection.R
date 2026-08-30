@@ -147,15 +147,26 @@ test_that("the thresholds are the ones the plan pre-registered", {
 })
 
 test_that("it reads the grid the producer actually writes", {
-  # The rule is registered against a schema, and the schema belongs to
-  # run-benchmark-grid.R. This asserts the two agree today, so that a change to
-  # the producer breaks the rule loudly rather than at the moment Chapter 12 is
-  # drafted.
-  src <- readLines(file.path(BOOK_ROOT, "scripts", "run-benchmark-grid.R"),
-                   warn = FALSE)
-  block <- paste(src, collapse = "\n")
+  # The rule is registered against a schema, and the schema is whatever
+  # grid_cell() emits -- so the schema is asserted by BUILDING a row, not by
+  # grepping the producer for column names. The grep version passed until
+  # grid_cell() moved out of the producer into R/grid.R, at which point it
+  # failed for the right reason and was replaced by this.
+  #
+  # A tiny sample, because what is being checked is the shape.
+  m <- sample_manifold(miura_ori(3L, 3L), theta = 0.5, n = 60L, seed = 1L)
+  row <- grid_cell(m, seed = 1L, methods = c("pca", "mds"), k = 5L,
+                   pattern = "miura", theta = 0.5, noise = "none")
+
   for (col in c("pattern", "theta", "noise", "seed", "method", "consumes",
                 "ran", "rmse", "floor")) {
-    expect_match(block, paste0("\\b", col, "\\s*="), info = col)
+    expect_true(col %in% names(row), info = col)
   }
+  expect_equal(nrow(row), 2L)
+  expect_true(all(row$ran))
+
+  # And the rule runs on it end to end, which is the only assertion that covers
+  # the columns' TYPES as well as their names.
+  d <- select_method(row, theta = 0.5, noise = "none")
+  expect_true(d$decision %in% c("select", "decline"))
 })
