@@ -955,3 +955,59 @@ settings deliberately, because it exists to establish overlap in the
 not precision within a setting -- and it is reported with a cluster bootstrap
 over settings, which is the interval that accounts for exactly this.
 
+### The grid's producer, before the grid runs
+
+Phase 3's producer changes land now rather than after generation, because every
+one of them would otherwise mean regenerating the artefact.
+
+**`rank_metrics()` gets its first caller**, four days after being written for it.
+Trustworthiness, continuity, kNN preservation and Q_NX each built both rank
+matrices from scratch, and `.rank_matrix()` at n = 800 costs 0.20 s against
+0.017 s for a whole Procrustes fit, so four calls per method per cell was most
+of the metric budget. Measured at n = 800: **2.32 s per fit against 1.42 s**, and
+the numbers agree with the four separate calls to **1.1e-16** across four metrics
+x four methods x nine cells. That is the closure T1 asked for -- an assertion
+that fails on the pre-fix tree, not a re-reading of the change.
+
+**The two k's are named, and they were never the same number.** The grid has
+always scored Q_NX at 20 against the CHART while scoring the other three at 10
+against AMBIENT distance -- two k's and two reference geometries, in adjacent
+columns of one table, with nothing saying so. The first version of this refactor
+unified them, which would have silently changed what the headline column means.
+Both are now constants in `R/constants.R` with the reason each is what it is, and
+both travel in the row and in the provenance block, so a chapter reading one can
+say which question it answers.
+
+**A failed fit says why.** `ran = FALSE` collapsed three causes into one
+indistinguishable state: the method declared itself unavailable, the method
+returned NULL by design, or the method threw. `status` names which and `reason`
+carries `conditionMessage()` rather than discarding it. On the smoke grid that
+separates the autoencoder's twelve declared-unavailable cells from the
+Laplacian's four genuine declines, which the old artefact could not have told
+apart. The `is.null(emb)` contract is untouched -- every consumer still reads
+`ran`, which is what the roadmap's anti-list warns against breaking.
+
+`irreducible_loss()` also moves out of the method loop: it is a property of the
+sample and does not know a method exists, so it was being computed nine times per
+cell instead of once.
+
+### Claim A has a producer
+
+`scripts/run-evaluator-audit.R`. Chapter 9 is the book's largest chapter and its
+declared novel contribution, and it had no code at all -- its only supporting
+numbers came from an accordion pleat now documented as a negative result, in a
+parameterisation retired two phases ago.
+
+The question is made falsifiable by the thing only a benchmark with known truth
+can do: hand the evaluator the exact answer as a candidate. If an evaluator is a
+good judge, the exact unfolding must score at least as well as any wrong
+embedding, and the sharpest wrong embedding to hand it is a two-component PCA of
+the folded cloud -- a plainly bad chart and an excellent reproduction of ambient
+distance. An **inversion** is an evaluator ranking the exact chart below PCA.
+
+The smoke run already produces them: at theta = 0.5, ambient-referenced
+continuity, kNN preservation and Q_NX all rank PCA above the exact chart on half
+the seeds, while the same metrics against the chart never do. Margins are small
+-- of order 0.001 -- and the pilot is running the design the risk register asks
+for before any of Chapter 9 is drafted.
+

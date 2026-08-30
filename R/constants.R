@@ -110,6 +110,26 @@ EMBED_DIM <- 2L
 # variable in the inversion-threshold law, not a setting.
 K_DEFAULT <- 10L
 
+# The co-ranking neighbourhood, which is NOT K_DEFAULT and never was. The grid
+# has always scored Q_NX at 20 against the CHART while scoring trustworthiness,
+# continuity and kNN preservation at 10 against AMBIENT distance -- two
+# different k's and two different reference geometries, in adjacent columns of
+# one table, with nothing anywhere saying so. Both choices are defensible and
+# neither was written down:
+#
+#   trust / cont / knn   ask whether the embedding preserves the neighbourhoods
+#                        a method could see, so ambient is the honest reference
+#                        and 10 is a neighbourhood a reader can picture.
+#   qnx                  is the book's headline rank metric and is asked against
+#                        the ANSWER KEY, because that is the question the
+#                        benchmark exists to be able to ask. 20 because the
+#                        co-ranking measure is noisy at small K.
+#
+# Named here so the two cannot drift, and recorded in every artefact's
+# provenance so a chapter reading one can say which question it answers.
+# Chapter 9 varies both deliberately; the grid holds them fixed.
+K_QNX <- 20L
+
 # ── Palette and crease encoding ──────────────────────────────────────────────
 
 # One viridis option per volume, so figures from different books stay separable

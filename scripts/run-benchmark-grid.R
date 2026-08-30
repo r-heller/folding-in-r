@@ -50,53 +50,104 @@ N     <- if (quick) 150L else 800L
 # to 7 all describe. Adding one there adds it here.
 METHODS <- names(METHOD_REGISTRY)
 
+STARTED <- Sys.time()
+
+# One cell, factored out of the loop.
+#
+# Three things move with it. The two rank matrices behind trust, cont, knn and
+# qnx were being rebuilt from scratch by each of the four metric functions --
+# .rank_matrix() at n = 800 costs 0.20 s against 0.017 s for a whole Procrustes
+# fit, so four calls per method per cell was most of the metric budget.
+# rank_metrics() does one pass for all four and was written for exactly this,
+# and had no caller anywhere. Measured at n = 800 over four values of k: 5.85 s
+# of separate calls against 0.44 s.
+#
+# irreducible_loss() moves out of the method loop too: it is a property of the
+# sample and does not know a method exists, so computing it nine times per cell
+# was computing it eight times too often.
+#
+# And the two k's are named constants rather than a literal 10 in three call
+# sites and a literal 20 in a fourth. They mean different things and are asked
+# against different reference geometries -- see R/constants.R, where that is now
+# written down, and the row records both.
+one_cell <- function(pat, pname, th, nname, seed) {
+  m  <- sample_manifold(pat, theta = th, n = N, noise = NOISE[[nname]], seed = seed)
+  dA <- reference_dist(m, "ambient")
+  dU <- reference_dist(m, "chart")
+  fl <- irreducible_loss(m, EMBED_DIM)
+
+  do.call(rbind, lapply(METHODS, function(mname) {
+    spec <- METHOD_REGISTRY[[mname]]
+    # Stochastic methods are seeded per fit and never left to inherit position
+    # in the RNG stream: umap::umap does not advance it, so a loop that seeds
+    # once collapses every replicate onto one answer.
+    sd  <- if (isTRUE(spec$stochastic)) seed else NULL
+
+    # A failed fit used to record nothing but ran = FALSE, and three different
+    # causes collapsed into one indistinguishable state: the method declared
+    # itself unavailable, the method returned NULL by design, or the method
+    # threw. `status` names which, and `reason` carries conditionMessage()
+    # rather than discarding it. The is.null(emb) contract is untouched --
+    # every consumer still reads `ran`.
+    err <- NULL
+    emb <- tryCatch(embed(mname, m, seed = sd),
+                    error = function(e) { err <<- conditionMessage(e); NULL })
+    status <- if (!is.null(err)) "error"
+              else if (is.null(emb)) {
+                if (!is.null(spec$unavailable)) "unavailable" else "declined"
+              } else "ok"
+    reason <- if (!is.null(err)) sub("\n.*", "", err)
+              else if (status == "unavailable") spec$unavailable
+              else if (status == "declined")
+                "the method returned NULL on this cell; see R/methods.R"
+              else NA_character_
+    na <- is.null(emb)
+
+    # Two passes, not one, and not four. Trust, continuity and kNN preservation
+    # are asked against AMBIENT distance at K_DEFAULT; Q_NX is asked against the
+    # CHART at K_QNX. That is what this grid has always done and what nothing
+    # had ever written down -- see R/constants.R. Unifying them would have been
+    # a silent change to what the headline column means.
+    rk_a <- if (na) NULL else rank_metrics(dA, emb, k = K_DEFAULT)
+    rk_u <- if (na) NULL else rank_metrics(dU, emb, k = K_QNX)
+
+    data.frame(
+      pattern = pname, theta = th, noise = nname,
+      seed = seed, method = mname, consumes = spec$consumes,
+      ran = !na,
+      status = status,
+      reason = reason,
+      # The k Isomap actually used, which is not always the k it was asked for
+      # -- a disconnected graph is repaired by raising k, and the artefact
+      # records that rather than only warning about it.
+      k_effective = if (na) NA_integer_ else
+        (attr(emb, "k_effective") %||% NA_integer_),
+      # Anything else a method had to change about its own settings in order to
+      # run at all -- a widened diffusion bandwidth, say. NA means it ran as
+      # asked.
+      tuning = if (na) NA_character_ else (attr(emb, "tuning") %||% NA_character_),
+      # The two k's and the two reference geometries, in the row that used them.
+      k_tck = K_DEFAULT, ref_tck = "ambient",
+      k_qnx = K_QNX,     ref_qnx = "chart",
+      rmse  = if (na) NA_real_ else reconstruction_error(emb, m$truth),
+      qnx   = if (na) NA_real_ else rk_u$qnx,
+      trust = if (na) NA_real_ else rk_a$trust,
+      cont  = if (na) NA_real_ else rk_a$cont,
+      knn   = if (na) NA_real_ else rk_a$knn,
+      # Reported against the floor, not against zero. E1 made this the book's
+      # spine: an error of 0.31 says little, an error of 0.31 against a floor of
+      # 0.30 says the method is at the limit of what the data permit.
+      floor = fl,
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
 rows <- list()
 for (pname in names(PATTERNS)) {
   pat <- PATTERNS[[pname]]()
-  for (th in THETA) {
-    for (nname in names(NOISE)) {
-      for (seed in SEEDS) {
-        m <- sample_manifold(pat, theta = th, n = N,
-                             noise = NOISE[[nname]], seed = seed)
-        dA <- reference_dist(m, "ambient")
-        for (mname in METHODS) {
-          spec <- METHOD_REGISTRY[[mname]]
-          # Stochastic methods are seeded per fit and never left to inherit
-          # position in the RNG stream: umap::umap does not advance it, so a
-          # loop that seeds once collapses every replicate onto one answer.
-          sd  <- if (isTRUE(spec$stochastic)) seed else NULL
-          emb <- tryCatch(embed(mname, m, seed = sd),
-                          error = function(e) NULL)
-          na <- is.null(emb)
-          rows[[length(rows) + 1L]] <- data.frame(
-            pattern = pname, theta = th, noise = nname,
-            seed = seed, method = mname, consumes = spec$consumes,
-            ran = !na,
-            # The k Isomap actually used, which is not always the k it was
-            # asked for -- a disconnected graph is repaired by raising k, and
-            # the artefact records that rather than only warning about it.
-            k_effective = if (na) NA_integer_ else
-              (attr(emb, "k_effective") %||% NA_integer_),
-            # Anything else a method had to change about its own settings in
-            # order to run at all -- a widened diffusion bandwidth, say. NA
-            # means it ran as asked.
-            tuning = if (na) (spec$unavailable %||% NA_character_) else
-              (attr(emb, "tuning") %||% NA_character_),
-            rmse  = if (na) NA_real_ else reconstruction_error(emb, m$truth),
-            qnx   = if (na) NA_real_ else qnx(emb, m$truth, K = 20L),
-            trust = if (na) NA_real_ else trustworthiness(dA, emb, k = 10L),
-            cont  = if (na) NA_real_ else continuity(dA, emb, k = 10L),
-            knn   = if (na) NA_real_ else knn_preservation(dA, emb, k = 10L),
-            # Reported against the floor, not against zero. E1 made this the
-            # book's spine: an error of 0.31 says little, an error of 0.31
-            # against a floor of 0.30 says the method is at the limit of what
-            # the data permit.
-            floor = irreducible_loss(m, 2L),
-            stringsAsFactors = FALSE
-          )
-        }
-      }
-    }
+  for (th in THETA) for (nname in names(NOISE)) for (seed in SEEDS) {
+    rows[[length(rows) + 1L]] <- one_cell(pat, pname, th, nname, seed)
   }
   message("done: ", pname)
 }
@@ -113,19 +164,26 @@ grid <- do.call(rbind, rows)
 out <- if (quick) "data/processed/benchmark-grid-quick.rds" else
   "data/processed/benchmark-grid.rds"
 
-attr(grid, "provenance") <- list(
-  quick    = quick,
-  patterns = names(PATTERNS),
-  thetas   = THETA,
-  noise    = names(NOISE),
-  seeds    = SEEDS,
-  n        = N,
-  methods  = METHODS,
-  r_sha    = tryCatch(system2("git", c("rev-parse", "--short", "HEAD"),
-                              stdout = TRUE), error = function(e) NA_character_)
-)
+write_run(grid, out,
+          quick    = quick,
+          patterns = names(PATTERNS),
+          thetas   = THETA,
+          noise    = names(NOISE),
+          seeds    = SEEDS,
+          n        = N,
+          k_tck    = K_DEFAULT, ref_tck = "ambient",
+          k_qnx    = K_QNX,     ref_qnx = "chart",
+          embed_dim = EMBED_DIM,
+          methods  = METHODS,
+          started  = STARTED)
 
-dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
-saveRDS(grid, out)
-message("wrote ", out, " — ", nrow(grid), " rows",
-        if (quick) "  (QUICK smoke test, not the book's grid)" else "")
+# What could not be fitted, and why -- printed rather than buried in a column
+# nobody reads. Three causes used to collapse into one indistinguishable state.
+bad <- grid[!grid$ran, ]
+if (nrow(bad)) {
+  cat("\n", nrow(bad), " of ", nrow(grid), " fits did not run:\n", sep = "")
+  print(stats::aggregate(seed ~ method + status + reason, data = bad,
+                         FUN = length), row.names = FALSE)
+} else {
+  cat("\nevery fit ran.\n")
+}
