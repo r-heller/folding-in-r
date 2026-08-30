@@ -75,7 +75,11 @@ BOUNDARY <- FALSE
 THETA_A <- 0.55
 THETA   <- if (quick) c(0.2, 0.7) else seq(0.1, 0.9, by = 0.1)
 DIMS    <- if (quick) c(2L, 3L)    else c(1L, 2L, 3L, 4L)
-SEEDS   <- if (quick) BENCH_SEEDS[1:2] else BENCH_SEEDS[1:10]
+# All twenty. This used to be the first ten, which is below standing rule 1's
+# floor and had no reason recorded -- and the rule is now checked over committed
+# artefacts rather than stated in prose, so the first thing that check did was
+# refuse this file. That is the rule working.
+SEEDS   <- if (quick) BENCH_SEEDS[1:2] else BENCH_SEEDS
 N       <- if (quick) 150L else 400L
 
 # The Swiss-roll arm's difficulty parameter. Turns, not theta: each family is
@@ -98,12 +102,25 @@ one_cell <- function(family, par, seed, a, b, exit) {
     for (mname in names(METHOD_REGISTRY)) {
       spec <- METHOD_REGISTRY[[mname]]
       sd   <- if (isTRUE(spec$stochastic)) seed else NULL
-      emb  <- tryCatch(embed(mname, p, d = d, seed = sd), error = function(e) NULL)
+      # status and reason, as run-benchmark-grid.R records them: a failed fit
+      # that says only `ran = FALSE` collapses three causes into one
+      # indistinguishable state, and t-SNE declines a quarter of the cells here.
+      e_msg <- NULL
+      emb  <- tryCatch(embed(mname, p, d = d, seed = sd),
+                       error = function(e) { e_msg <<- conditionMessage(e); NULL })
       na   <- is.null(emb)
+      status <- if (!is.null(e_msg)) "error"
+                else if (na) { if (!is.null(spec$unavailable)) "unavailable" else "declined" }
+                else "ok"
+      reason <- if (!is.null(e_msg)) sub("\n.*", "", e_msg)
+                else if (status == "unavailable") spec$unavailable
+                else if (status == "declined")
+                  "the method returned NULL on this cell; see R/methods.R"
+                else NA_character_
       err  <- if (na) NA_real_ else reconstruction_error(emb, p$truth)
       out[[length(out) + 1L]] <- data.frame(
         family = family, par = par, seed = seed, d = d, method = mname,
-        consumes = spec$consumes, ran = !na,
+        consumes = spec$consumes, ran = !na, status = status, reason = reason,
         rmse = err, floor = fl,
         excess = if (na) NA_real_ else err - fl,
         # How much of the achievable range the method actually gave away. 0 is
