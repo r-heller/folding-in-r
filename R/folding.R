@@ -200,6 +200,66 @@ fold <- function(pattern, theta) {
   }, numeric(1))
 }
 
+#' The winding normal of a facet, by Newell's method.
+#'
+#' Newell rather than a cross product of the first two edges: it averages over
+#' the whole cycle, so it is the least-squares normal of a facet that is only
+#' nearly planar, and it does not degenerate when the first corner happens to be
+#' the near-collinear one. Direction follows the vertex order, which is the
+#' point -- the winding is the orientation.
+.facet_normal <- function(P) {
+  m <- nrow(P)
+  n <- c(0, 0, 0)
+  for (k in seq_len(m)) {
+    a <- P[k, ]
+    b <- P[if (k == m) 1L else k + 1L, ]
+    n <- n + c((a[2] - b[2]) * (a[3] + b[3]),
+               (a[3] - b[3]) * (a[1] + b[1]),
+               (a[1] - b[1]) * (a[2] + b[2]))
+  }
+  len <- sqrt(sum(n^2))
+  if (len < .Machine$double.eps^0.5) {
+    stop("a facet has no well-defined normal -- it is degenerate or collinear",
+         call. = FALSE)
+  }
+  n / len
+}
+
+#' Which of a facet's directed edges is i -> j, if any.
+.walks <- function(vs, i, j) {
+  m <- length(vs)
+  nxt <- vs[c(2:m, 1L)]
+  any(vs == i & nxt == j)
+}
+
+#' Refuse to derive an orientation-dependent quantity from an unoriented mesh.
+#'
+#' Every interior edge of a consistently wound surface is walked exactly once in
+#' each direction. If that fails, the facets disagree about which side of the
+#' sheet is the front, and every mountain/valley label downstream is a coin flip
+#' -- so this stops rather than returning labels that look plausible. Checked
+#' against the FLAT pattern, because winding is combinatorial and holds before
+#' any folding map is applied.
+.check_winding <- function(pattern) {
+  seen <- new.env(parent = emptyenv())
+  for (vs in pattern$facets) {
+    m <- length(vs)
+    nxt <- vs[c(2:m, 1L)]
+    for (k in seq_len(m)) {
+      key <- paste0(vs[k], ">", nxt[k])
+      if (!is.null(seen[[key]])) {
+        stop("facets are not consistently wound: the directed edge ", key,
+             " is walked twice, so the two facets sharing it disagree about ",
+             "which side of the sheet is the front. Mountain and valley are ",
+             "defined against that side and cannot be derived here.",
+             call. = FALSE)
+      }
+      seen[[key]] <- TRUE
+    }
+  }
+  invisible(TRUE)
+}
+
 #' Mountain or valley, derived from the folded geometry.
 #'
 #' The assignment is a PROPERTY of the folding, not an input to it. Written by
@@ -208,41 +268,67 @@ fold <- function(pattern, theta) {
 #' against `fold()` they matched the geometry on barely half the creases. The
 #' figure had been drawing mountain-solid and valley-dashed on that basis.
 #'
-#' So it is computed. For each interior crease, take the two facets that share
-#' it and the outward normal of each; the crease is a mountain when the surface
-#' is locally convex seen from +z and a valley when it is concave. Boundary
-#' edges fold not at all and stay "B".
+#' The first derivation written to replace that rule was itself wrong, and wrong
+#' in a way the acceptance test could not see. It took the two facets sharing a
+#' crease in FACET-INDEX order and the crease axis in stored (i, j) order, and
+#' read the sign of a triple product. Both orderings are arbitrary and each
+#' negates the sign, so the handedness was a function of which facet happened to
+#' be numbered first -- family-dependent, and on the Miura it agreed with the
+#' correct labels on exactly half the interior creases. Maekawa passed anyway,
+#' because |M - V| = 2 is invariant under a global M<->V swap and so cannot
+#' discriminate between a labelling and its inverse, let alone between two that
+#' differ on half the creases. See ROADMAP.md section 5.
 #'
-#' Maekawa's theorem then becomes something to TEST -- |M - V| = 2 at every
-#' interior vertex of a flat-foldable pattern -- rather than something asserted
-#' and then quietly relied upon.
+#' The ordering is now canonical rather than incidental. In a consistently wound
+#' mesh every interior edge is traversed once in each direction: exactly one
+#' adjacent facet walks it i -> j and the other walks it j -> i. Take `nP` to be
+#' the winding normal of the facet that walks i -> j and `nM` that of the other,
+#' and `u` the crease direction i -> j. Then
+#'
+#'     (nP x nM) . u > 0   <=>   mountain
+#'
+#' which is the signed fold angle's sine, up to a positive factor. Reversing the
+#' crease's stored direction swaps nP with nM AND negates u, so the product is
+#' unchanged: the criterion no longer depends on either arbitrary choice. What it
+#' does depend on -- the sheet's front face, which is what mountain and valley are
+#' defined against -- is fixed by the flat pattern's counter-clockwise winding,
+#' and `.check_winding()` refuses to guess when that is not what it was given.
+#'
+#' Maekawa's theorem is then something to TEST -- |M - V| = 2 at every interior
+#' vertex of a flat-foldable pattern -- rather than something asserted and then
+#' quietly relied upon. It is a necessary condition and not a sufficient one, so
+#' the suite tests the labels against an independent up-normal criterion as well
+#' (`tests/testthat/test-crease-assignment.R`), which is the check that would
+#' have caught the handedness the first time.
+
 crease_assignment <- function(pattern, theta = 0.5) {
-  f <- fold(pattern, theta)
-  V3 <- f$vertices3
+  .check_winding(pattern)
+  V3 <- fold(pattern, theta)$vertices3
+  normals <- lapply(pattern$facets,
+                    function(vs) .facet_normal(V3[vs, , drop = FALSE]))
 
   vapply(seq_len(nrow(pattern$creases)), function(e) {
     i <- pattern$creases$i[e]; j <- pattern$creases$j[e]
     fs <- which(vapply(pattern$facets, function(v) all(c(i, j) %in% v), logical(1)))
     if (length(fs) < 2L) return("B")
 
-    axis <- V3[j, ] - V3[i, ]
-    axis <- axis / sqrt(sum(axis^2))
-    mid  <- (V3[i, ] + V3[j, ]) / 2
+    # Canonical, not incidental: the facet that walks i -> j and the one that
+    # walks j -> i. In a wound mesh there is exactly one of each.
+    fP <- fs[vapply(fs, function(k) .walks(pattern$facets[[k]], i, j), logical(1))]
+    fM <- fs[vapply(fs, function(k) .walks(pattern$facets[[k]], j, i), logical(1))]
+    if (length(fP) != 1L || length(fM) != 1L) {
+      stop("crease ", i, "-", j, " is shared by ", length(fs), " facets but is ",
+           "not walked once in each direction; the mesh is not a surface here",
+           call. = FALSE)
+    }
 
-    # A point of each facet, off the crease and projected perpendicular to it.
-    arm <- lapply(fs[1:2], function(k) {
-      o <- setdiff(pattern$facets[[k]], c(i, j))
-      w <- colMeans(V3[o, , drop = FALSE]) - mid
-      w - sum(w * axis) * axis
-    })
-
-    # The dihedral turns one way for a mountain and the other for a valley;
-    # which way is fixed by the sign of the triple product with the crease
-    # direction, so it is consistent along the whole crease and across facets.
-    cr <- c(arm[[1]][2] * arm[[2]][3] - arm[[1]][3] * arm[[2]][2],
-            arm[[1]][3] * arm[[2]][1] - arm[[1]][1] * arm[[2]][3],
-            arm[[1]][1] * arm[[2]][2] - arm[[1]][2] * arm[[2]][1])
-    if (sum(cr * axis) > 0) "M" else "V"
+    nP <- normals[[fP]]; nM <- normals[[fM]]
+    u  <- V3[j, ] - V3[i, ]
+    u  <- u / sqrt(sum(u^2))
+    cr <- c(nP[2] * nM[3] - nP[3] * nM[2],
+            nP[3] * nM[1] - nP[1] * nM[3],
+            nP[1] * nM[2] - nP[2] * nM[1])
+    if (sum(cr * u) > 0) "M" else "V"
   }, character(1))
 }
 

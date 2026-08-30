@@ -148,20 +148,14 @@ test_that("the Yoshimura refuses to fold, and says why", {
   expect_error(fold(yoshimura(3L, 3L), 0.5), "three crease families")
 })
 
-test_that("mountain and valley are derived from the fold, and Maekawa follows", {
-  # The labels used to be assigned by a parity rule chosen to satisfy Maekawa,
-  # and matched the actual folding on barely half the creases. Deriving them
-  # from the folded dihedral makes Maekawa a consequence to test rather than an
-  # assumption -- and it is the test that caught the Yoshimura being a pleat.
-  p <- miura_ori(5L, 5L)
-  a <- crease_assignment(p)
-  expect_setequal(unique(a), c("M", "V", "B"))
-  for (v in interior_vertices(p)) {
-    sel <- (p$creases$i == v | p$creases$j == v) & a != "B"
-    expect_equal(abs(sum(a[sel] == "M") - sum(a[sel] == "V")), 2,
-                 info = paste("vertex", v))
-  }
-})
+# Mountain and valley live in test-crease-assignment.R.
+#
+# They used to be checked here, by Maekawa alone. That test passed on three
+# mutually contradictory labellings of the same sheet, because |M - V| = 2 is
+# invariant under a global M<->V swap and so is symmetric to the error that had
+# actually occurred. Maekawa is still asserted -- alongside the demonstration
+# that it was never sufficient -- next to an independent recomputation of the
+# labels, which is the check that can fail when the derivation is wrong.
 
 test_that("facet_gap is the exact minimum, and brute force converges to it", {
   # CHAPTERS.md Ch 5 asks for exactly this check: test the analytic

@@ -15,11 +15,15 @@ on:
     paths:
       - "R/**"
       - "tests/**"
+      - "scripts/build-fold-figure.R"
+      - "js/fold-figure.html"
       - ".github/workflows/helpers.yml"
   pull_request:
     paths:
       - "R/**"
       - "tests/**"
+      - "scripts/build-fold-figure.R"
+      - "js/fold-figure.html"
       - ".github/workflows/helpers.yml"
   workflow_dispatch:
 
@@ -79,3 +83,12 @@ jobs:
       - name: Run testthat
         if: steps.have.outputs.count != '0' && hashFiles('tests/testthat/**') != ''
         run: Rscript tests/testthat.R
+
+      # The interactive figure's geometry is generated, and used to be generated
+      # by nothing: it kept drawing a mountain/valley rule the code had already
+      # retired. --check regenerates into memory and compares, so a change to
+      # patterns.R or folding.R that moves the figure fails here instead of
+      # shipping a figure that disagrees with the book.
+      - name: js/fold-figure.html is in step with the pattern
+        if: steps.have.outputs.count != '0'
+        run: Rscript scripts/build-fold-figure.R --check

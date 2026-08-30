@@ -448,6 +448,16 @@ diagnostic also found the Miura's labels had been assigned by a parity rule
 chosen to satisfy Maekawa and matched the actual folding on 36 of 60 creases;
 derived from the geometry they now satisfy Maekawa at 16 of 16.
 
+> **Corrected in Phase 18 — this closure was wrong, and wrongly evidenced.**
+> "They now satisfy Maekawa at 16 of 16" was true and proved nothing. So did the
+> parity labels it replaced, and so does the global inverse of either, because
+> |M - V| = 2 is invariant under swapping M with V. The derivation shipped here
+> ordered the two facets sharing a crease by facet index and the axis by the
+> crease's stored (i, j); both are arbitrary and each negates the sign, so the
+> new labels agreed with the geometry on exactly half the interior creases --
+> the same half-right as the rule they replaced, differently arranged. See
+> ROADMAP.md section 5 and the Phase 18 entry below.
+
 ### Other remediation in this phase
 
 - `irreducible_loss()` and `metric_floor()` were separate implementations of the
@@ -519,3 +529,95 @@ no implementation, and `CHAPTERS.md` already gives Chapter 7 its own three
 artefacts. `torch` stays in the lockfile. The registry declares the method
 unavailable, `embed()` returns NULL before attempting anything, and the grid
 records the declared reason rather than dropping the row.
+
+## Phase 18 — trust repair
+
+`ROADMAP.md` is the status audit this phase works from: eight read-only audits at
+commit `85fe50a`, then adversarial verification of every S0/S1 finding, then
+synthesis. **19 findings went to verification; 2 were confirmed as stated and 17
+were downgraded or refuted** — several of the proposed fixes would have made
+things worse, and section 9 records them as things not to do. The phase order
+follows section 7.
+
+### The crease labels, and what "closed" has to mean
+
+The finding that reorders the plan. Phase 16 recorded the Miura's
+mountain/valley labels as fixed, on the evidence that the new derivation
+satisfies Maekawa at 16 of 16 interior vertices. It does. So does the parity rule
+it replaced, and so does the global inverse of either: **|M − V| = 2 is invariant
+under swapping M with V**, so it cannot discriminate between a labelling and its
+opposite, let alone between two that differ on half the creases. The acceptance
+property was exactly symmetric to the class of error present.
+
+`crease_assignment()` took the two facets sharing a crease in **facet-index**
+order and the axis in the crease's **stored (i, j)** order, then read the sign of
+a triple product. Both orderings are arbitrary and each negates that sign. On
+`miura_ori(5, 5)` the derived labels agreed with the stored ones on 16 of 40
+interior creases, and — measured against a criterion that shares no code with
+either — both were right on exactly 50%.
+
+The fix makes the ordering canonical rather than incidental. In a consistently
+wound mesh every interior edge is walked once in each direction, so "the facet
+that walks i → j" names one facet without reference to how the facets happen to
+be numbered. With `nP` its winding normal, `nM` the other's and `u` the crease
+direction, `(nP × nM) · u > 0` is mountain — and reversing the stored crease
+direction swaps `nP` with `nM` *and* negates `u`, leaving the product alone.
+`.check_winding()` refuses the whole computation on a mesh that is not oriented,
+rather than returning labels that are a coin flip.
+
+`miura_ori()`'s stored labels are now the geometry's, in closed form: the zigzag
+creases are constant in `i` (each is a ridge or a trough of the corrugation along
+its entire length) and the horizontal creases alternate, mountain when `i + j` is
+even. That is 3M/1V at every interior vertex, so Maekawa still holds — it was
+never the constraint that fixed the labels. The comment in `patterns.R` that
+derived the old rule *from* Maekawa is replaced; the reasoning was valid and the
+conclusion was one of two labellings the argument could not separate.
+
+**What settles ROADMAP.md's open question 1.** The audit's two ridge-versus-trough
+measurements disagreed (0/N against 25%) and neither was authoritative. Both
+compared heights: crease-midpoint z against the mean z of the opposite facet
+points. On the Miura's horizontal creases both adjacent facets span the same two
+heights, so that difference is identically zero and the test was reading
+floating-point noise. Projecting onto the facet normals instead keeps the
+horizontal component of the fold, which is where those creases carry their whole
+signal. The criterion is well posed at every size, α and θ swept, and it agrees
+with the corrected derivation everywhere.
+
+### The closure rule this phase adopts
+
+*An item closes when there is a named executable assertion that fails on the
+pre-fix tree and passes after, and the commit message says which.*
+
+For this one that is `tests/testthat/test-crease-assignment.R`, which recomputes
+the labels by an independent route — normals flipped to +z and the side of the
+sheet the surrounding material sits on, rather than the winding — and compares.
+On the pre-fix tree, six of its seven tests fail, 167 assertions in all:
+
+| test | pre-fix |
+|---|---|
+| the independent criterion is well posed | 160 pass (it is the reference) |
+| `crease_assignment()` agrees with it | **80 fail** |
+| the stored labels agree with it | **84 fail** |
+| assignment is invariant to crease direction | **fails** |
+| assignment is invariant to facet order | **fails** |
+| Maekawa holds, and is too weak to catch this | **fails** |
+| an unwound mesh is refused | **errors** (no such guard) |
+
+The last of those tests asserts the weakness directly: the correct labelling, its
+global inverse and the retired parity rule all satisfy Maekawa, and the parity
+rule agrees with the correct labelling on exactly half the creases.
+
+### `js/fold-figure.html` gets a producer
+
+The figure had been drawing the retired labels — solid for mountain, dashed for
+valley — and nothing in the repository could regenerate it. An artefact with no
+producer cannot be corrected, only replaced by hand, which is how it came to
+disagree with the code in the first place.
+
+`scripts/build-fold-figure.R` rebuilds the `window.__FOLD_GEOM__` block from
+`miura_ori()` and `fold()`, asserts isometry over all twenty frames, refuses to
+write if the stored labels disagree with `crease_assignment()`, and takes
+`--check` for CI. It reproduces the shipped block **byte for byte** apart from
+the twelve corrected labels — same 16 facets, same 20 frames, same 3,840
+coordinates, same isometry error — which is the evidence that nothing about the
+figure moved except what was wrong with it.

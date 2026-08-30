@@ -102,9 +102,16 @@ test_that("the vertex angle sum is exactly 2 pi, so discrete curvature is zero",
 })
 
 test_that("Maekawa's theorem holds at every interior vertex", {
-  # |M - V| = 2. For the Miura this is what forces the zigzag creases to
-  # alternate in (i + j) rather than in i alone: with the naive assignment
-  # every vertex is 2M/2V and the pattern is not flat-foldable.
+  # |M - V| = 2, as a necessary condition on the stored labels of every family.
+  #
+  # It is not what FIXES those labels, and the comment here used to say it was --
+  # that the Miura's zigzag creases must alternate in (i + j) because alternating
+  # in i alone gives 2M/2V. The geometry says the opposite: the zigzag creases are
+  # constant in i (each is a ridge or a trough of the corrugation along its whole
+  # length) and it is the horizontal creases that alternate, which is 3M/1V and
+  # satisfies Maekawa just as well. Two labellings that disagree on half the
+  # creases both pass here, which is exactly why this is a sanity check and
+  # test-crease-assignment.R is the test.
   for (nm in names(PATTERNS)) {
     p <- PATTERNS[[nm]]()
     for (v in interior_vertices(p)) {

@@ -60,18 +60,37 @@ miura_ori <- function(nx = 6L, ny = 6L, a = 1, b = 1, alpha = pi / 3) {
 
   # Creases.
   #
-  # The horizontal edges are the major folds. Their assignment alternates with
-  # the row index, which is what makes the sheet concertina rather than curl, and
-  # is constant along each horizontal line.
+  # These labels are a RECORD of what the folding does, not a choice. They are
+  # the closed form of crease_assignment() on this family, and the suite asserts
+  # the two agree across the size x alpha x theta sweep -- so the constructor
+  # stays ignorant of R/folding.R, as the file header requires, without the two
+  # being free to drift apart.
   #
-  # The zigzag edges alternate with (i + j), not with i alone. That is not a
-  # stylistic choice, it is forced: at an interior vertex the two horizontal
-  # edges belong to the same row and therefore carry the same assignment, so if
-  # the two zigzag edges also matched, every vertex would be 2M/2V and Maekawa's
-  # theorem -- |M - V| = 2 at every interior vertex of a flat-foldable pattern --
-  # would fail. Alternating in (i + j) makes the two zigzag edges at a vertex
-  # differ, giving 3/1, and leaves each zigzag polyline alternating M, V, M, V
-  # along its length. The tests check this rather than trusting the comment.
+  # The folded placement is z = (i mod 2) H (see .fold_miura): the corrugation
+  # runs across the columns, so the ZIGZAG lines at constant i are its ridges and
+  # troughs. A zigzag line at odd i sits a height H above both its neighbours
+  # along its whole length and is therefore mountain end to end; at even i it is
+  # valley end to end. The assignment depends on i alone -- j does not enter.
+  #
+  # The horizontal lines cross that corrugation, climbing a slope and descending
+  # the next, and their creases alternate M, V, M, V along each row: mountain
+  # when (i + j) is even. Their fold is purely horizontal -- both adjacent facets
+  # span the same two heights, so the crease midpoint and the material around it
+  # sit at exactly the same z -- which is why a ridge-versus-trough test on
+  # height alone reads them as degenerate and cannot label them at all.
+  #
+  # Maekawa follows rather than being imposed. At an interior vertex the two
+  # zigzag creases share an i and so agree, while the two horizontal creases have
+  # left indices i - 1 and i and so differ: 3 of one and 1 of the other,
+  # |M - V| = 2, at every interior vertex.
+  #
+  # An earlier rule had this transposed -- horizontals constant along a row,
+  # zigzags alternating in (i + j) -- reasoning from Maekawa alone. It also gives
+  # 3/1 at every vertex, which is the whole problem: Maekawa constrains the
+  # counts at a vertex and cannot see which crease got which label. It agreed
+  # with the geometry on exactly half the interior creases, and every figure in
+  # the book drew mountain-solid and valley-dashed on that basis. See
+  # ROADMAP.md section 5 and the note above crease_assignment().
   #
   # Boundary edges fold not at all and are marked "B" so that folding can skip
   # them without a special case.
@@ -82,13 +101,13 @@ miura_ori <- function(nx = 6L, ny = 6L, a = 1, b = 1, alpha = pi / 3) {
       stringsAsFactors = FALSE
     )
   }
-  for (j in 0:ny) for (i in 0:(nx - 1L)) {
+  for (j in 0:ny) for (i in 0:(nx - 1L)) {              # horizontal: straight rows
     boundary <- (j == 0L || j == ny)
-    add(i, j, i + 1L, j, if (boundary) "B" else if (j %% 2L == 1L) "M" else "V")
+    add(i, j, i + 1L, j, if (boundary) "B" else if ((i + j) %% 2L == 0L) "M" else "V")
   }
-  for (j in 0:(ny - 1L)) for (i in 0:nx) {
+  for (j in 0:(ny - 1L)) for (i in 0:nx) {             # zigzag: the corrugation
     boundary <- (i == 0L || i == nx)
-    add(i, j, i, j + 1L, if (boundary) "B" else if ((i + j) %% 2L == 1L) "M" else "V")
+    add(i, j, i, j + 1L, if (boundary) "B" else if (i %% 2L == 1L) "M" else "V")
   }
   creases <- do.call(rbind, cr)
 
