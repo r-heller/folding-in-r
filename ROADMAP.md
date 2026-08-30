@@ -47,6 +47,14 @@ fails on the pre-fix tree and passes after, and the commit message says which.
 | 1.1 | `product-grid.rds` at production settings, `boundary = FALSE` | **running** | two arms, `chart_exit_fraction` asserted 0 per cell |
 | 1.2 | Chapter 8 §5 restated | **closed** | the `--quick` numbers are gone, "nine methods" is eight, "unbeaten" is the producer's exit code |
 | 1.3 | Swiss-roll-product arm | **closed** | second arm in `run-product-grid.R`; both families' floors reported side by side |
+| 1.4 | Pilot the evaluator audit | **closed** | ran before drafting; R1 resolved in the book's favour, Chapter 9 respecified against the numbers |
+| 1.5 | `scripts/run-evaluator-audit.R` | **written**; full run pending | gives `rank_metrics()` its second consumer |
+| 1.6 | Settle the seed budget | **producer written**; measurement running | standing rule 1 restated as a floor and enforced over committed artefacts |
+| 3.2 | Hoist the rank matrices; wire `rank_metrics()` | **closed** | 2.32 s to 1.42 s per fit at n = 800, agreeing to 1.1e-16 |
+| 3.3 | Name the two k's; record the reference geometry | **closed** | `K_DEFAULT` and `K_QNX` were never the same number and nothing said so |
+| 3.4 | Split `status` from `reason` | **closed** | separates declared-unavailable from a genuine decline from a throw |
+| 3.5 | One provenance helper | **closed** | `R/artefacts.R`; all four producers on it |
+| 3.7 | The pre-registered selection rule | **closed** | its own commit, before the grid exists |
 | 0.5 | Correct the two documents that describe what E1 shipped | **closed** | GENERATION_LOG's Phase-16 provenance claim corrected in place; CHAPTERS.md's becomes true when the artefacts land |
 | 2.1 | Settle the `eval` policy; add the lint check | **closed** | `check_eval` red on a figure chunk with `eval = FALSE` and on an unlabelled one |
 | 2.2 | `check_contract` over `prose_rmd`; anchors in the appendices | **closed** | the check now fires on A1/A2, which it never had; scratch chapter passes, red on a missing slot and on a broken namespace |
@@ -499,7 +507,20 @@ in GitHub's sidebar.
 
 ## 8. Risk register
 
-**R1 — Claim A does not reproduce.** *Likelihood medium · Impact high.*
+**R1 — Claim A does not reproduce.** **RESOLVED 2026-08-31: it reproduces, and
+the claim improves.** The pilot ran before any of Chapter 9 was drafted.
+Ambient-referenced continuity ranks the exact unfolding below a two-component PCA
+at a rate monotone in both k and θ — 0.000 at k = 5, θ = 0.2, rising to 1.000 at
+k = 20, θ = 0.8 — while chart-referenced evaluators never invert at any setting.
+The margin is under 0.003 against candidate reconstruction errors of 0.000 and
+0.108, so the supportable claim is not "the evaluator prefers a wrong embedding
+by X" but "continuity cannot distinguish a perfect embedding from a plainly wrong
+one". Optimism is not uniform: kNN and Q_NX rank the truth first at n = 800 by
+reportable margins, and trustworthiness is inert. Budget unchanged at 4,400. See
+GENERATION_LOG.md Phase 19 and the rewritten Chapter 9 entry. The original risk
+text follows.
+
+*Likelihood medium · Impact high.*
 The inversion threshold — the declared novel contribution, Chapter 9's 4,400
 words — has never been computed on the Miura in the [0,1] parameterisation. Its
 only supporting numbers came from an accordion pleat now documented as a negative

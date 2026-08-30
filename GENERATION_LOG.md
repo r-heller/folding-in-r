@@ -1011,3 +1011,64 @@ the seeds, while the same metrics against the chart never do. Margins are small
 -- of order 0.001 -- and the pilot is running the design the risk register asks
 for before any of Chapter 9 is drafted.
 
+## Phase 19 — the pilot that decides Chapter 9
+
+`ROADMAP.md` R1 was the largest single risk to the book's thesis: the inversion
+threshold is the declared novel contribution and Chapter 9's 4,400 words, and it
+had never been computed on the Miura in the [0, 1] parameterisation. Its only
+supporting numbers came from an accordion pleat now documented as a negative
+result. The mitigation was to run a narrow pilot **before** committing to the
+chapter, and to re-budget down if it came back empty.
+
+It did not come back empty. It came back with a better claim than the one it was
+sent to test.
+
+**Design.** 3 theta x k in {5, 10, 20, 40} x n in {400, 800} x 20 seeds on
+`miura_ori(6, 6)`, three reference geometries, two candidates: the exact
+unfolding and a two-component PCA of the folded cloud. The exact unfolding is
+handed to the evaluator as though it were a submission, which is the one thing a
+benchmark with known truth can do and a real dataset cannot. An **inversion** is
+an evaluator ranking the exact answer below PCA.
+
+**1. The inversion exists, and it obeys a law in k and theta.**
+
+| ambient-referenced continuity | k = 5 | k = 10 | k = 20 | k = 40 |
+|---|---:|---:|---:|---:|
+| theta = 0.2 | 0.000 | 0.050 | 0.375 | 0.850 |
+| theta = 0.5 | 0.000 | 0.225 | 0.825 | 1.000 |
+| theta = 0.8 | 0.275 | 0.875 | 1.000 | 1.000 |
+
+Monotone in both, and certain in the corner. That is the quantitative law the
+chapter was budgeted for, and it was never observable on the pleat this claim
+originally came from.
+
+**2. The margin is negligible, and that is the stronger finding.** Continuity's
+preference for PCA never exceeds **0.003** -- two orders of magnitude below the
+book's own reportable difference -- while the two candidates' reconstruction
+errors at theta = 0.8 are **0.000 and 0.108**. The claim the numbers support is
+not "the evaluator prefers a wrong embedding by X". It is that continuity cannot
+distinguish a perfect embedding from a plainly wrong one *at all*, and reports
+both as excellent. The chapter must write that, and the temptation will be to
+write the weaker version because it sounds bolder.
+
+**3. Optimism is not uniform, and "four metrics, one number" is the wrong
+frame.** At n = 800, kNN preservation and Q_NX rank the exact chart first, by
+margins clearing the reportable difference in 44% and 33% of cells;
+trustworthiness is inert either way at 1e-4; continuity is the one that inverts.
+Four metrics, four different answers.
+
+**4. The reference geometry dominates the metric.** Graph-referenced results
+match ambient-referenced ones to three decimals on every metric, and
+chart-referenced results **never invert at any k, theta or n**. The law to state
+is which question each evaluator is answering, not a correction factor to apply
+-- which is what the audit design hoped for and what the numbers deliver.
+
+**5. A caveat that must not be buried.** The rank metrics' inversions are largely
+a small-sample effect: kNN inverts on 30% of cells at n = 400 and 3% at n = 800.
+Continuity's is not -- it holds at 44% at n = 800. Any figure pooling over n
+reports two phenomena as one.
+
+Chapter 9's budget stands at 4,400 and its specification is rewritten in
+`CHAPTERS.md` against these numbers, before a word of it is drafted. The pilot
+artefact is `data/processed/evaluator-audit-pilot.rds`, with provenance.
+

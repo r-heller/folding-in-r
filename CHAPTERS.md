@@ -543,6 +543,52 @@ is the part that is genuinely not entailed.
 | What to report when you have no answer key | 350 |
 | What this chapter does not settle | 150 |
 
+---
+
+**Pilot run 2026-08-31, before a word of this chapter was drafted.**
+`scripts/run-evaluator-audit.R --pilot`, 3 θ × k ∈ {5, 10, 20, 40} × n ∈ {400,
+800} × 20 seeds on `miura_ori(6, 6)`, handing each evaluator the exact chart as a
+candidate against a two-component PCA of the folded cloud. `ROADMAP.md` item 1.4
+and risk R1. **The chapter survives, and its claim has to change.**
+
+*The inversion exists.* Ambient-referenced continuity ranks the exact unfolding
+below PCA, and the rate is a clean monotone function of both k and θ — at k = 5
+it essentially never happens, at k = 40 it is certain at every θ tested, and at
+fixed k it rises with θ. That is the quantitative law the chapter was budgeted
+for, and it was never observable on the accordion pleat this claim originally
+came from.
+
+*The margin is negligible, and that is the stronger finding.* Continuity's
+preference for PCA never exceeds 0.003 — two orders of magnitude below the book's
+own reportable difference — while the two candidates' reconstruction errors are
+0.000 and 0.108. The claim the numbers support is not "the evaluator prefers a
+wrong embedding by X". It is that **continuity cannot distinguish a perfect
+embedding from a plainly wrong one at all**, and reports both as excellent. Write
+that, not the weaker version.
+
+*Optimism is not uniform across the four metrics, and the chapter's structure
+should follow that rather than a single law.* At n = 800, kNN preservation and
+$Q_{NX}$ rank the exact chart first, by margins that clear the reportable
+difference in a third to a half of cells; trustworthiness is inert either way,
+moving by 1e-4; continuity is the one that inverts. §7 "How optimistic, and in
+what units" therefore cannot be one number, and §8 "Four metrics, one number"
+is the wrong title for what is there — four metrics, four different answers.
+
+*The reference geometry dominates the metric.* Graph-referenced results are
+identical to ambient-referenced ones to three decimals on every metric, and
+chart-referenced results **never invert, at any k, θ or n**. §4 "Three reference
+geometries" is where the chapter's real content is, and §5's known-answer test is
+what makes it visible. The law to state is which question each evaluator is
+answering, not a correction factor to apply.
+
+*And a sample-size caveat that must not be buried.* The rank metrics' inversions
+are largely a small-sample effect — at n = 400 kNN inverts on 30% of cells, at
+n = 800 on 3%. Continuity's is not: it holds at 44% at n = 800. Any figure in
+this chapter that pools over n is reporting two different phenomena as one.
+
+**Budget: unchanged at 4,400.** The risk register allowed for re-budgeting this
+chapter down if the pilot came back empty. It did not.
+
 **The first paragraph must position against Machado et al. 2025 explicitly:**
 *they show a bad embedding scores high, which needs no ground truth; this book
 shows the right embedding scores low, which cannot be done without it.* That is a
