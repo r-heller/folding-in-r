@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 8 Building crease-pattern manifolds | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Pattern families beyond Miura-ori: Yoshimura, waterbomb. Product constructions: intrinsic...">
+<meta name="description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Why there is one family and not three. The Yoshimura and the waterbomb were specified here and...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 8 Building crease-pattern manifolds | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/benchmarks.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Pattern families beyond Miura-ori: Yoshimura, waterbomb. Product constructions: intrinsic...">
+<meta property="og:description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Why there is one family and not three. The Yoshimura and the waterbomb were specified here and...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 8 Building crease-pattern manifolds | Folding in R">
-<meta name="twitter:description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Pattern families beyond Miura-ori: Yoshimura, waterbomb. Product constructions: intrinsic...">
+<meta name="twitter:description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Why there is one family and not three. The Yoshimura and the waterbomb were specified here and...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -118,7 +118,12 @@
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 <ul>
 <li>The helper API in <code>R/</code>, end to end.</li>
-<li>Pattern families beyond Miura-ori: Yoshimura, waterbomb.</li>
+<li>Why there is one family and not three. The Yoshimura and the waterbomb were
+specified here and both were withdrawn: no rigid folding of the Yoshimura is
+certified in which all three crease families fold, and the waterbomb’s is an
+open question (PLAN.md R1-1 and E2). Both stay in the chapter as documented
+negative results, which is a stronger section than a list of families would
+have been – it says what it takes for a pattern to qualify.</li>
 <li>Product constructions: intrinsic dimension <span class="math inline">\(2k\)</span> in ambient <span class="math inline">\(3k\)</span>, ground truth still exact.</li>
 <li>Random linear lift to arbitrary ambient dimension <span class="math inline">\(D\)</span>.</li>
 <li>Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark.</li>

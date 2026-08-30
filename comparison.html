@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 11 Crease patterns vs. the Swiss roll | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. Method rankings that flip between benchmarks — and why. What the...">
+<meta name="description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. What separates the benchmarks is the SPREAD between methods at matched...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/comparison.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. Method rankings that flip between benchmarks — and why. What the...">
+<meta property="og:description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. What separates the benchmarks is the SPREAD between methods at matched...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
-<meta name="twitter:description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. Method rankings that flip between benchmarks — and why. What the...">
+<meta name="twitter:description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. What separates the benchmarks is the SPREAD between methods at matched...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -118,7 +118,13 @@
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 <ul>
 <li>Head-to-head against Swiss roll and S-curve, same methods and same metrics.</li>
-<li>Method rankings that flip between benchmarks — and why.</li>
+<li>What separates the benchmarks is the SPREAD between methods at matched
+difficulty, not a flip in their order. E1 looked for a flip and found none; it
+found a separation, with an interval from a cluster bootstrap over settings and
+a p-value from cluster-robust regression. A benchmark earns its keep by telling
+methods apart, and that is the statistic the chapter reports – read from
+<code>e1-controlled.rds</code> through an inline <code>r</code> expression, ratio and interval
+together, never the ratio alone.</li>
 <li>What the crease-pattern family surfaces that a single fixed geometry hides.</li>
 <li>An honest answer to “why not just use the Swiss roll?”</li>
 </ul>
