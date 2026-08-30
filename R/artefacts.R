@@ -67,7 +67,9 @@ provenance <- function(..., started = NULL) {
     date      = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
     elapsed   = if (is.null(started)) NA_real_ else
                   round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1),
-    cores     = unname(parallel::detectCores())
+    cores     = unname(parallel::detectCores())   # of the machine; a producer
+                                                  # that spreads work records its
+                                                  # own `workers` alongside
   ), list(...))
 }
 
