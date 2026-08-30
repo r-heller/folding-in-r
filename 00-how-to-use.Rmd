@@ -4,9 +4,18 @@
 
 Three rules apply throughout and are not restated in each chapter.
 
-1. **Every stochastic result is reported across at least 20 seeds.** t-SNE and
-   UMAP are seed-dependent; a single run is an anecdote. Seeds are fixed in
+1. **Every stochastic result is reported across at least 20 seeds, and across
+   more where the spread requires it.** t-SNE and UMAP are seed-dependent; a
+   single run is an anecdote. Twenty is a floor, not a design: the count each
+   method needs is measured, by inverting the 0.02 reportable difference against
+   that method's within-cell spread, and a method needing more gets more.
+   `scripts/measure-seed-budget.R` does the measuring and
+   `data/processed/seed-budget.rds` is its record. Seeds are fixed in
    `_common.R` as `BENCH_SEEDS` and disclosed with every figure.
+
+   Where an artefact is produced below the floor — a pilot, or an arm whose cost
+   forbids it — the count is named in the text that reports it, and
+   `scripts/check-artefact-producers.R` will not let it pass unnamed.
 
 2. **Every $\theta$-dependent result is reported as a curve, never as a single
    number.** Fold angle is a continuous difficulty parameter. Reporting one

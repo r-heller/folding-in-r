@@ -45,7 +45,34 @@ OPEN <- list(
   "metric-calibration.rds" = "ROADMAP.md item 1.5 -- folded into the evaluator audit"
 )
 
-DOCS    <- c("CHAPTERS.md", "PLAN.md", "PROJECT_CONCEPT.md")
+# ── The seed floor ──────────────────────────────────────────────────────────
+#
+# Standing rule 1 promises "at least 20 seeds", and every experiment that has
+# run broke it: E1's arm A used 10 and the arm that produced its headline used 5,
+# the product grid used 10. Only the ungenerated main grid used 20. A rule stated
+# unconditionally to the reader and violated by every producer is worse than no
+# rule, so the rule is now a floor with named exemptions -- and this is where the
+# names live. An artefact below the floor and not listed here fails.
+SEED_FLOOR <- 20L
+SEED_EXEMPT <- list(
+  "e1-controlled.rds" = paste(
+    "5 seeds x 89 settings. The design trades seeds for settings deliberately:",
+    "the arm exists to establish overlap in (g/s, non-planarity) between two",
+    "families, and coverage of the setting space is what buys that, not",
+    "precision within a setting. Reported with a cluster bootstrap OVER",
+    "settings, which is the interval that accounts for it."),
+  "e1-armB.rds" = paste(
+    "10 seeds x 3 grids. A flat-in-crease-count result; the finding is the",
+    "absence of a trend across grids, and it is reported as such."),
+  "e1-difficulty.rds" = paste(
+    "10 seeds x 33 parameter values. Superseded as evidence by e1-controlled;",
+    "arm A is reported as the design that had to be replaced, not as a result.")
+)
+
+# A2-datasets.Rmd is the book's codebook and is where a reader looks an artefact
+# up, so an artefact absent from it is as much a gap as one absent from the
+# specification.
+DOCS    <- c("CHAPTERS.md", "PLAN.md", "PROJECT_CONCEPT.md", "A2-datasets.Rmd")
 SCRIPTS <- sort(list.files("scripts", pattern = "\\.R$", full.names = TRUE))
 # This script names every artefact it knows about, so it would report itself as
 # the producer of all of them.
@@ -83,13 +110,14 @@ declared_by <- setNames(lapply(SCRIPTS, decl_of), SCRIPTS)
 
 # A script that writes an .rds must say which. Otherwise the declaration is
 # opt-in, and the one producer that forgets is invisible again.
+WRITERS <- "saveRDS\\(|write_run\\("     # write_run() is R/artefacts.R's saveRDS
 for (f in SCRIPTS) {
-  writes <- any(grepl("saveRDS", readLines(f, warn = FALSE), fixed = TRUE))
+  writes <- any(grepl(WRITERS, readLines(f, warn = FALSE)))
   if (writes && !length(declared_by[[f]])) {
-    fail(f, " calls saveRDS() and declares no `# @artefact` line.")
+    fail(f, " writes an .rds and declares no `# @artefact` line.")
   }
   if (!writes && length(declared_by[[f]])) {
-    fail(f, " declares an artefact and never calls saveRDS().")
+    fail(f, " declares an artefact and never writes one.")
   }
 }
 
@@ -161,12 +189,35 @@ for (f in rds) {
          "code that made it.")
     next
   }
-  cat(sprintf("   %-40s %6d rows  r_sha %s%s\n", f,
-              if (is.null(nrow(x))) NA_integer_ else nrow(x), sha,
+  nseed <- length(pr[["seeds"]])
+  cat(sprintf("   %-40s %6s rows  r_sha %s  seeds %s%s\n", f,
+              if (is.null(nrow(x))) "-" else format(nrow(x)), sha,
+              if (nseed) format(nseed) else "-",
               if (isTRUE(pr[["quick"]])) "  [QUICK -- not evidence]" else ""))
   if (isTRUE(pr[["quick"]])) {
     fail(f, " was written by a --quick run and is committed as if it were ",
          "evidence.")
+  }
+
+  # Standing rule 1, checked over the committed output rather than stated in
+  # prose. This is the check that would have caught every producer breaking it.
+  if (!nseed) {
+    fail(f, " records no seed count in its provenance, so standing rule 1 ",
+         "cannot be checked against it.")
+  } else if (nseed < SEED_FLOOR) {
+    why <- SEED_EXEMPT[[basename(f)]]
+    if (is.null(why)) {
+      fail(f, " was produced across ", nseed, " seeds, below standing rule 1's ",
+           "floor of ", SEED_FLOOR, ", and carries no exemption. Either raise ",
+           "the count or add the artefact to SEED_EXEMPT with the reason the ",
+           "chapter will print.")
+    } else {
+      note(basename(f), ": ", nseed, " seeds, below the floor of ", SEED_FLOOR,
+           " -- ", why)
+    }
+  } else if (!is.null(SEED_EXEMPT[[basename(f)]])) {
+    fail(f, " now meets the seed floor but is still listed in SEED_EXEMPT. ",
+         "Remove the exemption -- the ledger has to move when the tree does.")
   }
 }
 

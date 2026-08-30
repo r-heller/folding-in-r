@@ -889,3 +889,69 @@ available estimates disagree by a factor of two and neither has been run to
 completion; `write_run()` records `elapsed`, so the first full generation settles
 it with a measurement instead of an argument.
 
+### The selection rule, registered before the grid it reads
+
+S1-11, and its own commit, because the only thing that can establish that a rule
+preceded a result is a git timestamp. `benchmark-grid.rds` has never been
+generated and `prepare-single-cell.R`'s deliberate `stop()` is still in place.
+
+Written as code. `R/selection.R`'s `select_method()` is a total function of the
+grid's columns: given a grid and a regime it returns a decision every time, with
+no argument left to be chosen once the numbers are in. Prose can be read
+generously afterwards; a function cannot.
+
+The decline branch is the point of it. `R` is the spread across methods over the
+spread across seeds within a method -- above 1 a ranking means something, at or
+below it the ranking is noise with an ordering imposed on it, and the rule
+returns no winner. `CHAPTERS.md` already warned that "the temptation on
+discovering R < 1 will be to raise the seed count until something separates".
+That is closed rather than warned about, and the test shows why it could never
+have worked: R is a ratio of two spreads, neither a standard error, so 20, 100
+and 400 seeds leave it where it was.
+
+Two methods with nothing between them come out as a decline rather than a coin
+flip, and for the right reason -- no spread across methods is no resolving power.
+
+Chapter 10 gains the section table it never had, which is why three places in
+this repository gave the rule three different section numbers. It is referred to
+by its anchor, `results-rule`.
+
+### Standing rule 1, made true
+
+"Every stochastic result is reported across at least 20 seeds", stated
+unconditionally to the reader, and **every experiment that has run broke it**:
+E1's arm A used 10 and the arm behind its headline used 5; the product grid used
+10; only the ungenerated main grid used 20.
+
+Twenty was never a design either -- it is a convention inherited from the sibling
+volumes. `PROJECT_CONCEPT.md` already says what the design should be, "the plan
+spends more where the pre-registered 0.02 reportability threshold requires it",
+and `PLAN.md` S2-3 says to invert that threshold for the count. Nobody had
+measured the spread it has to be inverted against.
+
+`scripts/measure-seed-budget.R` measures it: the within-cell standard deviation
+of excess over the floor, for every method, over cells spanning the grid's theta
+and noise, then inverted through the standard two-sample expression at 80% power.
+Every method, not only the stochastic ones -- a deterministic method's spread
+across seeds is the sampling variation alone, and that is the baseline the
+stochastic ones have to be read against.
+
+The smoke run at n = 200 already suggests the answer is uncomfortable, with UMAP
+and diffusion maps needing seed counts in the hundreds. The production
+measurement is running; if it holds, it is a finding about the benchmark's
+resolving power in exactly the regime the selection rule declines in, and Chapter
+10 reports it rather than raising the count until something separates.
+
+Meanwhile the rule is stated as what it is -- a floor, with named exemptions --
+and moved out of prose into a check over committed output, which is T5's systemic
+fix. `check-artefact-producers.R` reads the seed count from every committed
+artefact's provenance and fails on one below the floor that is not named in
+`SEED_EXEMPT` with the reason the chapter will print. It also fails on an
+exemption that has stopped being true, in the other direction.
+
+E1's three arms are exempted with their designs stated: arm A2 trades seeds for
+settings deliberately, because it exists to establish overlap in the
+(g/s, non-planarity) plane and coverage of the setting space is what buys that,
+not precision within a setting -- and it is reported with a cluster bootstrap
+over settings, which is the interval that accounts for exactly this.
+
