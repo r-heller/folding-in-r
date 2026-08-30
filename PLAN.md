@@ -55,7 +55,7 @@ pattern — draft in a day, repair for weeks — does not transfer. Sequencing
 was never the chapter, it was that four decisions sat unresolved inside it. Each
 becomes an explicit S1 item with its own gate: the dataset (S1-8), the
 redistribution licence (S1-9), label provenance (S1-10), and the pre-registered
-selection rule (S1-11). **The selection rule must be written into Chapter 10 §10.8
+selection rule (S1-11). **The selection rule must be written into Chapter 10's `results-rule` anchor
 and committed before a single Chapter 12 fit is run** — that commitment is the
 only thing that makes its null-result promise meaningful, and it is worthless
 applied retroactively.
@@ -334,11 +334,24 @@ uses a different channel and states why.
 
 #### S1-11 — Pre-register the selection rule
 
-Written into Chapter 10 §10.8 and **committed before any Chapter 12 fit runs**.
+**Closed.** `R/selection.R` holds `select_method()`, committed in its own commit,
+before `benchmark-grid.rds` has ever been generated and before
+`scripts/prepare-single-cell.R`'s deliberate `stop()` is removed. Chapter 10
+carries it at the `results-rule` anchor.
+
+Written as code rather than as prose, because prose can be read generously
+afterwards. It is a total function of the grid's columns: given a grid and a
+regime it returns a decision every time, with no argument left to be chosen once
+the numbers are in, and it **declines** where the benchmark's resolving power is
+at or below 1 rather than ranking noise. Tested against a synthetic grid on
+purpose — a rule tested against the numbers it will later be applied to is not a
+pre-registration.
+
 *Accept:* the rule is in git history with a timestamp preceding
 `data/processed/` Chapter 12 artefacts. *Rollback:* none — a rule applied
 retroactively is not a pre-registration, and the chapter's null-result promise
-would have to be withdrawn rather than quietly weakened.
+would have to be withdrawn rather than quietly weakened. If a threshold has to
+move, the commit that moves it says so out loud and the chapter reports both.
 
 ---
 

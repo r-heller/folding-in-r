@@ -569,9 +569,41 @@ memory.
 
 > *Which method survives — and can the benchmark tell?*
 
-§3 *Where the benchmark has resolving power* (600 w) is the honest core: report
-$R(\theta) < 1$ where it holds. §8 fixes **the pre-registered selection rule for
-Chapter 12** and must be committed before any Chapter 12 fit (S1-11).
+| Section | Anchor | Words |
+|:--|:--|--:|
+| What this chapter answers | `results-question` | 180 |
+| Setup | `results-setup` | 100 |
+| What the grid holds | `results-background` | 250 |
+| Where the benchmark has resolving power | `results-core` | 600 |
+| Results | `results-results` | 500 |
+| Diagnostics | `results-diagnostics` | 300 |
+| Where it fails | `results-limits` | 250 |
+| **The pre-registered selection rule** | `results-rule` | 300 |
+| Reproduce this | `results-reproduce` | 120 |
+| Further reading | `results-reading` | 100 |
+
+`results-core` is the honest core: report $R(\theta) < 1$ where it holds.
+
+`results-rule` fixes **the pre-registered selection rule for Chapter 12** and
+must be committed before any Chapter 12 fit (S1-11).
+
+**It is committed, and it is code.** `R/selection.R` holds `select_method()`, a
+total function of the grid's columns registered before the grid it reads has ever
+been generated. Prose can be read generously afterwards; a function cannot. Its
+three thresholds are fixed there and nowhere else — the 0.02 reportability
+threshold `PROJECT_CONCEPT.md` already pre-registers, a 0.90 run-rate floor
+because a method Chapter 12 cannot fit is not a candidate, and a resolving-power
+floor of 1 below which the rule **declines** and the chapter reports a null
+result. `tests/testthat/test-selection.R` demonstrates that each of the three
+changes the decision, and that raising the seed count does not buy one: $R$ is a
+ratio of two spreads and neither is a standard error, so more seeds estimate both
+more precisely and move the ratio nowhere. That is the specific abuse the risk
+note below names, closed rather than warned about.
+
+The rule is referred to by its **anchor**, never by a section number. Three
+places in this repository gave it three different numbers — the numbering is what
+moves when a section is added, and the anchor is what a cross-reference resolves
+against.
 
 *Risks.* The informative window may be narrow — every method near-exact at
 $\theta = 0.2$, every method at the floor at $\theta = 1.4$. **The temptation on
