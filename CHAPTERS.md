@@ -469,15 +469,43 @@ someone else's section is not enough to carry it.
 
 State the bound precisely — for normalised Procrustes against a $p$-dimensional
 chart, no $d$-dimensional configuration beats the tail of the chart's spectrum,
-exact, depending on the data alone with no method in it. Then show both
-properties that make it a bound rather than a guess: it is **attained** (the
-optimal rank-$d$ projection sits exactly on it) and it is **unbeaten** (tested
-against all nine methods, not argued).
+exact, depending on the data alone with no method in it. Then show the property
+that makes it a bound rather than a guess: it is **attained**, because the optimal
+rank-$d$ projection sits exactly on it. That is a proof, and it is where the
+weight goes.
 
-And then the number that makes the case. On the product construction at intrinsic
-dimension 4 forced into 2, excess over the floor sorts almost exactly by what
-each method consumes: ambient 0.0060, geodesic 0.0351, neighbourhood 0.063–0.165.
-PCA sits six thousandths above the best any 2-D embedding could achieve.
+**"Unbeaten" is a regression check, not evidence.** The grid tests every method
+in the registry against the floor and none beats it — but the bound is *proved*,
+so a method beating it would mean the implementation is wrong, not that the claim
+is. Report it as what it is: the assertion the producer exits non-zero on. Do not
+write it as though eight independent methods had corroborated a conjecture, and
+do not write "nine methods": the registry holds nine entries and the autoencoder
+declares itself unavailable, so eight run.
+
+**Every number in this section reads from `product-grid.rds` through an inline
+`r` expression, and as a curve.** The provisional figures this section carried —
+excess sorting by what each method consumes, ambient below geodesic below
+neighbourhood — came from a `--quick` run that was never saved, at two values of
+$\theta$. Re-measured at production settings the ordering survives and the
+headline number moves: standing rule 2 applies to this section as much as to any
+other, and one number quoted from two $\theta$ values is exactly the
+cherry-picking the rule exists to prevent.
+
+**The bound is family-agnostic, and that is the finding rather than a concession.**
+`PROJECT_CONCEPT.md` listed crease-specificity among the book's three
+differentiators. `product_manifold()` imposes no family constraint: two isometric
+Swiss rolls give intrinsic dimension 4, an exact chart and a computable floor
+exactly as two Miura sheets do, so the differentiator as written is refuted. The
+grid now carries a Swiss-roll-product arm for precisely this reason, and §5
+reports the two families' floors side by side. Read it as a statement about the
+CONSTRUCTION and not about which family is harder — the two arms are swept over
+their own parameters and matched on nothing, which is the error E1's arm A had to
+be redesigned around. What crease-specificity rests on afterwards is zero reach
+and a non-smooth answer key, and §5 should say so in one sentence.
+
+*Risk.* §5 cannot be drafted until it can state in one sentence what the product
+bound owes to creases and what it does not (ROADMAP.md R5). If that sentence will
+not come, the differentiator is the thing to cut, not the section.
 Reported against zero its raw error reads as failure; reported against the floor
 it says the loss belongs to the data. *That contrast is the book's thesis in one
 table.*

@@ -43,7 +43,10 @@ fails on the pre-fix tree and passes after, and the commit message says which.
 | 0.2 | Orientation-independent M/V test over the size x alpha x theta sweep | **closed** | same file; also settles open question 1 (section 11) |
 | 0.3 | Re-verify every R- and S-series closure by measurement | **mostly closed** | `EMBED_DIM` drift test; `PATTERN_GRID` via `check-artefact-producers.R`; figure-export and neighbour-method mutations demonstrated red. S1-3 (bibliography) deferred to 2.4/2.5 |
 | 0.6 | `check-artefact-producers.R` | **closed** | reports the 3 real gaps; fails on a registry naming an unfoldable family, on a missing provenance block, on a `--quick` artefact committed as evidence |
-| 0.4 | E1 producer and artefacts | **in flight** | `--quick` exits 0; arm A regenerated at 990 rows, the gate's number |
+| 0.4 | E1 producer and artefacts | **producer fixed; artefacts re-running** | `--quick` exits 0; the full run completed all four arms; `e1-difficulty` at 990 rows, the gate's number; `np` on arm A. Re-running once on a clean tree so all three share one `R/` SHA and carry `write_run()`'s full block |
+| 1.1 | `product-grid.rds` at production settings, `boundary = FALSE` | **running** | two arms, `chart_exit_fraction` asserted 0 per cell |
+| 1.2 | Chapter 8 §5 restated | **closed** | the `--quick` numbers are gone, "nine methods" is eight, "unbeaten" is the producer's exit code |
+| 1.3 | Swiss-roll-product arm | **closed** | second arm in `run-product-grid.R`; both families' floors reported side by side |
 | 0.5 | Correct the two documents that describe what E1 shipped | **closed** | GENERATION_LOG's Phase-16 provenance claim corrected in place; CHAPTERS.md's becomes true when the artefacts land |
 | 2.1 | Settle the `eval` policy; add the lint check | **closed** | `check_eval` red on a figure chunk with `eval = FALSE` and on an unlabelled one |
 | 2.2 | `check_contract` over `prose_rmd`; anchors in the appendices | **closed** | the check now fires on A1/A2, which it never had; scratch chapter passes, red on a missing slot and on a broken namespace |

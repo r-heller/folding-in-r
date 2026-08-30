@@ -826,3 +826,66 @@ Snapshotted, 110 records to 114, no version changes.
 With the pinned library restored locally the suite runs with **nothing skipped**
 for the first time: 1,771 assertions, 0 failures, 0 skips.
 
+### Every figure in the book gets a test
+
+`R/plotting.R` -- 23 KB, fifteen functions, every figure a reader will see -- had
+no test file at all. What is tested is not that the plots render: ggplot builds
+almost anything, and a figure that is wrong is a figure that renders. It is the
+four quantities that decide whether a figure says something true.
+
+- **The camera is a rotation.** `.project()`'s own comment promises "a projection
+  rather than a perspective, because the book measures distances in these figures
+  by eye", and that promise is exactly the statement that the map to
+  `(px, py, near)` is orthonormal. Asserted over five azimuths and four
+  elevations. Turning one `cos` into a `sin` in the elevation term fails it 40
+  times and changes nothing else visible.
+- **The painter's order is the hidden-line removal.** Group 1 must be the
+  farthest facet, and each group's polygon must be the facet whose depth it
+  claims -- a sort that reordered rows without reordering vertex indices would
+  still be sorted. `order(-d)` for `order(d)` fails it 17 times and renders
+  perfectly happily, as a wireframe in which the far half of a folded sheet reads
+  as the near half.
+- **Both crease endpoints, separately.** Swapping i and j draws the same picture,
+  so a test on the set of drawn segments would pass on a transposed table. This
+  is the mountain/valley failure mode in a different place.
+- **Colour and linetype both carry mountain against valley**, which is standing
+  rule 3 turned into an assertion: a palette edit making two linetypes equal
+  leaves a figure correct in colour and unreadable in greyscale, and nothing else
+  would notice.
+
+Plus the guards that exist because the wrong figure is still a plausible figure:
+`plot_folded()` refuses a `vertices3` that is not row-aligned with the pattern,
+and the empty-pattern branches return an annotated blank rather than an empty
+axis.
+
+### Chapter 8 §5, restated
+
+Three corrections, all of them to text that would have been drafted as it stood.
+
+**"Tested against all nine methods" is eight.** The registry holds nine entries
+and the autoencoder declares itself unavailable.
+
+**"Unbeaten" is a regression check, not evidence.** The bound is *proved* -- it is
+the tail of the chart's spectrum, and the optimal rank-d projection attains it --
+so a method beating it means the implementation is wrong, not that the claim is
+corroborated. Reporting eight methods failing to beat a theorem as though they
+had independently confirmed a conjecture is the kind of sentence that survives
+because nobody re-reads it.
+
+**The headline numbers were `--quick` output.** Excess sorting by what each method
+consumes -- ambient 0.0060, geodesic 0.0351, neighbourhood 0.063-0.165 -- came
+from a run that was never saved, at two values of theta, and was described in
+this file as "the book's thesis in one table". Standing rule 2 says every
+theta-dependent result is a curve; one number quoted from two theta values is
+exactly the cherry-picking that rule exists to prevent. The section now reads
+every number from `product-grid.rds` through an inline `r` expression.
+
+`PLAN.md`'s compute budget was one pattern behind the tree. It said two patterns
+rather than three, on E2's withdrawal of the waterbomb; the Yoshimura was
+withdrawn six days later and the cell count was never revised. The grid is
+1 x 20 x 3 x 20 = **1,200 cells**, not 2,400 -- a factor of two on the only
+quantity the budget multiplies. Wall clock is left as a range, because the two
+available estimates disagree by a factor of two and neither has been run to
+completion; `write_run()` records `elapsed`, so the first full generation settles
+it with a measurement instead of an argument.
+

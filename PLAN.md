@@ -416,11 +416,21 @@ with all nine methods actually wired up, one cell at $n = 800$ costs **~26 s for
 the eight runnable methods**, before metrics. Scaling from $n = 400$ is 3.3×,
 i.e. roughly $O(n^{1.7})$.
 
-The grid is also smaller than planned: two patterns rather than three (E2), and
-20 $\theta$ values rather than 15. So 2 × 20 × 3 × 20 = **2,400 cells**, at ~30 s
-including metrics — about **20 h single-core / 5 h on four cores**. That is
-roughly twice the estimate below, and the overall 60–100 h envelope still holds
-once the Chapter 9 audit artefacts and the second grid generation are added.
+The grid is also smaller than planned, and this paragraph was one pattern behind
+that. It said two patterns rather than three, on E2's withdrawal of the
+waterbomb; the Yoshimura was withdrawn six days later (R1-1) and the cell count
+was never revised. **One pattern folds.** So 1 × 20 $\theta$ × 3 noise × 20 seeds
+= **1,200 cells**, not 2,400 — the budget below was a factor of two high on the
+only quantity it multiplies.
+
+Wall clock is the part still to measure. At the ~26 s per cell measured above for
+the eight runnable methods, plus metrics, 1,200 cells is **8–10 h single-core**;
+an independent estimate against this tree put it at **4–6 h**. The two disagree
+by a factor of two and neither has been run to completion, so the honest figure
+is a range until the grid is generated once and its own `elapsed` recorded in
+provenance — which is what `R/artefacts.R` records it for. Either way it is hours
+on one core rather than a day, the 60–100 h envelope holds, and nothing about the
+sequencing depends on which end it lands at.
 
 Cost is spread, not concentrated, which matters for any decision to trim:
 

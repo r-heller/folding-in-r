@@ -32,6 +32,7 @@ for (f in sort(list.files("R", pattern = "\\.R$", full.names = TRUE))) source(f)
 source("_common.R")
 
 quick <- "--quick" %in% commandArgs(trailingOnly = TRUE)
+STARTED <- Sys.time()
 
 N       <- if (quick) 300L else 800L
 SEEDS   <- if (quick) BENCH_SEEDS[1:3] else BENCH_SEEDS[1:10]
@@ -100,27 +101,24 @@ METHODS <- list(
 
 
 # Provenance travels with every artefact, and a --quick run writes its own file.
-# run-benchmark-grid.R already does both; these three did neither, so a smoke
-# test overwrote the committed evidence in place and nothing recorded what had
+# run-benchmark-grid.R already did both; these three did neither, so a smoke test
+# overwrote the committed evidence in place and nothing recorded what had
 # produced it. The E1 artefacts are the record of the decision that changed the
 # book's spine.
+#
+# The provenance block itself is now R/artefacts.R's, not a local one. The local
+# version recorded the repository SHA and nothing else -- no R version, no BLAS,
+# no package versions, no elapsed time, and no flag for a dirty tree, which is
+# the field that decides whether the SHA names code that was ever committed.
+# write_run() records all of them, the same way for every producer.
 .e1_out <- function(stem) {
   file.path("data/processed",
             paste0(stem, if (quick) "-quick" else "", ".rds"))
 }
 .e1_save <- function(x, stem, ...) {
-  attr(x, "provenance") <- c(list(
-    quick = quick, n = N, seeds = SEEDS, k_nn = K_NN, k_qnx = K_QNX,
-    methods = names(METHODS),
-    r_sha = tryCatch(system2("git", c("rev-parse", "--short", "HEAD"),
-                             stdout = TRUE), error = function(e) NA_character_)
-  ), list(...))
-  out <- .e1_out(stem)
-  dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
-  saveRDS(x, out)
-  message("wrote ", out, " -- ", nrow(x), " rows",
-          if (quick) "  (QUICK smoke test, not the book's evidence)" else "")
-  invisible(out)
+  write_run(x, .e1_out(stem), ..., started = STARTED,
+            quick = quick, n = N, seeds = SEEDS, k_nn = K_NN, k_qnx = K_QNX,
+            methods = names(METHODS))
 }
 
 # ── One cell ────────────────────────────────────────────────────────────────
