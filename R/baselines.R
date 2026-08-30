@@ -545,3 +545,36 @@ short_circuit_index <- function(sample, k = K_DEFAULT) {
   j <- as.vector(nn)
   stats::median(dA[cbind(i, j)]) / stats::median(.intrinsic_pairs(sample, i, j))
 }
+
+#' Ambient non-planarity: the share of variance no plane captures.
+#'
+#' The third principal eigenvalue of the ambient cloud over their sum. Zero for
+#' a sheet that happens to lie in a plane, however creased that sheet's chart
+#' is, and it rises as the surface leaves the plane.
+#'
+#' This is E1's second axis, and E1 is why it exists. Arm A swept theta alone and
+#' that turned out not to be a controlled comparison: folding a crease pattern
+#' raises branch separation AND lifts the sheet out of the plane, and the two move
+#' together, so g/s does not isolate what it is meant to. Measured over arm A's
+#' design the two families' ranges are DISJOINT -- crease patterns 0.000 to 0.056,
+#' Swiss rolls 0.101 to 0.126 -- so the large family term arm A reports is a
+#' statement about that gap and not about creases. Sweeping (nx, alpha, theta)
+#' decouples the axes and creates the overlap arm A lacks.
+#'
+#' It lived in scripts/experiment-e1.R, where a chapter could not reach it: it is
+#' the x-axis of Chapter 11's core figure, and a figure whose quantity is defined
+#' only inside a script has no producer the book can call. Here, with a test.
+#'
+#' PCA on the raw coordinates, not the correlation matrix. The three ambient axes
+#' of these generators are lengths in the same units and scaling them separately
+#' would destroy exactly the anisotropy being measured.
+non_planarity <- function(sample) {
+  X <- if (is.list(sample) && !is.null(sample$X)) sample$X else sample
+  X <- as.matrix(X)
+  if (ncol(X) < 3L) {
+    stop("non_planarity needs at least three ambient dimensions; got ", ncol(X),
+         call. = FALSE)
+  }
+  v <- stats::prcomp(X)$sdev^2
+  v[3] / sum(v)
+}

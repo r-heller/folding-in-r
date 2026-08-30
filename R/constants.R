@@ -74,13 +74,20 @@ N_QUICK <- 150L
 # gap-to-spacing -- so this is the default, not the only size a chapter asks
 # for.
 #
-# waterbomb is listed because this is a size, not a promise that the pattern
-# folds. PLAN.md E2 decides that. The hard rule is on run-benchmark-grid.R's
-# PATTERNS list, which must not name a pattern that cannot be built.
+# One entry, because the book ships one family. This used to carry sizes for the
+# yoshimura and the waterbomb, on the argument that a size is not a promise that
+# the pattern folds -- the promise lived on run-benchmark-grid.R's PATTERNS list,
+# which was the thing forbidden to name an unbuildable pattern.
+#
+# That distinction did not survive contact. E1's FAMILIES registry named the
+# yoshimura for four days after R/folding.R withdrew it, and the script halted on
+# its first cell every time it was run; nothing noticed, because the rule was
+# stated about one list and this one looked exempt. A registry keyed by family
+# name IS a declaration of the family, whatever its values mean.
+# scripts/check-artefact-producers.R now enforces that on every registry it can
+# find, this one included, by building and folding each name.
 PATTERN_GRID <- list(
-  miura     = c(nx = 6L, ny = 6L),
-  yoshimura = c(nx = 6L, ny = 6L),
-  waterbomb = c(nx = 6L, ny = 6L)
+  miura = c(nx = 6L, ny = 6L)
 )
 
 # Miura's opening angle alpha, in radians. This is the range R/README.md

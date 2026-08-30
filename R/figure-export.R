@@ -72,6 +72,32 @@ write_figure_geometry <- function(pattern, theta, path, name = pattern$family) {
 # the printed figure makes the identical point and cannot disagree with the
 # interactive one.
 
+#' The camera, written once.
+#'
+#' Azimuth about z, then elevation about the rotated x-axis. Returns the three
+#' quantities every consumer needs, named, because they were previously derived
+#' twice from the same four trig calls and the second derivation had two of them
+#' the other way round:
+#'
+#'   sx     screen horizontal
+#'   sy     screen vertical
+#'   depth  toward the camera, which sits at +y; nearest is largest
+#'
+#' `visible_facets()` decided which facets reach the eye using (sx, sy) as the
+#' picture plane and `depth` to break ties, and `fold_figure_static()` then DREW
+#' the panel with those last two exchanged -- so the greyed-out facets in panel A
+#' were the ones hidden in a view that panel B did not show, and the subtitle
+#' counting them was counting the wrong view. One function, so the two cannot
+#' disagree again; tests/testthat/test-figure-export.R checks the drawn panel
+#' against an independent projection rather than against this one.
+.view_project <- function(V3, az, el) {
+  ca <- cos(az); sa <- sin(az); ce <- cos(el); se <- sin(el)
+  x <- V3[, 1] * ca - V3[, 2] * sa
+  y <- V3[, 1] * sa + V3[, 2] * ca
+  z <- V3[, 3]
+  cbind(sx = x, depth = y * ce - z * se, sy = y * se + z * ce)
+}
+
 #' Which facets reach the eye, at a given view.
 #'
 #' Sampled rather than reasoned about. A front-facing test alone answers a
@@ -79,7 +105,7 @@ write_figure_geometry <- function(pattern, theta, path, name = pattern$family) {
 #' another one, which is exactly what a fold does. So the projected scene is
 #' sampled on a grid and, at each sample, the nearest facet containing it wins.
 #'
-#' The camera sits at +y looking toward -y, so nearest means largest y.
+#' The camera sits at +y looking toward -y, so nearest means largest depth.
 #'
 #' Sampling has a floor: a facet whose visible sliver is narrower than the grid
 #' spacing is reported hidden. `grid` sets that floor, and the default is fine
@@ -88,14 +114,7 @@ write_figure_geometry <- function(pattern, theta, path, name = pattern$family) {
 visible_facets <- function(pattern, theta, az = 35 * pi / 180, el = -0.42,
                            grid = 260L) {
   f <- fold(pattern, theta)
-  R <- local({
-    ca <- cos(az); sa <- sin(az); ce <- cos(el); se <- sin(el)
-    m <- f$vertices3
-    x <- m[, 1] * ca - m[, 2] * sa
-    y <- m[, 1] * sa + m[, 2] * ca
-    z <- m[, 3]
-    cbind(x, y * ce - z * se, y * se + z * ce)
-  })
+  R <- .view_project(f$vertices3, az, el)
   polys <- lapply(pattern$facets, function(v) R[v, , drop = FALSE])
 
   rng <- range(c(R[, 1], R[, 3]))
@@ -124,12 +143,17 @@ visible_facets <- function(pattern, theta, az = 35 * pi / 180, el = -0.42,
   sort(unique(seen))
 }
 
-#' The two-panel figure, as a static graphic.
-fold_figure_static <- function(pattern, theta, az = 35 * pi / 180, el = -0.42) {
+#' The polygons the static figure draws, separated from the drawing.
+#'
+#' A grob cannot be asserted against, so the geometry the figure is made of is
+#' built here and tested here. Panel B's `y` is the projection's screen vertical
+#' and its `depth` is the projection's depth -- which is the whole content of the
+#' defect this seam exists to make visible.
+fold_figure_data <- function(pattern, theta, az = 35 * pi / 180, el = -0.42) {
   vis <- visible_facets(pattern, theta, az, el)
   f   <- fold(pattern, theta)
   nf  <- length(pattern$facets)
-  pal <- viridis::viridis(nf, option = BOOK_VIRIDIS_OPTION)
+  R   <- .view_project(f$vertices3, az, el)
 
   flatdf <- do.call(rbind, lapply(seq_len(nf), function(i) {
     P <- pattern$vertices[pattern$facets[[i]], , drop = FALSE]
@@ -137,19 +161,26 @@ fold_figure_static <- function(pattern, theta, az = 35 * pi / 180, el = -0.42) {
                visible = i %in% vis, stringsAsFactors = FALSE)
   }))
 
-  ca <- cos(az); sa <- sin(az); ce <- cos(el); se <- sin(el)
-  m  <- f$vertices3
-  RX <- m[, 1] * ca - m[, 2] * sa
-  RY <- m[, 1] * sa + m[, 2] * ca
-  RZ <- ce * RY - se * m[, 3]
-  DP <- se * RY + ce * m[, 3]
   folddf <- do.call(rbind, lapply(seq_len(nf), function(i) {
     v <- pattern$facets[[i]]
-    data.frame(facet = i, x = RX[v], y = RZ[v], depth = mean(DP[v]),
+    data.frame(facet = i, x = R[v, "sx"], y = R[v, "sy"],
+               depth = mean(R[v, "depth"]),
                visible = i %in% vis, stringsAsFactors = FALSE)
   }))
   folddf$facet <- factor(folddf$facet,
                          levels = unique(folddf$facet[order(folddf$depth)]))
+
+  list(flat = flatdf, fold = folddf, visible = vis, n_facet = nf)
+}
+
+#' The two-panel figure, as a static graphic.
+fold_figure_static <- function(pattern, theta, az = 35 * pi / 180, el = -0.42) {
+  d      <- fold_figure_data(pattern, theta, az, el)
+  vis    <- d$visible
+  nf     <- d$n_facet
+  flatdf <- d$flat
+  folddf <- d$fold
+  pal    <- viridis::viridis(nf, option = BOOK_VIRIDIS_OPTION)
 
   fill_for <- function(i, visible) ifelse(visible, pal[i], "grey78")
 

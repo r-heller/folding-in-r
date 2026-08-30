@@ -20,8 +20,8 @@ at source time is a file in the wrong place.
 | `folding.R`       | `fold()`, the ambient embedding, `crease_assignment()`, `branch_gap()`, `facet_gap()` | Ch 2 |
 | `figure-export.R` | geometry for the interactive figures, with isometry asserted | Ch 1 |
 | `metrics.R`       | Procrustes RMSE, $Q_{NX}$, T/C/kNN, `reference_dist()`, `metric_floor()` | Ch 4 |
-| `methods.R`       | the embedding registry — nine methods | Ch 4 |
-| `patterns.R`      | `miura_ori()`, `yoshimura()`, `waterbomb()` | Ch 2 |
+| `methods.R`       | the embedding registry — eight methods, plus the autoencoder declared unavailable | Ch 4 |
+| `patterns.R`      | `miura_ori()`; `yoshimura()` builds but does not fold, `waterbomb()` stops | Ch 2 |
 | `plotting.R`      | crease-pattern and embedding plots | Ch 2 |
 | `sampling.R`      | `sample_manifold()`, noise models, `boundary=` | Ch 3 |
 
@@ -35,14 +35,18 @@ class attribute — no S4, no R6, no S7. Every field below is required.
 
 ### `crease_pattern` — a flat, unfolded crease pattern
 
-Returned by `miura_ori()`, `yoshimura()`, `waterbomb()`.
+Returned by `miura_ori()`. `yoshimura()` returns one too — the flat pattern is
+valid and Chapter 8 discusses it — but `fold()` refuses it (PLAN.md R1-1), and
+`waterbomb()` stops (PLAN.md E2). **The book ships one family that folds.** No
+registry may name a family that cannot be built and folded, and
+`scripts/check-artefact-producers.R` enforces that rather than restating it.
 
 ```
 list(
   vertices = <V x 2 double>,   # coordinates in the unfolded plane, the chart U
   facets   = <list of integer vectors>,   # vertex indices, counter-clockwise
   creases  = <data.frame(i, j, assignment)>,  # assignment in "M", "V", "B"
-  family   = <"miura" | "yoshimura" | "waterbomb">,
+  family   = <"miura" | "yoshimura">,        # only "miura" folds
   params   = <named list of the generating parameters>
 )
 ```

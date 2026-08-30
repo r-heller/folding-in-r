@@ -469,6 +469,14 @@ derived from the geometry they now satisfy Maekawa at 16 of 16.
   disconnection and returns NULL.
 - The E1 artefacts carry provenance, and `--quick` writes its own files rather
   than overwriting the evidence for the decision that changed the book's spine.
+
+  > **Half of this was false when written, and stayed false for four days.**
+  > `.e1_save()` landed here at `8640a2d`; the three artefacts on disk dated from
+  > `94833e7`, four days earlier, and nothing regenerated them. All three carried
+  > `attr(x, "provenance") == NULL` while this line and `CHAPTERS.md` both
+  > asserted otherwise. The `--quick` half was true. Regenerated in Phase 18,
+  > and `scripts/check-artefact-producers.R` now fails on any committed artefact
+  > without a provenance block carrying an `r_sha`.
 - `experiments/e2-waterbomb/*.R` could not run: every `source()` pointed at the
   pre-move directory.
 - The ambient contraction and the Swiss-roll chart defect now have producers in
@@ -621,3 +629,90 @@ write if the stored labels disagree with `crease_assignment()`, and takes
 the twelve corrected labels — same 16 facets, same 20 frames, same 3,840
 coordinates, same isometry error — which is the evidence that nothing about the
 figure moved except what was wrong with it.
+
+### Re-verifying the closures, by measurement
+
+Six items the remediation ledger recorded as closed were still open. Each is now
+closed against an assertion that fails on the tree as it stood.
+
+**`EMBED_DIM_DEFAULT` still shadowed `EMBED_DIM`** after R1-4 recorded the
+duplicate removed. Two names, one quantity, both spelled `2L`, and six functions
+defaulting to the second. Collapsed onto `EMBED_DIM`; `test-methods.R` now greps
+`R/` for `EMBED_DIM[A-Za-z0-9_]*` and asserts there is exactly one such name, so
+the next duplicate cannot arrive quietly either.
+
+**`PATTERN_GRID` still carried sizes for the yoshimura and the waterbomb.** The
+defence was that a size is not a promise the pattern folds, and that the hard
+rule lived on `run-benchmark-grid.R`'s `PATTERNS` list. That distinction did not
+survive contact: E1's `FAMILIES` named the withdrawn yoshimura for four days and
+halted on its first cell every time, because the rule was stated about one list
+and this one looked exempt. A registry keyed by family name *is* a declaration.
+`PATTERN_GRID` now names one family, and the check below enforces it on every
+registry it can find.
+
+**`rank_metrics()` had zero callers** and a comment written in the present tense
+about compute that has never been spent. The measurement in it is real -- 5.85 s
+of separate calls against 0.44 s -- and the function is tested; what was wrong
+was describing a prepared optimisation as a live one. Corrected in place; items
+1.5 and 3.2 are where it gets its two consumers.
+
+**`R/README.md` still listed three pattern families and nine methods.** One
+family folds and the autoencoder is declared unavailable.
+
+**The E1 provenance claim** was false in both documents that made it -- see the
+Phase 16 entry above.
+
+### Tests that could not fail
+
+`scripts/check-artefact-producers.R` is the check the chain never had. It runs on
+base R and `readRDS` alone, deliberately: the check that the evidence layer is
+intact must not be gated on a library restore. It asserts that every artefact the
+governing documents name has exactly one declaring producer (producers now carry
+`# @artefact` lines), that every committed artefact carries a provenance block
+with an `r_sha` and was not written by `--quick`, and that every family named in
+a registry can be built *and folded*. Genuinely open artefacts are listed with
+the roadmap item that closes them, and the check fails if one of those entries
+stops being true in either direction.
+
+**`test-figure-export.R`'s refusal test never called the guard it claimed to
+test.** It re-implemented the isometry check inline and asserted that its own
+`stop()` fired; deleting the production guard left the file at 27 of 27 passing.
+Confirmed by deleting it. It now reaches the guard the only way that works --
+`.fold_miura()` derives the placement from `pattern$params` and never reads
+`pattern$vertices`, so moving one flat vertex leaves `fold()` working and makes
+the flat panel stop being the unfolding of the folded one. With the guard
+deleted the test now fails.
+
+**`fold_figure_static()` drew a different view from the one it measured.**
+Confirmed: `visible_facets()` takes `(sx, sy)` as the picture plane and `depth`
+toward the camera; the static figure re-derived all three from the same four trig
+calls with the last two exchanged. Panel A therefore greyed the facets hidden in
+a view panel B never showed, and its subtitle counted them. There is now one
+`.view_project()`, and `fold_figure_data()` separates the geometry from the
+drawing so it can be asserted against. The test is a property of the drawn panel
+rather than a second copy of the projection: every facet panel A greys must, in
+the coordinates panel B is drawn in, sit under a facet drawn in front of it.
+Restoring the swap turns it red.
+
+**`embed_lle()` and `embed_laplacian()` could return `NULL` for every input** with
+the suite green, and so could return the wrong eigenvectors. Measured on
+`miura_ori(6, 6)` at theta = 0.5, n = 400, over three seeds:
+
+| | correct | with the trivial eigenvector kept |
+|---|---|---|
+| `embed_lle` | qnx@10 0.871-0.921 | 0.190-0.198 |
+| `embed_laplacian` | 0.757-0.784 | 0.342-0.395 |
+
+The floors sit in the gap. Both mutations are now caught -- `return(NULL)` in
+both bodies gives 2 failures and 2 errors, `[1:d]` for `[2:(d + 1L)]` gives 8.
+
+**`non_planarity()` lived only in `scripts/experiment-e1.R`.** It is the x-axis
+of Chapter 11's core figure, and a quantity defined inside a script has no
+producer a chapter can call. Moved to `R/baselines.R`, beside
+`short_circuit_index()`, and arm A now records it per cell rather than only the
+redesign that had to add it.
+
+**Renamed rather than made true:** `"the R and browser visibility computations
+agree"` executes no JavaScript and never did. It is now called what it is, a pin
+on `visible_facets()` at three views. A real parity check needs the shipped
+script run under Node with a canvas; ROADMAP.md carries it as open.

@@ -162,3 +162,63 @@ test_that("a widened diffusion bandwidth is recorded, not hidden", {
   }
   expect_gt(ran, 2L)          # the robust bandwidth recovers most cells
 })
+
+test_that("the embedding dimension has exactly one name", {
+  # R1-4 was recorded as having removed EMBED_DIM_DEFAULT, which duplicated
+  # EMBED_DIM. It was still there, still 2L, still the default of six functions.
+  # Re-reading the change is what closed it; this is what closes it now.
+  #
+  # Over R/ as text rather than over the loaded environment: two constants with
+  # the same value are indistinguishable once sourced, and it is the second NAME
+  # that does the damage -- a later edit moves one and not the other.
+  src <- unlist(lapply(list.files(file.path(BOOK_ROOT, "R"), pattern = "\\.R$",
+                                  full.names = TRUE), readLines, warn = FALSE))
+  code <- sub("#.*$", "", src)
+  found <- unique(unlist(regmatches(code, gregexpr("EMBED_DIM[A-Za-z0-9_]*", code))))
+  expect_identical(sort(found), "EMBED_DIM")
+  expect_identical(EMBED_DIM, 2L)
+})
+
+test_that("the neighbourhood methods recover the chart, and not by accident", {
+  # Both of these could return NULL for every input and the suite stayed green:
+  # nothing asserted that they produce an embedding, let alone a good one.
+  # Replacing either body with `return(NULL)` gave FAIL 0. So did flipping the
+  # eigenvector selection from `[2:(d + 1)]` to `[1:d]`, which keeps the trivial
+  # constant eigenvector and throws away a real one -- an off-by-one that returns
+  # a matrix of exactly the right shape, full of numbers, and meaning nothing.
+  #
+  # So the assertion is on the quantity the method claims, at a floor wide of
+  # both failures. Measured over these three seeds:
+  #
+  #            correct        with the trivial eigenvector kept
+  #   lle      0.871-0.921    0.190-0.198
+  #   laplace  0.757-0.784    0.342-0.395
+  #
+  # The floors sit in the gap. They are not tight thresholds on method quality --
+  # that is Chapter 6's business, from the grid -- they are the boundary between
+  # working and broken.
+  for (seed in c(101L, 102L, 103L)) {
+    m <- sample_manifold(miura_ori(6L, 6L), theta = 0.5, n = 400L, seed = seed)
+
+    for (spec in list(list(f = embed_lle,       nm = "lle",       floor = 0.80),
+                      list(f = embed_laplacian, nm = "laplacian", floor = 0.60))) {
+      e <- spec$f(m, seed = seed)
+      expect_false(is.null(e), info = paste(spec$nm, "returned NULL at seed", seed))
+      expect_equal(dim(e), c(nrow(m$X), EMBED_DIM), info = spec$nm)
+      expect_true(all(is.finite(e)), info = spec$nm)
+      expect_gt(qnx(e, m$truth, K = 10L), spec$floor)
+    }
+  }
+})
+
+test_that("a constant column would be caught, which is what the off-by-one produces", {
+  # The direct statement of the eigenvector defect, independent of any quality
+  # floor: keeping the trivial eigenvector puts a near-constant column into the
+  # embedding, and a near-constant column carries no information at all. Both
+  # methods must return columns that actually vary.
+  m <- sample_manifold(miura_ori(6L, 6L), theta = 0.5, n = 400L, seed = 101L)
+  for (e in list(embed_lle(m, seed = 1L), embed_laplacian(m, seed = 1L))) {
+    spread <- apply(e, 2L, function(z) stats::sd(z) / max(1e-12, stats::sd(as.vector(e))))
+    expect_true(all(spread > 0.05))
+  }
+})

@@ -41,10 +41,10 @@ fails on the pre-fix tree and passes after, and the commit message says which.
 |---|---|---|---|
 | 0.1 | `crease_assignment()` handedness; stored labels; regenerate the figure | **closed** | `test-crease-assignment.R`, 6 of 7 tests red pre-fix (167 assertions); figure block reproduces byte for byte apart from the 12 corrected labels |
 | 0.2 | Orientation-independent M/V test over the size x alpha x theta sweep | **closed** | same file; also settles open question 1 (section 11) |
-| 0.3 | Re-verify every R- and S-series closure by measurement | open | |
+| 0.3 | Re-verify every R- and S-series closure by measurement | **mostly closed** | `EMBED_DIM` drift test; `PATTERN_GRID` via `check-artefact-producers.R`; figure-export and neighbour-method mutations demonstrated red. S1-3 (bibliography) deferred to 2.4/2.5 |
+| 0.6 | `check-artefact-producers.R` | **closed** | reports the 3 real gaps; fails on a registry naming an unfoldable family, on a missing provenance block, on a `--quick` artefact committed as evidence |
 | 0.4 | E1 producer and artefacts | open | |
 | 0.5 | Correct the two documents that describe what E1 shipped | open | |
-| 0.6 | `check-artefact-producers.R` in CI | open | |
 
 ---
 
@@ -200,6 +200,12 @@ claimed quantity by an independent route. Confirmed instances:
 each stated invariant and each production guard, require a test whose passing
 depends on the implementation being right — demonstrated by breaking the
 implementation and watching it go red.
+
+> **Adopted.** The figure-export guard, the static figure's view, and both
+> neighbour methods now have tests demonstrated red under the exact mutation
+> described. The parity claim about the browser was renamed rather than fixed and
+> stays open: a real check needs `js/fold-figure.html` run under Node with a
+> canvas, compared against `visible_facets()` at several views.
 
 ### T3 — Each claim is broken at a different joint of producer → artefact → prose
 

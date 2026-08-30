@@ -112,7 +112,7 @@ lift <- function(sample, D = 50L, seed = NULL) {
 #'
 #' It does NOT bound a rank-based score. A co-ranking metric has its own floor
 #' and this is not it.
-irreducible_loss <- function(sample, d = EMBED_DIM_DEFAULT) {
+irreducible_loss <- function(sample, d = EMBED_DIM) {
   metric_floor(sample, d)
 }
 
@@ -122,7 +122,7 @@ irreducible_loss <- function(sample, d = EMBED_DIM_DEFAULT) {
 #' error alone at the hard end of a sweep produces "everything failed", which is
 #' a shrug; reporting it against the floor produces "the best achievable here is
 #' X and every method achieved 0.98X", which is a finding about a regime.
-against_floor <- function(err, sample, d = EMBED_DIM_DEFAULT) {
+against_floor <- function(err, sample, d = EMBED_DIM) {
   fl <- irreducible_loss(sample, d)
   list(error = err, floor = fl, excess = err - fl,
        ratio = if (fl > 0) err / fl else NA_real_)

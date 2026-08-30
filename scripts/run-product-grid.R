@@ -2,6 +2,8 @@
 #
 # The product suite: the artefact Claim B needs.
 #
+# @artefact data/processed/product-grid.rds
+#
 # E1 retired Claim C and made Claim B -- the irreducible-loss bound -- the
 # book's spine. Claim B's operative instruction is "report every result against
 # the floor rather than against zero". On the main grid that instruction does

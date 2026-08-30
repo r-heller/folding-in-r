@@ -23,8 +23,10 @@
 # numbers that do. That is the whole point of running it before the prose.
 #
 # Usage:  Rscript scripts/experiment-e1.R [--quick]
-# Writes: data/processed/e1-difficulty.rds  (one row per fit)
-#         data/processed/e1-armB.rds        (crease count at matched g/s)
+#
+# @artefact data/processed/e1-difficulty.rds   one row per fit, arm A
+# @artefact data/processed/e1-controlled.rds   arms A2/A3, the decisive one
+# @artefact data/processed/e1-armB.rds         crease count at matched g/s
 
 for (f in sort(list.files("R", pattern = "\\.R$", full.names = TRUE))) source(f)
 source("_common.R")
@@ -51,17 +53,22 @@ THETA <- if (quick) c(0, 0.5, 0.9) else THETA_GRID
 # families comparable at matched separation -- the question E1 exists to ask.
 TURNS <- if (quick) c(1, 3) else seq(0.5, 6.5, by = 0.5)
 
+# The yoshimura entry is gone, not commented out. R/folding.R withdrew the
+# family in Phase 16 -- no rigid folding is certified in which all three crease
+# families fold -- and .fold_yoshimura() is now a bare stop(). one_cell() calls
+# fam$make() outside any tryCatch, deliberately: a generator that cannot build is
+# a broken registry, not a failed fit. So this script halted after "done: miura",
+# before arm A's save, before e1-controlled.rds -- the artefact that decided the
+# book's spine -- and before arm B. The evidence that retired Claim C could not
+# be regenerated, extended or given more seeds for four days, and CI never
+# noticed because nothing runs this script. scripts/check-artefact-producers.R
+# now asserts that every family a producer declares can actually be built and
+# folded, which is the check that would have caught it the day the family went.
 FAMILIES <- list(
   miura = list(
     kind = "crease",
     par  = THETA,
     make = function(p, seed) sample_manifold(miura_ori(6L, 6L), theta = p,
-                                             n = N, seed = seed)
-  ),
-  yoshimura = list(
-    kind = "crease",
-    par  = THETA,
-    make = function(p, seed) sample_manifold(yoshimura(6L, 6L), theta = p,
                                              n = N, seed = seed)
   ),
   swiss_roll = list(
@@ -123,12 +130,13 @@ one_cell <- function(fam, fname, p, seed) {
 
   bg <- branch_gap(m)
   sc <- short_circuit_index(m, k = K_NN)
+  npl <- non_planarity(m)          # the axis arm A2 had to add; recorded here too
 
   do.call(rbind, lapply(names(METHODS), function(mn) {
     emb <- tryCatch(METHODS[[mn]](m), error = function(e) NULL)
     if (is.null(emb)) {
       return(data.frame(family = fname, kind = fam$kind, par = p, seed = seed,
-                        method = mn, gs = bg$ratio, sc = sc,
+                        method = mn, gs = bg$ratio, sc = sc, np = npl,
                         rmse = NA_real_, qnx = NA_real_, ok = FALSE,
                         stringsAsFactors = FALSE))
     }
@@ -136,6 +144,7 @@ one_cell <- function(fam, fname, p, seed) {
       family = fname, kind = fam$kind, par = p, seed = seed, method = mn,
       gs   = bg$ratio,
       sc   = sc,
+      np   = npl,
       rmse = reconstruction_error(emb, m$truth),
       qnx  = qnx(emb, m$truth, K = K_QNX),
       ok   = TRUE,
@@ -191,13 +200,6 @@ ARM2_CREASE <- expand.grid(
 ARM2_TURNS <- c(0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6.5)
 ARM2_SEEDS <- if (quick) BENCH_SEEDS[1:2] else BENCH_SEEDS[1:5]
 ARM2_N     <- if (quick) 200L else 600L
-
-# The second axis: the share of ambient variance no plane captures. Zero for a
-# flat sheet. This is what arm A left uncontrolled.
-non_planarity <- function(m) {
-  v <- stats::prcomp(m$X)$sdev^2
-  v[3] / sum(v)
-}
 
 message("E1 arm A2: ", nrow(ARM2_CREASE), " crease settings + ",
         length(ARM2_TURNS), " Swiss rolls x ", length(ARM2_SEEDS), " seeds")

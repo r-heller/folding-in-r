@@ -1,7 +1,8 @@
 #!/usr/bin/env Rscript
 #
-# Chapter 10 benchmark grid: method x pattern x theta x noise, over
-# BENCH_SEEDS. Writes data/processed/benchmark-grid.rds.
+# Chapter 10 benchmark grid: method x pattern x theta x noise, over BENCH_SEEDS.
+#
+# @artefact data/processed/benchmark-grid.rds
 #
 # NOT run in CI and not run at render time -- the full grid takes hours. Run it
 # locally, commit the .rds, and keep this script as the provenance record for

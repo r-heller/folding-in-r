@@ -14,7 +14,11 @@
 # unless the book says so first -- Chapter 1 says so, and this field is what
 # stops a later chapter forgetting.
 
-EMBED_DIM_DEFAULT <- 2L
+# The embedding dimension is EMBED_DIM, in R/constants.R. This file used to
+# define EMBED_DIM <- 2L beside it -- two names, one quantity, both
+# spelled out in full, and R1-4 was recorded as having removed the duplicate. It
+# had not. tests/testthat/test-methods.R now asserts there is exactly one name
+# for it, over R/ as text, so the next one cannot be added quietly either.
 
 # ── Seeding ─────────────────────────────────────────────────────────────────
 #
@@ -54,11 +58,11 @@ EMBED_DIM_DEFAULT <- 2L
 
 # ── Linear ──────────────────────────────────────────────────────────────────
 
-embed_pca <- function(m, d = EMBED_DIM_DEFAULT, k = NULL, seed = NULL) {
+embed_pca <- function(m, d = EMBED_DIM, k = NULL, seed = NULL) {
   stats::prcomp(m$X, rank. = d)$x[, seq_len(d), drop = FALSE]
 }
 
-embed_mds <- function(m, d = EMBED_DIM_DEFAULT, k = NULL, seed = NULL) {
+embed_mds <- function(m, d = EMBED_DIM, k = NULL, seed = NULL) {
   # Classical MDS on the ambient Euclidean distances. This is PCA -- provably,
   # not approximately, and measured at 5.8e-15 across the whole E1 grid. It is
   # kept as a separate entry because the book compares them in Chapter 4 and
@@ -69,7 +73,7 @@ embed_mds <- function(m, d = EMBED_DIM_DEFAULT, k = NULL, seed = NULL) {
 
 # ── Geodesic ────────────────────────────────────────────────────────────────
 
-embed_isomap <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
+embed_isomap <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   # reference_dist() repairs a disconnected neighbourhood graph by raising k
   # until it connects, and warns when it does. That is the right behaviour --
   # Isomap on a disconnected graph is undefined, and refusing outright would
@@ -86,7 +90,7 @@ embed_isomap <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
   out
 }
 
-embed_diffusion <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
+embed_diffusion <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   if (!requireNamespace("diffusionMap", quietly = TRUE)) return(NULL)
   D  <- stats::dist(m$X)
   Dm <- as.matrix(D)
@@ -140,7 +144,7 @@ embed_diffusion <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL
 
 # ── Neighbourhood ───────────────────────────────────────────────────────────
 
-embed_lle <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
+embed_lle <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   # Hand-rolled, because the lle package was archived from CRAN and cannot be
   # pinned. Roweis & Saul's algorithm in three steps: neighbours, reconstruction
   # weights, then the null space of (I - W)'(I - W).
@@ -164,7 +168,7 @@ embed_lle <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
   e$vectors[, idx, drop = FALSE] * sqrt(n)
 }
 
-embed_laplacian <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
+embed_laplacian <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   X <- m$X; n <- nrow(X)
   D <- as.matrix(stats::dist(X))
   nb <- .knn(X, k)
@@ -198,7 +202,7 @@ embed_laplacian <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL
   v[, idx, drop = FALSE]
 }
 
-embed_tsne <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
+embed_tsne <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   .seeded(seed, {
     p <- min(30, floor((nrow(m$X) - 1) / 3))
     Rtsne::Rtsne(m$X, dims = d, perplexity = p, check_duplicates = FALSE,
@@ -206,7 +210,7 @@ embed_tsne <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
   })
 }
 
-embed_umap <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
+embed_umap <- function(m, d = EMBED_DIM, k = K_DEFAULT, seed = NULL) {
   # uwot rather than umap. Both are pinned; uwot consumes R's random stream,
   # which means a caller who forgets to seed gets visibly different answers
   # instead of twenty identical ones. See the seeding note above.
@@ -218,7 +222,7 @@ embed_umap <- function(m, d = EMBED_DIM_DEFAULT, k = K_DEFAULT, seed = NULL) {
 
 # ── Learned ─────────────────────────────────────────────────────────────────
 
-embed_autoencoder <- function(m, d = EMBED_DIM_DEFAULT, k = NULL, seed = NULL) {
+embed_autoencoder <- function(m, d = EMBED_DIM, k = NULL, seed = NULL) {
   # torch is recorded in renv.lock and deliberately not installed in a working
   # checkout: only Chapter 7 needs it and it pulls a large binary backend.
   # Returning NULL rather than erroring lets the rest of the grid run; the grid
@@ -281,7 +285,7 @@ METHOD_REGISTRY <- list(
 #'   disconnected neighbourhood graph, an absent optional package. NULL is a
 #'   result and the grid records it; silently substituting something that did
 #'   run would put a number in the book that no method produced.
-embed <- function(method, sample, d = EMBED_DIM_DEFAULT, k = K_DEFAULT,
+embed <- function(method, sample, d = EMBED_DIM, k = K_DEFAULT,
                   seed = NULL) {
   spec <- METHOD_REGISTRY[[method]]
   if (is.null(spec)) {

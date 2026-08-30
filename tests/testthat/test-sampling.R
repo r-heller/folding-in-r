@@ -17,9 +17,11 @@
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
-# waterbomb() stops by design while PLAN.md E2 is open, so it drops out here
-# rather than being named and skipped. Any family that builds and folds joins
-# the sweep automatically, which is what makes this file survive E2 either way.
+# Any family that builds and folds joins the sweep automatically, which is what
+# makes this file survive E2 either way. The sizes are literals rather than
+# PATTERN_GRID lookups for the two withdrawn families: PATTERN_GRID now names
+# only what the book ships, and a candidate here is meant to drop out because
+# fold() refuses it, not because a constant lookup returned NULL.
 # Only the Miura folds now: the waterbomb has no certified folding (E2) and the
 # Yoshimura was withdrawn (PLAN.md R1-1). Both drop out here rather than being
 # named and skipped, which is what lets this file survive either outcome. Two
@@ -30,8 +32,7 @@ sampling_patterns <- function() {
     miura       = function() miura_ori(PATTERN_GRID$miura[["nx"]],
                                        PATTERN_GRID$miura[["ny"]]),
     miura_steep = function() miura_ori(4L, 6L, b = 1.6, alpha = pi / 4),
-    yoshimura   = function() yoshimura(PATTERN_GRID$yoshimura[["nx"]],
-                                       PATTERN_GRID$yoshimura[["ny"]]),
+    yoshimura   = function() yoshimura(6L, 6L),
     waterbomb   = function() waterbomb(4L, 4L)
   )
   out <- list()

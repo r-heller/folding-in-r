@@ -509,6 +509,14 @@ knn_preservation <- function(d_high, emb, k = K_DEFAULT,
 # the ranks once takes the same work to about 0.4 s per geometry: measured at
 # n = 800 over four values of k, 5.85 s of separate calls against 0.44 s here.
 #
+# NOT YET WIRED, and this comment used to read as though it were. It has zero
+# callers outside the test suite: run-benchmark-grid.R still rebuilds both rank
+# matrices per metric, and the evaluator audit it was written for has no producer
+# at all. The measurement above is real and the function is tested; what was
+# wrong was writing "the audit multiplies" in the present tense about compute
+# that has never been spent. ROADMAP.md items 1.5 and 3.2 are where it gets its
+# two consumers -- until then this is a prepared optimisation, not a live one.
+#
 # Column names match the artefact schema scripts/run-benchmark-grid.R already
 # writes -- trust, cont, knn -- so a grid row and an audit row can be bound
 # without a rename. knn is the Jaccard form, matching knn_preservation()'s
