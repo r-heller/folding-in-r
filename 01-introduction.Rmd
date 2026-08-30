@@ -18,11 +18,23 @@ if (knitr::is_html_output(excludes = c("epub", "markdown"))) {
   dir.create(out, showWarnings = FALSE, recursive = TRUE)
   file.copy("js/fold-figure.html", file.path(out, "fold-figure.html"),
             overwrite = TRUE)
+
+  # asis_output() emits raw HTML, and knitr attaches fig.cap, fig.alt and the
+  # `fig:` anchor to PLOT output only -- so this branch used to drop all three.
+  # The figure was numbered in PDF and EPUB and not in HTML, which shifts every
+  # later figure number in the book by one between formats and leaves any
+  # \@ref(fig:intro-fold-figure) resolving in one format and not the other.
+  # The div, the (\#fig:) marker bookdown numbers from, and the title are
+  # written here, and all three read the chunk's own options so that the two
+  # branches cannot describe the figure differently.
+  o <- knitr::opts_current$get()
   knitr::asis_output(paste0(
-    '<iframe src="fold-figure.html" title="Interactive: a crease pattern and ',
-    'the sheet folded from it" loading="lazy" ',
-    'style="width:100%;height:940px;border:1px solid rgba(128,128,128,.25);',
-    'border-radius:8px"></iframe>'))
+    '<div class="figure" style="text-align:center">\n',
+    '<iframe src="fold-figure.html" title="', o$fig.alt, '" loading="lazy" ',
+    'style="width:100%;height:clamp(520px,78vh,940px);',
+    'border:1px solid rgba(128,128,128,.25);border-radius:8px"></iframe>\n',
+    '<p class="caption">(\\#fig:', o$label, ')', o$fig.cap, '</p>\n',
+    '</div>'))
 } else {
   grid::grid.draw(fold_figure_static(miura_ori(4L, 4L), theta = FIG_INTRO_THETA))
 }

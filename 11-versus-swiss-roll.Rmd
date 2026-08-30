@@ -5,6 +5,12 @@
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
 - Head-to-head against Swiss roll and S-curve, same methods and same metrics.
-- Method rankings that flip between benchmarks — and why.
+- What separates the benchmarks is the SPREAD between methods at matched
+  difficulty, not a flip in their order. E1 looked for a flip and found none; it
+  found a separation, with an interval from a cluster bootstrap over settings and
+  a p-value from cluster-robust regression. A benchmark earns its keep by telling
+  methods apart, and that is the statistic the chapter reports -- read from
+  `e1-controlled.rds` through an inline `r` expression, ratio and interval
+  together, never the ratio alone.
 - What the crease-pattern family surfaces that a single fixed geometry hides.
 - An honest answer to "why not just use the Swiss roll?"

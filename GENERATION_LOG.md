@@ -716,3 +716,113 @@ redesign that had to add it.
 agree"` executes no JavaScript and never did. It is now called what it is, a pin
 on `visible_facets()` at three views. A real parity check needs the shipped
 script run under Node with a canvas; ROADMAP.md carries it as open.
+
+### Phase 2 — the gates that fire on the first line of prose
+
+Done ahead of Phase 1's compute rather than after it: every one of these is a
+check that would have fired on the first real chapter, and finding that out
+during drafting is the expensive way.
+
+**The contract lint was checking twelve exempt stubs and nothing else.** Line 275
+looped `check_contract` over `body_rmd` although line 30 had built `prose_rmd`
+for it, so the appendices -- the only written prose in the tree -- were never
+checked, while every file it did check was an exempt stub. A check whose entire
+input is exempt reports clean forever. It is split now: `check_anchors` over
+`prose_rmd`, `check_contract` over the chapters.
+
+The mnemonic no longer comes from stripping a trailing word off the first
+section anchor. That cannot tell `intro-answer-key` (mnemonic `intro`) from
+`folding-geometry-question` (mnemonic `folding-geometry`) -- one regex strips too
+little and the other too much, and there is no regex that gets both. It comes
+from the chapter's H1 anchor, which says which it is.
+
+**The nine-slot contract gets a narrative subset.** Chapters 1 and 13 present no
+method and measure nothing; `-setup`, `-results`, `-diagnostics` and `-reproduce`
+buy a reader nothing there, and an introduction's "Results" section is a forward
+reference to an artefact that does not exist yet -- which `CHAPTERS.md` already
+warns about two paragraphs into Chapter 1's own entry. They carry five slots in
+the same order and may carry more.
+
+That is also what `Chapter 1's four anchors conflict with the lint` really
+needed. Renaming all four would still have left `results`, `diagnostics` and
+`reproduce` missing and the chapter still failing; the roadmap's fix was
+incomplete. Three anchors renamed onto contract slots, `intro-roadmap` kept as a
+non-contract extra, and the two middle rows swapped because `background` precedes
+`core` in the contract's order -- recorded as the editorial change it is.
+
+**`eval = FALSE` was the global default,** with 145 chunks specified against it
+and no check. A figure chunk that does not evaluate produces no figure, and knitr
+drops its caption, its `fig.alt` and its `fig:` anchor with it: the figure leaves
+the book's numbering, every `\@ref()` to it resolves to nothing, and the build is
+green. `_common.R` sets `eval = TRUE`; a chunk shown without being run says so per
+chunk, with a label beginning `norun-`, and the lint rejects any other
+`eval = FALSE` and rejects it outright on a figure chunk.
+
+**Chapter 1's HTML branch dropped the figure out of HTML's numbering.**
+`asis_output()` emits raw HTML and knitr applies `fig.cap` and `fig.alt` to plot
+output only, so the iframe branch carried none of them: the figure was numbered in
+PDF and EPUB and not in HTML, which shifts every later figure number in the book
+between formats. The branch writes the `figure` div, the `(\#fig:)` marker
+bookdown numbers from, and the iframe title itself -- all three read from the
+chunk's own options, so the two branches cannot describe the figure differently.
+The fixed 940 px height becomes `clamp(520px, 78vh, 940px)` while it is open.
+
+**`read_run()` did not exist.** `PLAN.md` and `CHAPTERS.md` both say every chapter
+from 4 onward opens with one, plus a digest check. What a chapter would have used
+instead is `readRDS()`, which accepts a `--quick` smoke test, an artefact with no
+provenance, and a regenerated run whose numbers no longer match the sentence
+beside them -- all three silently. `R/artefacts.R` holds `read_run()`,
+`write_run()`, `provenance()` and `run_digest()`, with the provenance block
+`PLAN.md` asks for: repo SHA, `R/` SHA, dirty-tree state, R version, platform,
+BLAS, package versions, date, elapsed, cores.
+
+The digest strips provenance before hashing. That is the design, not an
+oversight: provenance carries a SHA, a timestamp and an elapsed time, so hashing
+it would fire the check on every regeneration even when the numbers did not, and
+a check that always fires is one that gets deleted.
+
+**The bibliography could not cite the methods the book is about.** Part II names
+a method per chapter; `book.bib` carried Isomap, LLE, t-SNE and UMAP and stopped.
+Thirteen entries added -- the method primaries (Pearson, Hotelling, Torgerson,
+Sammon, Schölkopf, Belkin & Niyogi, Coifman & Lafon, Hinton & Salakhutdinov) and
+the apparatus the book's own derivations rest on and were using uncited
+(Eckart-Young for the irreducible-loss bound, Schönemann and Gower for the
+Procrustes fit, Federer for the reach, Niyogi-Smale-Weinberger for what a zero
+reach costs a sampler). 26 entries to 39, against S1-3's own ~40 criterion, and
+`verify-citations.R` resolves all 39 against the Handle System.
+
+`write-package-bib.R` gains `uwot`, `diffusionMap`, `FNN`, `kernlab` and
+`coRanking`: `verify-citations.R` builds its known set from the committed
+`packages.bib`, so a chapter citing `@R-uwot` failed the citation check with the
+package sitting in `renv.lock` all along. 26 to 31 package entries.
+
+**The re-budget's total was the sum of nothing.** `CHAPTERS.md`'s table states
+~36,700 words; its rows sum to **41,670**, against **41,720** before. The
+2026-08-26 re-budget redistributed 50 words net -- two chapters grew by 1,550 and
+three shrank by 2,000 -- and did not reduce the book by 5,000. Both totals are
+now computed from the table, seven stale chapter headings match their rows, and
+Chapter 1's section rows sum to its budget for the first time (`intro-limits`
+takes the 200 words the re-budget gave the chapter, which is where the concession
+that the Swiss roll discriminates better belongs).
+
+The correction is a finding rather than a tidy-up: **the reduction the re-budget
+describes has not been made.** Whether one verified family can carry 41,670 words
+is ROADMAP.md R4, and it is open.
+
+**Three refuted stub bullets deleted**, and replaced rather than removed --
+Chapter 8 gains "why there is one family and not three", Chapter 10 loses the
+pattern axis it cannot have (a factor with one level is not a factor) and gains
+crease count, and Chapter 11 states the spread at matched difficulty instead of a
+ranking flip that E1 looked for and did not find. The first draft of Chapter 11's
+replacement quoted E1's numbers and the anti-fabrication gate rejected it, which
+is the gate working exactly as designed on the first prose written since it was
+sharpened.
+
+**`renv.lock` was missing four of torch's dependencies** -- `bit`, `bit64`,
+`coro`, `safetensors`. A clean `renv::restore()` installs torch and not what it
+needs, so it would fail to load; CI never noticed because nothing loads it.
+Snapshotted, 110 records to 114, no version changes.
+
+With the pinned library restored locally the suite runs with **nothing skipped**
+for the first time: 1,771 assertions, 0 failures, 0 skips.
+

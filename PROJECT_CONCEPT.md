@@ -392,8 +392,11 @@ a hope.
 
 ### The full twelve-chapter book
 
-Twelve body chapters in four parts, plus front and back matter: **41,070 words,
+Twelve body chapters in four parts, plus front and back matter: **41,670 words,
 53 figures, 145 code chunks, ~60 citations, 9 committed artefacts**, one verified pattern family, and 60–100 h of compute across two or three grid generations.
+The word figure is the sum of `CHAPTERS.md`'s re-budget table; it was 41,070 here
+and ~36,700 there, and neither was the sum of anything. Whether one family can
+carry it is `ROADMAP.md` risk R4.
 Chapter-by-chapter specification is in `CHAPTERS.md`.
 
 This is the ambitious version and it was chosen deliberately over a scoped

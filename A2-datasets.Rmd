@@ -1,17 +1,17 @@
 # Datasets and codebook {#datasets}
 
-## Generated data {-}
+## Generated data {#datasets-generated -}
 
 All crease-pattern manifolds are generated, not collected. Every dataset in
 Parts I–III is reproducible from a pattern specification, a fold angle, a
 sample size, a noise specification, and a seed.
 
-## Precomputed results {-}
+## Precomputed results {#datasets-precomputed -}
 
 `data/processed/benchmark-grid.rds` — the Chapter \@ref(results) grid.
 Provenance: `scripts/run-benchmark-grid.R`.
 
-## External data {-}
+## External data {#datasets-external -}
 
 One dataset, used only in Chapter \@ref(application).
 

@@ -35,9 +35,17 @@ PKGS <- c(
   "bookdown", "knitr", "rmarkdown",      # the build
   "ggplot2", "viridis",                  # figures
   "Matrix", "RSpectra",                  # linear algebra
-  "igraph", "vegan",                     # graphs and geodesics (Ch 5)
-  "Rtsne", "umap"                        # neighbour embeddings (Ch 6)
+  "igraph", "vegan", "FNN",              # graphs, geodesics and kNN (Ch 5)
+  "Rtsne", "umap", "uwot",               # neighbour embeddings (Ch 6)
+  "kernlab", "diffusionMap",             # kernel PCA and diffusion maps (Ch 5, 6)
+  "coRanking"                            # the co-ranking matrix (Ch 4, 9)
 )
+
+# The five added here are packages Part II is specified to cite and could not:
+# verify-citations.R builds its known set from the committed packages.bib, so a
+# chapter citing @R-uwot failed the citation check with the package sitting in
+# renv.lock all along. The rule at the top of this block still holds -- these are
+# here because chapters cite them, not because they are installed.
 
 # Recorded in renv.lock and cited by the book, but deliberately not installed
 # everywhere: torch pulls a large binary backend and only Chapter 7 needs it,

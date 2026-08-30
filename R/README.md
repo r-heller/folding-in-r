@@ -14,7 +14,8 @@ at source time is a file in the wrong place.
 
 | File | Holds | First needed |
 |:--|:--|:--|
-| `baselines.R`     | `swiss_roll()`, `s_curve()`, `severed_sphere()` | Ch 11 |
+| `artefacts.R`     | `read_run()`, `write_run()`, `provenance()`, `run_digest()` | Ch 4 |
+| `baselines.R`     | `swiss_roll()`, `s_curve()`, `severed_sphere()`, `short_circuit_index()`, `non_planarity()` | Ch 11 |
 | `constants.R`     | θ grid, sample sizes, palette option, tolerances | Ch 3 |
 | `constructions.R` | product and lift constructions, irreducible-loss bound | Ch 8 |
 | `folding.R`       | `fold()`, the ambient embedding, `crease_assignment()`, `branch_gap()`, `facet_gap()` | Ch 2 |
@@ -27,6 +28,20 @@ at source time is a file in the wrong place.
 
 Tests live in `tests/testthat/` and run in CI via
 `.github/workflows/helpers.yml`.
+
+## Reading an artefact
+
+Every chapter from 4 onward opens with a `read_run()` of a committed `.rds` and
+the digest the chapter was written against:
+
+```r
+grid <- read_run("data/processed/benchmark-grid.rds", "3f0c1ad2e8b4c9d1")
+```
+
+It refuses an artefact with no provenance, one written by a `--quick` run, and
+one whose numbers are not the numbers the prose around the call was read off.
+The digest ignores the provenance block, so re-running a producer and reproducing
+its results does not fire it.
 
 ## The object contract
 

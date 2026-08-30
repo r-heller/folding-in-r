@@ -1,6 +1,19 @@
+# eval = TRUE, and the lint enforces it.
+#
+# This was FALSE, globally, with 145 chunks specified against it and no check.
+# The failure is silent and total: a figure chunk that does not evaluate produces
+# no figure, and knitr drops its caption, its fig.alt and its `fig:` anchor with
+# it -- so the figure vanishes from the book's numbering and every \@ref() to it
+# resolves to nothing, with the build green. The book's premise is that every
+# number is computed at render time; a default that quietly computes none of them
+# is the wrong way round.
+#
+# A chunk that must be shown without running says so per chunk, with
+# `eval = FALSE` and a label beginning `norun-`. scripts/lint-chapters.R rejects
+# any other eval = FALSE, and rejects it outright on a chunk that makes a figure.
 knitr::opts_chunk$set(
   echo       = TRUE,
-  eval       = FALSE,
+  eval       = TRUE,
   message    = FALSE,
   warning    = FALSE,
   cache      = FALSE,

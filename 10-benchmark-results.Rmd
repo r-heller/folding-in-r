@@ -4,7 +4,10 @@
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
-- The full method $\times$ pattern $\times$ $\theta$ $\times$ noise grid, at least 20 seeds per cell.
+- The full method $\times$ $\theta$ $\times$ noise grid, at least 20 seeds per cell.
+  There is no pattern axis: one family folds, so a pattern factor with a single
+  level is not a factor. Crease count varies instead, which is the knob E1's
+  arm B swept and the one that carries the question.
 - Distributions, not means.
 - State explicitly how much between-method variation falls inside within-method seed variance.
 - Where Isomap wins, where it breaks, and the crossover.

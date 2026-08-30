@@ -2,18 +2,28 @@
 
 Per-chapter specification for the full twelve-chapter book.
 
-> **Re-budgeted 2026-08-26.** The 41,070-word figure below was set before either
-> experiment ran and survived both unexamined. It was sized for a three-family
-> book led by Claim C. The honest book is smaller: one verified pattern family,
-> a headline claim that was refuted, and a spine whose evidence is a product
-> suite rather than a 2,700-cell grid. See § "Re-budget" at the end of this
-> file. The per-chapter figures below have been revised; the total is now
-> **~36,700 words**.
+> **Re-budgeted 2026-08-26, and the total corrected 2026-08-30.** The original
+> figure was set before either experiment ran and survived both unexamined. It
+> was sized for a three-family book led by Claim C. The per-chapter figures
+> below were revised for the book that survived: one verified pattern family, a
+> headline claim that was refuted, and a spine whose evidence is a product suite
+> rather than a 2,700-cell grid. See § "Re-budget" at the end of this file.
+>
+> **The re-budget's stated total, ~36,700 words, was not the sum of its own
+> rows.** The rows sum to **41,670**, against **41,720** before — a redistribution
+> of 50 words, not a reduction of 5,000. Two chapters grew by 1,550 between them
+> and three shrank by 2,000, and the ~36,700 came from neither column. Both
+> totals below are now computed from the table and nothing quantifies the
+> "smaller book" claim, because the rows do not support one.
+>
+> That is a finding, not a correction: **the reduction the re-budget describes
+> has not actually been made.** Whether one verified family can carry 41,670
+> words is `ROADMAP.md` risk R4, and it is open. Re-deriving the budget
+> bottom-up from what each chapter can now evidence is a decision for the author,
+> and it should be made before Chapter 2 is drafted, not after.
 
-Originally: **41,070 words, 53
-figures, 145 code chunks, ~60 citations** — plus a new 500-word `13-conclusion.Rmd`
-and a 150-word `98-citing-this-guide.Rmd`, giving a book total of **~41,720
-words**.
+Original scope: **53 figures, 145 code chunks, ~60 citations**, plus a new
+`13-conclusion.Rmd` and a 150-word `98-citing-this-guide.Rmd`.
 
 Companion to `PLAN.md` (sequencing, gates, budgets) and `PROJECT_CONCEPT.md`
 (claims and corrections). Build order is in `PLAN.md`; it is **artefact-first**,
@@ -46,6 +56,24 @@ Part II's drafted headings map onto it: *Learning objectives* → merged into
 *Where it fails* → `-limits` (drop the `-fails` suffix, which is a second name for
 the same slot). *Exercises* and *Session info* are either promoted to the contract
 for all twelve chapters or dropped — not left in four chapters only.
+
+**The narrative subset.** Nine slots suit a chapter that presents a method and
+measures something. Chapters 1 and 13 present neither, and `-setup`, `-results`,
+`-diagnostics` and `-reproduce` buy a reader nothing there — an introduction's
+"Results" section is a forward reference to an artefact that does not exist yet,
+which is the same thing this file already warns about two paragraphs into
+Chapter 1's entry. They carry five slots — `-question`, `-background`, `-core`,
+`-limits`, `-reading` — in the same order, and may carry more. `lint-chapters.R`
+enforces the distinction rather than leaving it to be remembered.
+
+**The appendices carry anchors, not slots.** `A1` and `A2` are reference
+material; what they need is that every section is a cross-reference target in one
+namespace, which is now checked — it was not, because the check looped over the
+twelve chapters, every one of them an exempt stub, and never over the only two
+written files in the tree. The contract's nine slots are not asked of them. The
+anchor goes on the `{-}` heading as `{#datasets-generated -}`: only the H1 anchor
+feeds `render-chapter-pdfs.R`'s filename, so an anchored level-2 unnumbered
+heading is safe where an anchored H1 would not be.
 
 ---
 
@@ -90,7 +118,7 @@ Unnumbered, no `{#id}`; nothing cross-references it and adding an anchor invites
 
 ## Part I — Folding
 
-### `01-introduction.Rmd` · `{#intro}` · 2,200 w · 1 fig · 4 chunks · 8 cites
+### `01-introduction.Rmd` · `{#intro}` · 2,400 w · 1 fig · 4 chunks · 8 cites
 
 > *Why should a crease pattern tell you anything about a gene expression matrix?*
 > — **preserve verbatim.** The best of the twelve opening questions.
@@ -98,26 +126,43 @@ Unnumbered, no `{#id}`; nothing cross-references it and adding an anchor invites
 | Section | Anchor | Words |
 |:--|:--|--:|
 | What this chapter answers | `intro-question` | 170 |
-| The answer key | `intro-answer-key` | 500 |
-| The argument this book joins | `intro-argument` | 550 |
-| What is claimed, and what is not | `intro-claims` | 450 |
+| The argument this book joins | `intro-background` | 550 |
+| The answer key | `intro-core` | 500 |
+| What is claimed, and what is not | `intro-limits` | 650 |
 | How the book is organised | `intro-roadmap` | 350 |
 | Further reading | `intro-reading` | 180 |
 
-`intro-claims` is where the **category-error concession** lands: only Isomap and
+Three of these anchors used to be `intro-answer-key`, `intro-argument` and
+`intro-claims`. Each named a contract slot by other words, and
+`scripts/lint-chapters.R` rejected all of them; the chapter was exempt only
+because it is still a stub, so the conflict was going to surface on the first
+commit of real prose. `intro-roadmap` is not a contract slot and does not have to
+be: the contract fixes what must be present, not what may.
+
+`intro-limits` carries the 200 words the re-budget gave this chapter: the
+concession that the Swiss roll discriminates better is exactly a statement of
+what is not claimed, and the rows now sum to the 2,400 the budget table gives it.
+They summed to 2,200 before, which is what the heading said before the re-budget.
+
+**The two middle rows have swapped.** The contract's order is fixed and
+`background` precedes `core` in it. That is also the better introduction — pose
+the question, place it in the argument it joins, then produce the device that
+answers it — but it is an editorial change and it is recorded as one.
+
+`intro-limits` is where the **category-error concession** lands: only Isomap and
 the answer key claim what the headline metric measures; t-SNE, UMAP, LLE and
 autoencoders never claim isometry recovery, and scoring them against isometric
 truth and reporting they lose is a category error unless said so first.
 
 **Draft this chapter LAST of Part I.** Every instinct says the introduction comes
-first; it must not. `intro-argument` forward-references Chapter 9's headline
+first; it must not. `intro-background` forward-references Chapter 9's headline
 finding, which does not exist until `evaluator-audit.rds` does.
 
-*Risks.* Over-claiming in `intro-argument` — the scope-limit paragraph is load
+*Risks.* Over-claiming in `intro-background` — the scope-limit paragraph is load
 bearing, not a courtesy. `fig-01-answer-key` is doing a great deal of work and may
 collapse into four cramped panels; split it if it does not read at 9 cm.
 
-### `02-folding-geometry.Rmd` · `{#folding-geometry}` · 3,400 w · 4 figs · 9 chunks · 13 cites
+### `02-folding-geometry.Rmd` · `{#folding-geometry}` · 3,900 w · 4 figs · 9 chunks · 13 cites
 
 > **Replace the question.** Current: *What makes a crease pattern a valid
 > manifold?* → Proposed: ***What does folding preserve, and what does it
@@ -215,7 +260,7 @@ the rest of the volume is trustworthy.
 `tests/testthat/test-folding.R`, `test-patterns.R`, `test-contraction.R`. All
 pass; nothing here is promised.
 
-### `03-generative-model.Rmd` · `{#generative}` · 3,200 w · 5 figs · 11 chunks · 9 cites
+### `03-generative-model.Rmd` · `{#generative}` · 2,500 w · 5 figs · 11 chunks · 9 cites
 
 > *How do you turn one pattern into a family of test problems?* — **preserve
 > verbatim.**
@@ -337,7 +382,7 @@ that flatness is the prediction and why.
 inflates the artefact substantially; storing for a subset is the likely
 compromise.
 
-### `07-autoencoders.Rmd` · `{#autoencoders}` · 2,200 w · 4 figs · 14 chunks · 6 cites
+### `07-autoencoders.Rmd` · `{#autoencoders}` · 1,600 w · 4 figs · 14 chunks · 6 cites
 
 > *Can a network learn the fold and the unfold at once?*
 
@@ -361,7 +406,7 @@ autoencoder test wraps in `skip_if_not_installed('torch')`.
 
 ## Part III — Benchmark
 
-### `08-building-benchmarks.Rmd` · `{#benchmarks}` · 3,000 w · 5 figs · 13 chunks · 16 cites
+### `08-building-benchmarks.Rmd` · `{#benchmarks}` · 3,650 w · 5 figs · 13 chunks · 16 cites
 
 > *How do you build a manifold whose true geometry you already know?*
 
@@ -492,7 +537,7 @@ trustworthiness 0.874, 0.993 and 0.995.
 number in this chapter depends on it and it has so far only been written from
 memory.
 
-### `10-benchmark-results.Rmd` · `{#results}` · 3,400 w · 5 figs · 12 chunks · 11 cites
+### `10-benchmark-results.Rmd` · `{#results}` · 2,700 w · 5 figs · 12 chunks · 11 cites
 
 > *Which method survives — and can the benchmark tell?*
 
@@ -616,7 +661,7 @@ from a clustering on one of the embeddings under test, the evaluation is
 **circular** — S1-10 exists to catch that. Preprocessing choices can dominate
 method choice entirely; fix them identically across arms.
 
-### `13-conclusion.Rmd` — new · ~500 w
+### `13-conclusion.Rmd` — new · 700 w
 
 Closes on what Chapter 9 established and what it did not. Add to
 `_bookdown.yml` and `vgwort_pixels.csv`.
@@ -662,22 +707,21 @@ Both siblings ship one. Gives `boxempty` its only call site (S1-7). Generate
 
 ---
 
-## `R/` — nine files
-
-`R/README.md`'s planned layout covers six. Three more are required by the chapter
-specs and must be added to it:
+## `R/` — eleven files
 
 | File | Holds | First needed |
 |:--|:--|:--|
+| `artefacts.R` | `read_run()`, `write_run()`, `provenance()`, `run_digest()` | Ch 4 |
+| `baselines.R` | `swiss_roll()`, `s_curve()`, `severed_sphere()`, `short_circuit_index()`, `non_planarity()` | Ch 11 |
 | `constants.R` | seeds, $\theta$ grid, $n$, palette option "C" | Ch 3 |
-| `patterns.R` | `miura_ori()`, `yoshimura()`, `waterbomb()` | Ch 2 |
-| `folding.R` | `fold()`, ambient embedding, `crease_assignment()`, `branch_gap()`, `facet_gap()` | Ch 2 |
-| `sampling.R` | `sample_manifold()`, noise models, `boundary=` | Ch 3 |
 | `constructions.R` | product, lift, irreducible-loss bound | Ch 8 |
+| `figure-export.R` | geometry for the interactive figure, with isometry asserted | Ch 1 |
+| `folding.R` | `fold()`, ambient embedding, `crease_assignment()`, `branch_gap()`, `facet_gap()` | Ch 2 |
+| `methods.R` | the embedding registry — eight methods, plus the autoencoder declared unavailable | Ch 4 |
 | `metrics.R` | Procrustes RMSE, $Q_{NX}$, T/C/kNN, `reference_dist()`, `metric_floor()` | Ch 4 |
-| **`methods.R`** | the embedding registry — nine methods | Ch 4 |
-| **`baselines.R`** | `swiss_roll()`, `s_curve()`, `severed_sphere()` | Ch 11 |
+| `patterns.R` | `miura_ori()`; `yoshimura()` builds but does not fold, `waterbomb()` stops | Ch 2 |
 | `plotting.R` | crease-pattern and embedding plots | Ch 2 |
+| `sampling.R` | `sample_manifold()`, noise models, `boundary=` | Ch 3 |
 
 One file per concern, sourced alphabetically, so **no file may depend on another
 at source time** — only at call time.
@@ -721,13 +765,18 @@ what each chapter now has to say.
 | 12 Benchmark to decision | 3,000 | 3,000 | unchanged |
 | 13 Conclusion | 500 | 700 | has two refutations and two withdrawals to account for |
 | Front and back matter | ~5,620 | ~5,620 | unchanged |
-| **Total** | **41,070** | **~36,700** | |
+| **Total** (sum of the rows above) | **41,720** | **41,670** | net −50 |
 
-**What the reduction is not.** It is not a retreat from the book's ambition. Two
-chapters grew, and the two that grew are the ones carrying the results that
-survived. What shrank is the material that assumed variety the geometry does not
-provide (Chapter 3), a grid that is now a third smaller (Chapter 10), and a
-chapter with no implementation behind it (Chapter 7).
+**What this is and is not.** It is a redistribution, and reading the columns says
+so: two chapters grew by 1,550 words between them and they are the ones carrying
+the results that survived, while what shrank is the material that assumed variety
+the geometry does not provide (Chapter 3), a grid that is now a third smaller
+(Chapter 10), and a chapter with no implementation behind it (Chapter 7). The two
+movements very nearly cancel.
+
+It is **not** a reduction in the size of the book, and the paragraph that used to
+stand here described one. The arithmetic was never done: `~36,700` stood in this
+file, in `PLAN.md` twice and in `PROJECT_CONCEPT.md`, and was the sum of nothing.
 
 **Chapter 7 is the one to watch.** It has no implementation, no artefact, no
 script, and `torch` is deliberately uninstalled. It is budgeted at 1,600 words on

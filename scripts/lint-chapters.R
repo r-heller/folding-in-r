@@ -103,43 +103,97 @@ check_typed_numbers <- function(f) {
 
 # ── Check 2 — the nine-slot contract ────────────────────────────────────────
 
-check_contract <- function(f) {
+# The anchors on a file's level-2 headings, or NULL when the file is a stub.
+#
+# A stub declares itself with the TODO marker every chapter file was created
+# with. Exempting it is not a loophole: the marker is what a reader sees, the
+# chapter is visibly unwritten, and deleting the marker -- which is the first
+# thing drafting does -- turns both checks on. The exemption removes itself.
+heading_ids <- function(f, what) {
   lines <- read_lines_safe(f)
-
-  # A stub declares itself with the TODO marker every chapter file was created
-  # with. Exempting it is not a loophole: the marker is what a reader sees, the
-  # chapter is visibly unwritten, and deleting the marker -- which is the first
-  # thing drafting does -- turns the contract on. The exemption removes itself.
   if (any(grepl("<!--\\s*TODO: chapter content", lines))) {
-    warn(f, 1, "stub: contract not enforced until the TODO marker is removed")
+    warn(f, 1, sprintf("stub: %s not enforced until the TODO marker is removed", what))
+    return(NULL)
+  }
+  incode <- fence_mask(lines)
+  anchor_on <- function(l) {
+    m <- regmatches(l, regexpr("\\{#[^} \t]+", l))
+    if (length(m)) sub("^\\{#", "", m) else NA_character_
+  }
+
+  # The mnemonic comes from the chapter's H1 anchor, not from the first H2.
+  # Deriving it by stripping a trailing "-word" off the first section anchor
+  # cannot tell `intro-answer-key` (mnemonic `intro`) from `folding-geometry-
+  # question` (mnemonic `folding-geometry`): one strips too little and the other
+  # too much, and there is no regex that gets both. The H1 says which it is.
+  h1 <- which(grepl("^#\\s+\\S", lines) & !incode)
+  mn <- if (length(h1)) anchor_on(lines[h1[1]]) else NA_character_
+
+  h2 <- which(grepl("^##\\s+\\S", lines) & !incode)
+  ids <- vapply(lines[h2], anchor_on, character(1), USE.NAMES = FALSE)
+  list(lines = lines, h1 = h1, mn = mn, h2 = h2, ids = ids)
+}
+
+# ── Check 2a — every level-2 heading is anchored, in one namespace ──────────
+#
+# Runs over prose_rmd, which is what line 30 built it for. It used to run over
+# body_rmd, so the appendices -- the only written prose in the tree, and the
+# only files it could have enforced anything on today -- were never checked at
+# all, while the twelve chapters it did check were all exempt stubs. A check
+# whose entire input is exempt reports "clean" forever.
+#
+# Namespacing is the whole point: twelve headings called "Results" collide in
+# pandoc and silently renumber each other's cross-references.
+check_anchors <- function(f) {
+  g <- heading_ids(f, "anchors")
+  if (is.null(g)) return(invisible())
+
+  if (!length(g$h2)) {
+    err(f, 1, "no level-2 sections: nothing to anchor and nothing to cross-reference")
     return(invisible())
   }
-
-  incode <- fence_mask(lines)
-  h2 <- which(grepl("^##\\s+\\S", lines) & !incode)
-  if (!length(h2)) { err(f, 1, "no level-2 sections: the nine-slot contract is not applied"); return(invisible()) }
-
-  ids <- rep(NA_character_, length(h2))
-  for (j in seq_along(h2)) {
-    m <- regmatches(lines[h2[j]], regexpr("\\{#[^}]+\\}", lines[h2[j]]))
-    if (length(m)) ids[j] <- sub("^\\{#", "", sub("\\}$", "", m))
+  for (l in g$h2[is.na(g$ids)]) {
+    err(f, l, "level-2 heading with no {#anchor}; every section is a cross-reference target")
   }
-
-  missing_id <- h2[is.na(ids)]
-  for (l in missing_id) err(f, l, "level-2 heading with no {#anchor}; the contract requires one on every slot")
-
-  ids <- ids[!is.na(ids)]
+  if (is.na(g$mn)) {
+    err(f, if (length(g$h1)) g$h1[1] else 1,
+        "the chapter's level-1 heading carries no {#anchor}; every section anchor is namespaced under it and bookdown names the page after it")
+    return(invisible())
+  }
+  ids <- g$ids[!is.na(g$ids)]
   if (!length(ids)) return(invisible())
 
-  # One mnemonic per chapter, taken from the first anchor, and every anchor must
-  # use it. Namespacing is the whole point: twelve headings called "Results"
-  # collide in pandoc and silently renumber each other's cross-references.
-  mn <- sub("-[a-z]+$", "", ids[1])
-  bad_ns <- ids[!startsWith(ids, paste0(mn, "-"))]
-  for (b in bad_ns) err(f, 1, sprintf("anchor '%s' is not in this chapter's '%s-' namespace", b, mn))
+  for (b in ids[!startsWith(ids, paste0(g$mn, "-"))]) {
+    err(f, 1, sprintf("anchor '%s' is not in this chapter's '%s-' namespace", b, g$mn))
+  }
+}
 
-  slots <- sub(paste0("^", mn, "-"), "", ids[startsWith(ids, paste0(mn, "-"))])
-  missing <- setdiff(CONTRACT, slots)
+# ── Check 2b — the section contract, on the chapters that carry one ─────────
+#
+# Nine slots for a chapter that presents a method and measures something. The
+# introduction and the conclusion present neither, and requiring `results`,
+# `diagnostics`, `reproduce` and `setup` of them buys nothing a reader wants:
+# an introduction's "results" section is a forward reference to an artefact that
+# does not exist yet, which CHAPTERS.md already warns against in the same
+# breath as telling the author to draft Chapter 1 last. They carry the five
+# slots that mean something in narrative prose, and the order check is the same.
+#
+# Anchors outside the contract are allowed -- `intro-roadmap` is one -- provided
+# they are in the namespace. The contract fixes what must be there, not what may.
+NARRATIVE <- c("01-introduction.Rmd", "13-conclusion.Rmd")
+CONTRACT_CORE <- c("question", "background", "core", "limits", "reading")
+
+check_contract <- function(f) {
+  g <- heading_ids(f, "the contract")
+  if (is.null(g)) return(invisible())
+
+  ids <- g$ids[!is.na(g$ids)]
+  if (!length(ids) || is.na(g$mn)) return(invisible())   # check_anchors has erred
+
+  required <- if (f %in% NARRATIVE) CONTRACT_CORE else CONTRACT
+  slots <- sub(paste0("^", g$mn, "-"), "", ids[startsWith(ids, paste0(g$mn, "-"))])
+
+  missing <- setdiff(required, slots)
   if (length(missing)) err(f, 1, sprintf("missing contract slots: %s", paste(missing, collapse = ", ")))
 
   # Order: the fixed slots must appear in the contract's order. The core slot is
@@ -167,6 +221,34 @@ check_fig_alt <- function(f) {
     is_fig <- grepl("fig\\.(cap|width|height|asp)", h) || grepl("^\\s*```+\\{r\\s+fig-", h)
     if (is_fig && !grepl("fig\\.alt\\s*=", h)) {
       err(f, i, "figure chunk without fig.alt (standing rule 3)")
+    }
+  }
+}
+
+# ── Check 3b — eval = FALSE is per chunk, labelled, and never on a figure ───
+#
+# _common.R sets eval = TRUE. A chunk that is shown without being run is a
+# deliberate exception and says so in its label, so that grepping for `norun-`
+# finds every place the book prints code it did not execute.
+#
+# On a figure chunk there is no such thing as a deliberate exception: knitr
+# attaches fig.cap, fig.alt and the `fig:` anchor to the plot output, so a
+# figure chunk that does not evaluate silently loses all three and drops out of
+# the book's figure numbering, taking every cross-reference to it along.
+
+check_eval <- function(f) {
+  lines <- read_lines_safe(f)
+  for (i in grep("^\\s*```+\\{r[ ,}]", lines)) {
+    h <- lines[i]
+    if (!grepl("eval\\s*=\\s*(FALSE|F)\\b", h)) next
+    label <- sub("^\\s*```+\\{r[ ,]*", "", h)
+    label <- sub("[,}].*$", "", trimws(label))
+    is_fig <- grepl("fig\\.(cap|width|height|asp|alt)", h) ||
+              grepl("^\\s*```+\\{r\\s+fig-", h)
+    if (is_fig) {
+      err(f, i, "figure chunk with eval = FALSE: it emits no figure, and knitr drops the caption, the fig.alt and the fig: anchor with it")
+    } else if (!startsWith(label, "norun-")) {
+      err(f, i, sprintf("chunk '%s' sets eval = FALSE; label it 'norun-%s' so that code the book prints but does not run is greppable", label, label))
     }
   }
 }
@@ -272,8 +354,10 @@ if (!length(all_rmd)) {
 targets <- collect_targets(all_rmd)
 
 for (f in prose_rmd) check_typed_numbers(f)
+for (f in prose_rmd) check_anchors(f)
 for (f in body_rmd)  check_contract(f)
 for (f in all_rmd)   check_fig_alt(f)
+for (f in all_rmd)   check_eval(f)
 for (f in all_rmd)   check_callouts(f)
 for (f in all_rmd)   check_seeds(f)
 check_refs(all_rmd, targets)

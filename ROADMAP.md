@@ -43,8 +43,17 @@ fails on the pre-fix tree and passes after, and the commit message says which.
 | 0.2 | Orientation-independent M/V test over the size x alpha x theta sweep | **closed** | same file; also settles open question 1 (section 11) |
 | 0.3 | Re-verify every R- and S-series closure by measurement | **mostly closed** | `EMBED_DIM` drift test; `PATTERN_GRID` via `check-artefact-producers.R`; figure-export and neighbour-method mutations demonstrated red. S1-3 (bibliography) deferred to 2.4/2.5 |
 | 0.6 | `check-artefact-producers.R` | **closed** | reports the 3 real gaps; fails on a registry naming an unfoldable family, on a missing provenance block, on a `--quick` artefact committed as evidence |
-| 0.4 | E1 producer and artefacts | open | |
-| 0.5 | Correct the two documents that describe what E1 shipped | open | |
+| 0.4 | E1 producer and artefacts | **in flight** | `--quick` exits 0; arm A regenerated at 990 rows, the gate's number |
+| 0.5 | Correct the two documents that describe what E1 shipped | **closed** | GENERATION_LOG's Phase-16 provenance claim corrected in place; CHAPTERS.md's becomes true when the artefacts land |
+| 2.1 | Settle the `eval` policy; add the lint check | **closed** | `check_eval` red on a figure chunk with `eval = FALSE` and on an unlabelled one |
+| 2.2 | `check_contract` over `prose_rmd`; anchors in the appendices | **closed** | the check now fires on A1/A2, which it never had; scratch chapter passes, red on a missing slot and on a broken namespace |
+| 2.3 | Chapter 1's anchors onto the contract | **closed** | three renamed, two rows swapped for the contract's order; the roadmap's version of this fix was incomplete -- see the note below |
+| 2.4 | `write-package-bib.R` PKGS; regenerate `packages.bib` | **closed** | 26 to 31 entries, `--check` green |
+| 2.5 | Method-primary references | **closed** | 26 to 39 bib entries, all 39 DOIs resolve |
+| 2.6 | `read_run()` with the digest check | **closed** | `R/artefacts.R`; 28 assertions covering the three things `readRDS()` accepted silently |
+| 2.7 | Delete the three refuted stub bullets | **closed** | replaced, not removed |
+| 2.8 | Restate both re-budget totals from the rows | **closed** | 41,720 / 41,670; seven stale headings; the "reduction" was 50 words |
+| 2.9 | Chapter 1's HTML figure anchor, caption and alt | **closed** | all three now written by the branch, read from the chunk's own options |
 
 ---
 
@@ -238,6 +247,13 @@ accumulated there:
 a provenance marker naming an artefact path or a test file; CI greps for a bare
 decimal without one. Cheaper than it sounds, because most of these should be
 inline `r` expressions eventually anyway.
+
+> **Partly done, and the gate proved itself on the way.** The re-budget totals
+> are restated from their rows and the ~36,700 is gone from all three files. The
+> lint's own check 1 rejected the first replacement written for Chapter 11's
+> stub bullet, which quoted E1's ratio and interval as typed numbers — the gate
+> firing on the first prose written since it was sharpened. Extending it over
+> the four governing documents is still open.
 
 ### T5 — Standing rules stated unconditionally to the reader are violated by every experiment that has run
 

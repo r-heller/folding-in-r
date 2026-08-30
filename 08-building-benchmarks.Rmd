@@ -5,7 +5,12 @@
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
 - The helper API in `R/`, end to end.
-- Pattern families beyond Miura-ori: Yoshimura, waterbomb.
+- Why there is one family and not three. The Yoshimura and the waterbomb were
+  specified here and both were withdrawn: no rigid folding of the Yoshimura is
+  certified in which all three crease families fold, and the waterbomb's is an
+  open question (PLAN.md R1-1 and E2). Both stay in the chapter as documented
+  negative results, which is a stronger section than a list of families would
+  have been -- it says what it takes for a pattern to qualify.
 - Product constructions: intrinsic dimension $2k$ in ambient $3k$, ground truth still exact.
 - Random linear lift to arbitrary ambient dimension $D$.
 - Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark.

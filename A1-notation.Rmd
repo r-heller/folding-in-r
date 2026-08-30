@@ -2,6 +2,8 @@
 
 <!-- TODO: fill as the formal apparatus stabilises in Chapters 2, 3 and 9. -->
 
+## Symbols {#notation-symbols -}
+
 | Symbol | Meaning |
 |---|---|
 | $\theta$ | Folding parameter; the difficulty axis. $\theta = 0$ is the flat sheet |
