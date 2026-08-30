@@ -1072,3 +1072,51 @@ Chapter 9's budget stands at 4,400 and its specification is rewritten in
 `CHAPTERS.md` against these numbers, before a word of it is drafted. The pilot
 artefact is `data/processed/evaluator-audit-pilot.rds`, with provenance.
 
+### Publishing: three surfaces that were silently broken
+
+Not a tidy-up. Each of these is a surface that looked fine to anyone who built
+the book and was broken for someone reading it, with no check that could see it.
+
+**`CITATION.cff` rendered an empty citation dialog.** It carried `type: book` at
+the top level. In CFF 1.2.0 the top level describes the REPOSITORY and its `type`
+enum admits only `software` and `dataset`; GitHub answers an invalid type by
+rendering nothing rather than by reporting an error, so the file had been broken
+for as long as it had existed and looked correct in the source. The repository is
+`software` now and the book is a `preferred-citation`, which is also the honest
+statement -- the repository is not the work.
+
+`scripts/check-citation-cff.R` is the check. Not a full schema validator --
+cffconvert is, and it is a Python dependency this repository does not otherwise
+have -- but it covers the rules whose violation produces exactly that silent
+failure, and it was demonstrated red on the file as shipped. It also notes that
+four files claim version 0.1.0 against a repository with no tags at all.
+
+**The dark mode was half-applied, and the half that was missing was unreadable.**
+Measured, reproducing the audit's numbers exactly:
+
+| surface | as shipped | now |
+|---|---:|---:|
+| search dropdown text | **1.40:1** | 10.27:1 |
+| code comments | **1.90:1** | 9.17:1 |
+| code variables | **1.01:1** | 9.02:1 |
+
+The failure is structural rather than careless. `style/style.css` recolours the
+page through custom properties, and the two surfaces it missed are ones bs4_book
+paints with literals -- `background-color: #fff` on the dropdown, and the a11y
+LIGHT syntax palette. **A token system hides exactly the places it does not
+cover**, which is worth stating as a lesson rather than as a bug. Both are
+replaced with the a11y dark palette, which is the same source's companion.
+
+`scripts/check-contrast.R` computes all eighteen pairs the book renders text on,
+in both themes, from WCAG relative luminance. Base R, no CSS parser and no
+library, so it runs in the same job as the chapter lint. It also fails if a
+colour it checks has disappeared from the stylesheet -- otherwise it drifts into
+a green report about colours nobody renders.
+
+**The EPUB had an invalid `dc:language`, a fresh random identifier on every
+build, and no licence.** Two builds of the same text were two different
+publications to a library system, and a CC-BY work shipped without the one field
+it cannot omit. `lang`, `identifier`, `rights`, `publisher` and `keywords` are in
+`index.Rmd`'s front matter, along with `papersize: a4` and a list of figures --
+53 figures is past the point where a reader finds one by leafing.
+

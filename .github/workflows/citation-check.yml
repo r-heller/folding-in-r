@@ -14,6 +14,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'CITATION.cff'
+      - 'scripts/check-citation-cff.R'
       - 'book.bib'
       - 'packages.bib'
       - 'scripts/verify-citations.R'
@@ -22,6 +24,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'CITATION.cff'
+      - 'scripts/check-citation-cff.R'
       - 'book.bib'
       - 'packages.bib'
       - 'scripts/verify-citations.R'
@@ -45,6 +49,14 @@ jobs:
             bibtex
             httr2
             purrr
+            yaml
 
       - name: Resolve every identifier in book.bib
         run: Rscript scripts/verify-citations.R
+
+      # CITATION.cff shipped with `type: book` at the top level, which CFF 1.2.0
+      # does not admit -- GitHub answers an invalid type with an EMPTY citation
+      # dialog rather than an error, so the surface was silently broken and
+      # nothing looked wrong. This is the check that says so.
+      - name: CITATION.cff is valid CFF 1.2.0
+        run: Rscript scripts/check-citation-cff.R

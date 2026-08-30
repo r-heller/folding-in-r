@@ -1,13 +1,25 @@
+# CFF 1.2.0.
+#
+# The top-level `type` is `software`, not `book`, and that is not a mistake being
+# corrected downward. In CFF 1.2.0 the top level describes the REPOSITORY, and
+# its `type` enum admits only `software` and `dataset`; `book` is not a member,
+# so GitHub's citation dialog rejected the file and rendered empty. A book is
+# expressed as `preferred-citation`, which is what a citation manager reads and
+# what "Cite this repository" offers.
+#
+# So this file says two things, correctly: the repository is software, and the
+# thing you should cite is the book it builds.
 cff-version: 1.2.0
-message: "If you use this book, please cite it as below."
-type: book
+message: "If you use this book, please cite the book itself (below), not the repository."
+type: software
 title: "Folding in R: Origami, Manifolds, and Dimension Reduction"
 abstract: >-
-  Origami crease patterns as exact ground-truth manifolds for benchmarking
-  dimension reduction in R. Because rigid folding is an isometry, the flat
-  crease pattern is the true low-dimensional embedding rather than an
-  approximation of it, which makes reconstruction error exact and allows the
-  evaluation metrics themselves to be tested against truth.
+  Source, data and build for the book "Folding in R". Origami crease patterns as
+  exact ground-truth manifolds for benchmarking dimension reduction in R.
+  Because rigid folding is an isometry, the flat crease pattern is the true
+  low-dimensional embedding rather than an approximation of it, which makes
+  reconstruction error exact and allows the evaluation metrics themselves to be
+  tested against truth.
 authors:
   - family-names: Heller
     given-names: R.
@@ -22,4 +34,27 @@ keywords:
   - manifold learning
   - origami
   - benchmarking
+  - reproducible research
   - R
+
+preferred-citation:
+  type: book
+  title: "Folding in R: Origami, Manifolds, and Dimension Reduction"
+  authors:
+    - family-names: Heller
+      given-names: R.
+      orcid: "https://orcid.org/0000-0001-8006-9742"
+  year: 2026
+  url: "https://r-heller.github.io/folding-in-r/"
+  abstract: >-
+    Origami crease patterns as exact ground-truth manifolds for benchmarking
+    dimension reduction in R. Because rigid folding is an isometry, the flat
+    crease pattern is the true low-dimensional embedding rather than an
+    approximation of it, which makes reconstruction error exact and allows the
+    evaluation metrics themselves to be tested against truth.
+  keywords:
+    - dimension reduction
+    - manifold learning
+    - origami
+    - benchmarking
+    - R

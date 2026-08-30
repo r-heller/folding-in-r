@@ -367,3 +367,83 @@ small.text-muted {
 .bookdown-attribution a {
   border-bottom-style: solid;
 }
+
+/* ---------- Dark mode: the two surfaces the tokens did not reach ---------- */
+/*
+ * The token block at the top of this file recolours the page. It does not reach
+ * two things bs4_book paints with literals, and both were left half-dark:
+ *
+ *   the search dropdown   `.aa-dropdown-menu` is `background-color: #fff`, so
+ *                         the suggestions rendered as --text-color #dadada on
+ *                         white: 1.40:1, which is not readable by anyone.
+ *
+ *   the syntax colours    bs4_book ships the a11y LIGHT palette, tuned for a
+ *                         light background. On --code-bg #2a2a2a the comment
+ *                         colour #545454 is 1.90:1 and the variable colour
+ *                         #19177c is worse.
+ *
+ * Both are replaced with the a11y DARK palette, which is the same source's
+ * companion and is designed for exactly this background.
+ * scripts/check-contrast.R computes every pair below and fails under 4.5:1, so
+ * this comment is checked rather than believed.
+ */
+
+[data-theme="dark"] {
+  --hl-comment: #d4d0ab;   /* comments, annotations, operators */
+  --hl-blue:    #00e0e0;   /* keywords, control flow, imports, built-ins */
+  --hl-green:   #abe338;   /* strings, characters, attributes */
+  --hl-orange:  #f5ab35;   /* numbers, preprocessor */
+  --hl-yellow:  #ffd700;   /* data types */
+  --hl-purple:  #dcc6e0;   /* functions, variables */
+  --hl-red:     #ffa07a;   /* constants, errors, warnings */
+}
+
+[data-theme="dark"] .algolia-autocomplete .aa-dropdown-menu {
+  background-color: var(--bg-box);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+[data-theme="dark"] .algolia-autocomplete .aa-dropdown-menu .aa-suggestion {
+  border-bottom-color: var(--border-color);
+}
+[data-theme="dark"] .algolia-autocomplete .aa-dropdown-menu .aa-suggestion.aa-cursor {
+  background-color: #1e3a5f;
+}
+[data-theme="dark"] .algolia-autocomplete .aa-hint {
+  color: var(--grey-color);
+}
+
+[data-theme="dark"] code span.co,
+[data-theme="dark"] code span.cv,
+[data-theme="dark"] code span.an,
+[data-theme="dark"] code span.in,
+[data-theme="dark"] code span.wa,
+[data-theme="dark"] code span.op { color: var(--hl-comment); }
+
+[data-theme="dark"] code span.kw,
+[data-theme="dark"] code span.cf,
+[data-theme="dark"] code span.im,
+[data-theme="dark"] code span.bu,
+[data-theme="dark"] code span.ot { color: var(--hl-blue); }
+
+[data-theme="dark"] code span.st,
+[data-theme="dark"] code span.vs,
+[data-theme="dark"] code span.ch,
+[data-theme="dark"] code span.sc,
+[data-theme="dark"] code span.at { color: var(--hl-green); }
+
+[data-theme="dark"] code span.dv,
+[data-theme="dark"] code span.bn,
+[data-theme="dark"] code span.fl,
+[data-theme="dark"] code span.pp { color: var(--hl-orange); }
+
+[data-theme="dark"] code span.dt { color: var(--hl-yellow); }
+
+[data-theme="dark"] code span.fu,
+[data-theme="dark"] code span.va,
+[data-theme="dark"] code span.ss { color: var(--hl-purple); }
+
+[data-theme="dark"] code span.cn,
+[data-theme="dark"] code span.er,
+[data-theme="dark"] code span.al,
+[data-theme="dark"] code span.do { color: var(--hl-red); }

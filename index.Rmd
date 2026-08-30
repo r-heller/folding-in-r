@@ -13,6 +13,24 @@ github-repo: r-heller/folding-in-r
 url: https://r-heller.github.io/folding-in-r/
 description: "Origami crease patterns as exact ground-truth manifolds for benchmarking dimension reduction in R."
 cover-image: "images/cover.png"
+
+# EPUB metadata. Without these three the EPUB carries an invalid `dc:language`,
+# a fresh random `dc:identifier` on every build -- so two builds of the same text
+# are two different publications to a library system -- and no licence at all,
+# which is the one field a CC-BY work cannot omit. epubcheck reports the first
+# as an error and cannot see the other two.
+lang: en-GB
+identifier: "https://r-heller.github.io/folding-in-r/"
+rights: "© 2026 R. Heller. Licensed under CC BY 4.0."
+publisher: "R. Heller"
+keywords: [dimension reduction, manifold learning, origami, benchmarking, R]
+
+# Print. A4 because the sibling volumes are A4 and a reader printing two of them
+# should not get two paper sizes; a list of figures because 53 figures is past
+# the point where a reader can find one by leafing.
+papersize: a4
+lof: true
+lot: false
 ---
 
 # Preface {-}
