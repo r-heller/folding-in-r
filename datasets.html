@@ -126,6 +126,23 @@ sample size, a noise specification, and a seed.</p>
 </h2>
 <p><code>data/processed/benchmark-grid.rds</code> — the Chapter <a href="results.html#results">10</a> grid.
 Provenance: <code>scripts/run-benchmark-grid.R</code>.</p>
+<p><code>data/processed/product-grid.rds</code> — the product suite behind Chapter
+<a href="benchmarks.html#benchmarks">8</a>’s irreducible-loss bound, in two arms: a product of two Miura
+sheets and a product of two Swiss rolls. Provenance:
+<code>scripts/run-product-grid.R</code>.</p>
+<p><code>data/processed/e1-difficulty.rds</code>, <code>e1-controlled.rds</code>, <code>e1-armB.rds</code> — the
+three arms of E1, which retired the book’s original headline claim. Provenance:
+<code>scripts/experiment-e1.R</code>.</p>
+<p><code>data/processed/seed-budget.rds</code> — the within-cell spread of every method, and
+the seed count each one needs before a difference the size of the pre-registered
+reportable difference (<code>MIN_REPORTABLE</code>, fixed in <code>R/selection.R</code>) can be
+detected. This is what standing rule 1’s floor is measured against rather than
+assumed. Provenance: <code>scripts/measure-seed-budget.R</code>.</p>
+<p>Every one of these carries a provenance block recording the <code>R/</code> tree hash, the
+R version, the BLAS, the package versions, the wall clock and whether the tree
+was dirty when it ran. <code>read_run()</code> refuses one that does not, refuses one
+written by a <code>--quick</code> smoke test, and refuses one whose contents are not the
+contents the chapter around the call was written against.</p>
 </div>
 <div id="datasets-external" class="section level2 unnumbered">
 <h2>External data<a class="anchor" aria-label="anchor" href="#datasets-external"><i class="fas fa-link"></i></a>

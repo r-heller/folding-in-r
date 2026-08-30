@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>How to use this book | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Standing methodological rules Three rules apply throughout and are not restated in each chapter. Every stochastic result is reported across at least 20 seeds. t-SNE and UMAP are seed-dependent; a...">
+<meta name="description" content="Standing methodological rules Three rules apply throughout and are not restated in each chapter. Every stochastic result is reported across at least 20 seeds, and across more where the spread...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="How to use this book | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/how-to-use-this-book.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Standing methodological rules Three rules apply throughout and are not restated in each chapter. Every stochastic result is reported across at least 20 seeds. t-SNE and UMAP are seed-dependent; a...">
+<meta property="og:description" content="Standing methodological rules Three rules apply throughout and are not restated in each chapter. Every stochastic result is reported across at least 20 seeds, and across more where the spread...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="How to use this book | Folding in R">
-<meta name="twitter:description" content="Standing methodological rules Three rules apply throughout and are not restated in each chapter. Every stochastic result is reported across at least 20 seeds. t-SNE and UMAP are seed-dependent; a...">
+<meta name="twitter:description" content="Standing methodological rules Three rules apply throughout and are not restated in each chapter. Every stochastic result is reported across at least 20 seeds, and across more where the spread...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -118,9 +118,19 @@
 </h2>
 <p>Three rules apply throughout and are not restated in each chapter.</p>
 <ol style="list-style-type: decimal">
-<li><p><strong>Every stochastic result is reported across at least 20 seeds.</strong> t-SNE and
-UMAP are seed-dependent; a single run is an anecdote. Seeds are fixed in
-<code>_common.R</code> as <code>BENCH_SEEDS</code> and disclosed with every figure.</p></li>
+<li>
+<p><strong>Every stochastic result is reported across at least 20 seeds, and across
+more where the spread requires it.</strong> t-SNE and UMAP are seed-dependent; a
+single run is an anecdote. Twenty is a floor, not a design: the count each
+method needs is measured, by inverting the 0.02 reportable difference against
+that method’s within-cell spread, and a method needing more gets more.
+<code>scripts/measure-seed-budget.R</code> does the measuring and
+<code>data/processed/seed-budget.rds</code> is its record. Seeds are fixed in
+<code>_common.R</code> as <code>BENCH_SEEDS</code> and disclosed with every figure.</p>
+<p>Where an artefact is produced below the floor — a pilot, or an arm whose cost
+forbids it — the count is named in the text that reports it, and
+<code>scripts/check-artefact-producers.R</code> will not let it pass unnamed.</p>
+</li>
 <li><p><strong>Every <span class="math inline">\(\theta\)</span>-dependent result is reported as a curve, never as a single
 number.</strong> Fold angle is a continuous difficulty parameter. Reporting one
 value invites cherry-picking, and hides exactly the regime changes the
