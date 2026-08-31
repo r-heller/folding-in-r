@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 2 The geometry of folding | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="What makes a crease pattern a valid manifold? Intrinsic versus ambient isometry — the distinction the whole book turns on. A rigid folding preserves the path metric exactly. It is not an isometry...">
+<meta name="description" content="What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in space. Flattened out again it is a region of the plane....">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 2 The geometry of folding | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/folding-geometry.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="What makes a crease pattern a valid manifold? Intrinsic versus ambient isometry — the distinction the whole book turns on. A rigid folding preserves the path metric exactly. It is not an isometry...">
+<meta property="og:description" content="What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in space. Flattened out again it is a region of the plane....">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 2 The geometry of folding | Folding in R">
-<meta name="twitter:description" content="What makes a crease pattern a valid manifold? Intrinsic versus ambient isometry — the distinction the whole book turns on. A rigid folding preserves the path metric exactly. It is not an isometry...">
+<meta name="twitter:description" content="What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in space. Flattened out again it is a region of the plane....">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -114,53 +114,532 @@
 <h1>
 <span class="header-section-number">2</span> The geometry of folding<a class="anchor" aria-label="anchor" href="#folding-geometry"><i class="fas fa-link"></i></a>
 </h1>
-<p><em>What makes a crease pattern a valid manifold?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+<p><em>What does folding preserve, and what does it destroy?</em></p>
+<div id="geom-question" class="section level2" number="2.1">
+<h2>
+<span class="header-section-number">2.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#geom-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>A sheet of paper folded along creases is a surface in space. Flattened out again
+it is a region of the plane. The two are the same paper, and that is the whole
+of this book’s method: the flat region is not a good approximation to the folded
+surface’s true two-dimensional structure, it <em>is</em> that structure, written down
+in closed form before any data are generated.</p>
+<p>This chapter establishes what that sameness does and does not mean. Folding
+preserves every distance measured <strong>along</strong> the surface and destroys a great
+many measured <strong>through</strong> the space around it, and almost every difficulty a
+dimension-reduction method has with a folded sheet is a consequence of that one
+sentence. A method sees the second kind of distance and is scored against the
+first.</p>
+<p>Nothing here is asserted. Every claim in this chapter is a check in
+<code>tests/testthat/</code>, and every number is computed while the page is built.</p>
+</div>
+<div id="geom-setup" class="section level2" number="2.2">
+<h2>
+<span class="header-section-number">2.2</span> Setup<a class="anchor" aria-label="anchor" href="#geom-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu">fold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span></code></pre></div>
+<p><code>miura_ori()</code> returns a flat crease pattern; <code>fold()</code> places it in space at a
+folding parameter <span class="math inline">\(\theta\)</span>. Both are in <code>R/</code>, sourced when this book renders,
+and the <a href="notation.html#notation">notation appendix</a> fixes the symbols.</p>
+</div>
+<div id="geom-background" class="section level2" number="2.3">
+<h2>
+<span class="header-section-number">2.3</span> Background<a class="anchor" aria-label="anchor" href="#geom-background"><i class="fas fa-link"></i></a>
+</h2>
+<div id="what-a-crease-pattern-is-and-what-it-is-not" class="section level3" number="2.3.1">
+<h3>
+<span class="header-section-number">2.3.1</span> What a crease pattern is, and what it is not<a class="anchor" aria-label="anchor" href="#what-a-crease-pattern-is-and-what-it-is-not"><i class="fas fa-link"></i></a>
+</h3>
+<p>A crease pattern is a planar straight-line graph on a region of paper: vertices,
+straight creases between them, and the facets those creases enclose. It carries
+one more piece of information per crease, an <strong>assignment</strong> — mountain or valley
+— which says which way the paper turns there.</p>
+<p>The literature on origami mathematics is largely about which patterns fold and
+how to design one that folds to a given shape <span class="citation">(<a href="references.html#ref-lang2011origami">1</a>,<a href="references.html#ref-demaine2007folding">2</a>)</span>. This book needs almost none of that. It needs one family
+that provably folds, and it needs the folding written as a map it can evaluate
+at any <span class="math inline">\(\theta\)</span>.</p>
+<div class="boxinfo">
+<p>
+<strong>Not the Huzita–Hatori axioms.</strong> A reader who has met
+origami mathematics before will expect the construction axioms — the
+seven operations that say which points and lines a folder can produce
+with a sequence of folds. They are not what makes a crease pattern a
+manifold, and they play no part in this book. They describe what can be
+<em>constructed</em>; the question here is what a given pattern, however
+obtained, <em>is</em> once folded. Hull’s <em>Origametry</em> <span class="citation"><span class="citation">(<a href="references.html#ref-hull2020origametry">3</a>)</span></span> covers both and is the
+place to start if the constructive side is what you came for.
+</p>
+</div>
+</div>
+<div id="rigid-folding" class="section level3" number="2.3.2">
+<h3>
+<span class="header-section-number">2.3.2</span> Rigid folding<a class="anchor" aria-label="anchor" href="#rigid-folding"><i class="fas fa-link"></i></a>
+</h3>
+<p>The foldings this book uses are <strong>rigid</strong>: the facets stay flat and unstretched,
+and all the motion happens at the creases. That is a strong restriction and it
+is the source of everything that follows. A folding that let facets bend would
+still produce a surface, but its flat pattern would no longer be its unfolding,
+and the answer key would be gone.</p>
+<p>Two classical conditions constrain which flat patterns can fold flat at all. At
+every interior vertex, <strong>Maekawa’s theorem</strong> says the numbers of mountain and
+valley creases differ by exactly two, and <strong>Kawasaki’s theorem</strong> says the
+alternating sum of the sector angles around the vertex is zero
+<span class="citation">(<a href="references.html#ref-hull2020origametry">3</a>)</span>. Both are necessary and neither is sufficient. Chapter
+<a href="benchmarks.html#benchmarks">8</a> returns to how little they guarantee; this chapter uses them
+as checks rather than as foundations, which is the only honest way to use a
+necessary condition.</p>
+<p>The attribution here is tangled and it is better to say so than to pick a side.
+Kawasaki’s condition appears independently in work by Justin and by Murata, and
+no citation resolves cleanly to a single first statement. <em>Origametry</em> is the
+honest reference until one does.</p>
+</div>
+<div id="two-kinds-of-isometry" class="section level3" number="2.3.3">
+<h3>
+<span class="header-section-number">2.3.3</span> Two kinds of isometry<a class="anchor" aria-label="anchor" href="#two-kinds-of-isometry"><i class="fas fa-link"></i></a>
+</h3>
+<p>The word <em>isometry</em> does two jobs and the difference between them is this book’s
+crux.</p>
+<p>An <strong>intrinsic</strong> isometry preserves distances measured along the surface — the
+length of the shortest path an ant could walk without leaving the paper. Rigid
+folding is an intrinsic isometry, exactly and by construction: the facets do not
+stretch, so a path drawn on the flat sheet has the same length after folding.</p>
+<p>An <strong>ambient</strong> isometry preserves distances measured through the surrounding
+space — straight lines through the air. Folding is emphatically <em>not</em> an ambient
+isometry. Bring two points on either side of a crease together by folding, and
+the straight-line distance between them collapses while the path along the paper
+does not change at all.</p>
+<p>Every method in Part II consumes ambient distance or something built from it.
+The answer key is intrinsic. That mismatch is not a flaw in the benchmark; it is
+the benchmark’s subject.</p>
+</div>
+<div id="curvature-and-where-it-is-not" class="section level3" number="2.3.4">
+<h3>
+<span class="header-section-number">2.3.4</span> Curvature, and where it is not<a class="anchor" aria-label="anchor" href="#curvature-and-where-it-is-not"><i class="fas fa-link"></i></a>
+</h3>
+<p>The natural wrong intuition about a folded sheet is that its curvature has been
+pushed into the vertices. It is worth writing against rather than merely
+avoiding, because it is wrong in a way that would undermine the whole
+construction if it were right.</p>
+<p>Discrete Gaussian curvature at a vertex of a polyhedral surface is its angle
+defect: <span class="math inline">\(2\pi\)</span> minus the sum of the sector angles meeting there. For a folded
+flat sheet those angles are the flat pattern’s angles, unchanged by folding, and
+they sum to exactly <span class="math inline">\(2\pi\)</span> because the vertex was an interior point of a flat
+piece of paper. <strong>The Gaussian curvature is identically zero, at every vertex
+and on every facet.</strong> Were it otherwise the sheet would not be developable and
+the flat pattern would not be its unfolding.</p>
+<p>What does concentrate on the creases is <em>extrinsic</em>: the second fundamental
+form, which is a measure supported on the one-skeleton rather than a function.
+The surface is intrinsically flat and extrinsically as bent as one likes.</p>
+<p>For manifold learning the consequence that matters is a different quantity
+entirely. The <strong>reach</strong> of a submanifold <span class="citation">(<a href="references.html#ref-federer1959curvature">4</a>)</span> is the largest
+distance within which every point of the ambient space has a unique nearest
+point on the surface. Sampling theory for manifold learning is generally stated
+in terms of it <span class="citation">(<a href="references.html#ref-niyogi2008homology">5</a>)</span>, and a crease has reach exactly zero: a
+point just outside the fold is equidistant from both facets. So the standard
+sampling guarantees do not apply here at all — not weakly, not approximately.
+This book’s manifolds sit outside the hypotheses of the theory usually invoked
+to justify the methods being tested on them, which is worth knowing before Part
+III reports that some of those methods struggle.</p>
+</div>
+</div>
+<div id="geom-core" class="section level2" number="2.4">
+<h2>
+<span class="header-section-number">2.4</span> The isometry, in five steps<a class="anchor" aria-label="anchor" href="#geom-core"><i class="fas fa-link"></i></a>
+</h2>
+<div id="one-the-folding-is-written-down-not-solved-for" class="section level3" number="2.4.1">
+<h3>
+<span class="header-section-number">2.4.1</span> One: the folding is written down, not solved for<a class="anchor" aria-label="anchor" href="#one-the-folding-is-written-down-not-solved-for"><i class="fas fa-link"></i></a>
+</h3>
+<p>The Miura-ori is a tessellation of congruent parallelograms <span class="citation">(<a href="references.html#ref-miura1985method">6</a>)</span>.
+Its flat vertex <span class="math inline">\((i, j)\)</span> sits at</p>
+<p><span class="math display">\[x = i\,a + (j \bmod 2)\, b \cos\alpha, \qquad y = j\, b \sin\alpha,\]</span></p>
+<p>where <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> are the cell side lengths and <span class="math inline">\(\alpha\)</span> its acute angle. The
+<span class="math inline">\((j \bmod 2)\)</span> term is the entire pattern: it makes the transverse crease lines
+zigzag with period two instead of running straight, which is what turns a plain
+parallelogram lattice into something that folds.</p>
+<p>The folded placement is obtained by <em>positing</em> a form and solving for the
+constants rather than by rotating facets about creases and hoping the result
+closes. Look for</p>
+<p><span class="math display">\[x = i L_x + (j \bmod 2)\, d_x, \qquad y = j L_y, \qquad z = (i \bmod 2)\, H .\]</span></p>
+<p>Two facet side vectors follow immediately, <span class="math inline">\(e_1 = (L_x, 0, \pm H)\)</span> for the
+horizontal edge of flat length <span class="math inline">\(a\)</span>, and <span class="math inline">\(e_2 = (\pm d_x, L_y, 0)\)</span> for the zigzag
+edge of flat length <span class="math inline">\(b\)</span>. Because both are shared by opposite sides, every facet
+is a parallelogram and therefore planar with no further conditions. Isometry
+then needs only the two edge lengths and the angle between them:</p>
+<p><span class="math display">\[L_x^2 + H^2 = a^2, \qquad d_x^2 + L_y^2 = b^2, \qquad L_x d_x = ab\cos\alpha .\]</span></p>
+<p>Three equations in four unknowns: a one-parameter family, which is the rigid
+folding. Writing <span class="math inline">\(L_x = a\cos\varphi\)</span> and <span class="math inline">\(H = a\sin\varphi\)</span> solves the first
+identically and leaves <span class="math inline">\(d_x = b\cos\alpha/\cos\varphi\)</span> and
+<span class="math inline">\(L_y = b\sqrt{1 - \cos^2\alpha/\cos^2\varphi}\)</span>.</p>
+<p><span class="math inline">\(L_y\)</span> is real only while <span class="math inline">\(\varphi \le \alpha\)</span>, and vanishes exactly at
+<span class="math inline">\(\varphi = \alpha\)</span>, which is the flat-folded state. So <span class="math inline">\(\varphi\)</span> runs on
+<span class="math inline">\([0, \alpha]\)</span> and the natural normalised parameter is <span class="math inline">\(\theta = \varphi/\alpha\)</span>.</p>
+<p><strong><span class="math inline">\(\theta\)</span> is a parameter, not an angle.</strong> It runs on <span class="math inline">\([0, 1]\)</span>: zero is the flat
+sheet and one is flat-folded. The dihedral angle <span class="math inline">\(\rho\)</span> at a crease is <em>derived</em>
+from it and is never a synonym for it — a distinction this project got wrong
+once and now states in three places.</p>
+</div>
+<div id="two-the-isometry-is-exact-not-converged" class="section level3" number="2.4.2">
+<h3>
+<span class="header-section-number">2.4.2</span> Two: the isometry is exact, not converged<a class="anchor" aria-label="anchor" href="#two-the-isometry-is-exact-not-converged"><i class="fas fa-link"></i></a>
+</h3>
+<p>Because the placement was derived by imposing edge lengths and facet angles, the
+isometry holds by construction rather than to a solver’s tolerance. That is a
+claim about algebra, and algebra is exactly the thing that might be wrong, so it
+is measured.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">worst_iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
+<span>                        <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fu">facet_isometry_error</span><span class="op">(</span><span class="va">p</span>, <span class="va">t</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code>facet_isometry_error()</code> compares <strong>all pairwise distances</strong> between a facet’s
+vertices, folded against flat, not just its edges: an implementation that
+preserved every edge of a parallelogram while shearing it would pass an edge
+test and would not be a rigid folding. Over the whole <span class="math inline">\(\theta\)</span> sweep the worst
+departure on this pattern is 0, which is floating-point
+noise on a closed form rather than a tolerance anyone chose.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:geom-pattern"></span>
+<img src="02-folding-geometry_files/figure-html/geom-pattern-1.png" alt="Two panels. The left panel is a flat Miura-ori crease pattern: a grid of congruent parallelograms whose vertical crease lines zigzag, with creases drawn in two colours and two line styles for mountain and valley. The right panel shows the same sheet folded into a corrugated surface, seen from above and to one side, with the near facets drawn over the far ones." width="90%"><p class="caption">
+Figure 2.1: The flat crease pattern and the same sheet folded. Mountain and valley creases are distinguished by colour and by line style together, so the distinction survives greyscale printing.
+</p>
+</div>
+<p>Panel A of Figure <a href="folding-geometry.html#fig:geom-pattern">2.1</a> is the answer key. Panel B is what a
+dimension-reduction method is shown. Everything in Part III is a measurement of
+the gap between them.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:geom-sweep"></span>
+<img src="02-folding-geometry_files/figure-html/geom-sweep-1.png" alt="Three panels showing the same Miura-ori sheet folded to increasing degrees, left to right. In the leftmost the sheet is nearly flat and wide; in the middle it is visibly corrugated; in the rightmost it has contracted to roughly half its width and the corrugations are deep. All three are drawn at the same scale." width="90%"><p class="caption">
+Figure 2.2: One pattern at three points of its one-parameter family. The sheet contracts in both directions as it folds; the flat chart behind it does not change at all.
+</p>
+</div>
+<p>Figure <a href="folding-geometry.html#fig:geom-sweep">2.2</a> is that family at three values of <span class="math inline">\(\theta\)</span>, drawn
+at one scale. Two things are visible and both matter later. The sheet contracts
+in <strong>both</strong> directions at once, which is why fold angle is a difficulty
+parameter rather than a nuisance: it moves the ambient geometry continuously
+while leaving the chart exactly where it was. And the contraction is not
+uniform — the far end of the range does most of it, which is why the <span class="math inline">\(\theta\)</span>
+grid in Part III is even in <span class="math inline">\(\theta\)</span> and uneven in everything a method cares
+about.</p>
+<p>The derivation above is for one family. Nothing in this book requires a second,
+and two candidates for one were withdrawn on evidence rather than dropped
+quietly; Chapter <a href="benchmarks.html#benchmarks">8</a> reports both as results. What a reader should
+take from that is the standard a folding has to meet here: a closed form, an
+exact isometry, and a fold that reaches every crease family. Two of the three are
+easy.</p>
+</div>
+<div id="three-what-folding-does-to-distance-along-the-surface" class="section level3" number="2.4.3">
+<h3>
+<span class="header-section-number">2.4.3</span> Three: what folding does to distance along the surface<a class="anchor" aria-label="anchor" href="#three-what-folding-does-to-distance-along-the-surface"><i class="fas fa-link"></i></a>
+</h3>
+<p>Nothing. That is the point, and it needs no further argument once the facets are
+congruent: a path on the sheet crosses the same facets in the same places at any
+<span class="math inline">\(\theta\)</span>, so its length is the same. Geodesic distance between two sample points
+is therefore exactly the distance between their positions in the flat chart,
+subject to one caveat that is stated in <code>geom-limits</code> rather than hidden here.</p>
+</div>
+<div id="four-what-folding-does-to-distance-through-space" class="section level3" number="2.4.4">
+<h3>
+<span class="header-section-number">2.4.4</span> Four: what folding does to distance through space<a class="anchor" aria-label="anchor" href="#four-what-folding-does-to-distance-through-space"><i class="fas fa-link"></i></a>
+</h3>
+<p>Here folding does a great deal, and the amount is exact.</p>
+<p>Take two points on opposite sides of a single crease, each at perpendicular
+distance <span class="math inline">\(d\)</span> from it and at the same position along it. Their chart distance is
+<span class="math inline">\(2d\)</span> at any fold angle. Their ambient distance, once the crease has closed to a
+dihedral angle <span class="math inline">\(\rho\)</span>, is <span class="math inline">\(2d\sin(\rho/2)\)</span>. So</p>
+<p><span class="math display">\[\frac{d_A}{d_U} = \sin(\rho/2),\]</span></p>
+<p>which depends on <span class="math inline">\(\rho\)</span> <strong>alone</strong>. Not on <span class="math inline">\(d\)</span>, not on where along the crease the
+pair sits. That independence is the substance of the claim; a ratio that drifted
+with distance would mean the relation was an approximation.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ratio_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">pi</span>, <span class="fl">0.05</span>, length.out <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">rho</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">1</span>, <span class="fl">7.3</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">P</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span> <span class="va">d</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="va">rho</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span>, <span class="fl">0</span>, <span class="va">d</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">cos</a></span><span class="op">(</span><span class="va">rho</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">Q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="op">-</span><span class="va">d</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="va">rho</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span>, <span class="fl">0</span>, <span class="va">d</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">cos</a></span><span class="op">(</span><span class="va">rho</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">P</span> <span class="op">-</span> <span class="va">Q</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">d</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="va">rho</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Over forty dihedral angles and three separations the worst departure from
+<span class="math inline">\(\sin(\rho/2)\)</span> is 0 — one unit in the last place, which
+is what “exact” means in double precision.</p>
+<p>A flat sheet has <span class="math inline">\(\rho = \pi\)</span> and contracts nothing. Every fold contracts, and
+since <span class="math inline">\(\sin(\rho/2) &lt; 1\)</span> for every <span class="math inline">\(\rho &lt; \pi\)</span>, <strong>ambient distance is strictly
+less than chart distance for every <span class="math inline">\(\theta &gt; 0\)</span>.</strong></p>
+</div>
+<div id="five-the-floor-under-strictly" class="section level3" number="2.4.5">
+<h3>
+<span class="header-section-number">2.4.5</span> Five: the floor under “strictly”<a class="anchor" aria-label="anchor" href="#five-the-floor-under-strictly"><i class="fas fa-link"></i></a>
+</h3>
+<p>That last sentence is false as written, and the chapter says so rather than
+leaving a reader to trip over it in Part III.</p>
+<p>Because <span class="math inline">\(1 - \sin(\rho/2) \approx (\pi - \rho)^2/8\)</span> near the flat state, the
+contraction is quadratic in the fold angle while machine epsilon is not. There
+is therefore a fold angle below which the contraction exists mathematically and
+is not representable.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gap</span>        <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="op">(</span><span class="va">pi</span> <span class="op">-</span> <span class="va">g</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span>          <span class="co"># g = pi - rho</span></span>
+<span><span class="va">floor_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fl">8</span> <span class="op">*</span> <span class="va">.Machine</span><span class="op">$</span><span class="va">double.eps</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">theta_min</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">THETA_GRID</span><span class="op">[</span><span class="va">THETA_GRID</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p>The predicted floor is 0 radians, and it behaves:
+<code>gap()</code> returns 0 at a fold angle of <span class="math inline">\(10^{-3}\)</span> and exactly
+0 at <span class="math inline">\(10^{-8}\)</span>. The smallest non-zero <span class="math inline">\(\theta\)</span> this book’s grid uses
+is 0.05, which is above the floor by a wide margin — and that margin is
+the only reason Part III may treat the contraction as strict.</p>
+</div>
+</div>
+<div id="geom-results" class="section level2" number="2.5">
+<h2>
+<span class="header-section-number">2.5</span> Results<a class="anchor" aria-label="anchor" href="#geom-results"><i class="fas fa-link"></i></a>
+</h2>
+<p>Three consequences follow, and they are the reason this chapter comes before the
+methods rather than after them.</p>
+<p><strong>The answer key is not what the methods reproduce.</strong> A method that consumes
+ambient distance is being asked to reproduce a configuration that folding has
+already contracted. Scoring it against the intrinsic chart is a legitimate
+question — it is the question of whether the method recovers the <em>surface</em> — but
+it is not the question the method’s loss function asks.</p>
+<p><strong>The exact answer scores badly on the wrong metric, provably.</strong> This deserves
+stating as a proposition rather than demonstrating with a simulation.</p>
+<blockquote>
+<p><strong>Proposition.</strong> Let stress be measured against ambient distance, and let the
+candidate embeddings be the exact chart <span class="math inline">\(\mathcal{U}\)</span> and the two-component
+PCA of the folded cloud. Then for every <span class="math inline">\(\theta &gt; 0\)</span>,
+<span class="math inline">\(\mathrm{stress}(\mathcal{U}) &gt; \mathrm{stress}(\mathrm{PCA})\)</span>.</p>
+</blockquote>
+<p>The proof is one line given step four. Ambient-referenced stress measures
+reproduction of <span class="math inline">\(d_A\)</span>; the contraction gives <span class="math inline">\(d_A &lt; d_U\)</span> strictly; and
+two-component PCA is by construction the least-squares-optimal <em>linear</em>
+approximant to that same ambient configuration <span class="citation">(<a href="references.html#ref-pearson1901lines">7</a>,<a href="references.html#ref-eckart1936approximation">8</a>)</span>. The exact unfolding is not competing to reproduce
+ambient distance and loses to something that is.</p>
+<p>An evaluator that ranks the true answer below a plainly wrong one is not
+malfunctioning. It is answering the question it was asked. Chapter
+<a href="evaluation.html#evaluation">9</a> measures how far that goes on real evaluators, and finds it
+goes further than this proposition requires.</p>
+<p><strong>Difficulty has a knob.</strong> Because <span class="math inline">\(\theta\)</span> is continuous and the contraction is
+monotone in it, every result in this book is a curve rather than a number. That
+is standing rule 2, and it is not a stylistic preference. Chapter
+<a href="benchmarks.html#benchmarks">8</a> reports a case where two method families swap places partway
+along the <span class="math inline">\(\theta\)</span> axis, so that the average over <span class="math inline">\(\theta\)</span> names a different
+winner from the curve at seven of its nine points. A benchmark with one fixed
+geometry cannot produce that observation, because it has nowhere to put it.</p>
+<p>This is the specific sense in which a crease pattern is a better instrument than
+a Swiss roll, and it is worth separating from the claim it is often confused
+with. It is not that folded sheets resemble real data more closely. It is that
+the truth is known <strong>and</strong> the difficulty is continuously adjustable, so a
+method’s performance is a function rather than a point, and the shape of that
+function is a property of the method. The critique that two-dimensional
+embeddings distort more than their users admit <span class="citation">(<a href="references.html#ref-chari2023specious">9</a>,<a href="references.html#ref-kobak2019art">10</a>)</span> is an argument this book answers with measurement, and
+measurement of that kind needs an axis to measure along.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:geom-curve"></span>
+<img src="02-folding-geometry_files/figure-html/geom-curve-1.png" alt="A line chart. The horizontal axis is the dihedral angle from zero to pi; the vertical axis is the ratio of ambient to geodesic distance, from zero to one. A smooth curve rises from the origin to one at pi, steeply at first and flattening as it approaches the right-hand end. Measured points lie exactly on the curve." width="90%"><p class="caption">
+Figure 2.3: The ambient-to-geodesic distance ratio across a single crease, against the dihedral angle. The curve is <span class="math inline">\(\sin(\rho/2)\)</span>; the points are measured from folded coordinates. A flat sheet sits at the right-hand end and contracts nothing.
+</p>
+</div>
+</div>
+<div id="geom-diagnostics" class="section level2" number="2.6">
+<h2>
+<span class="header-section-number">2.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#geom-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<p>The most useful material in this chapter is about two things this project got
+wrong. Both were caught, both are cheap to state, and both generalise past
+origami.</p>
+<div id="an-isometry-test-cannot-tell-a-fold-from-a-pleat" class="section level3" number="2.6.1">
+<h3>
+<span class="header-section-number">2.6.1</span> An isometry test cannot tell a fold from a pleat<a class="anchor" aria-label="anchor" href="#an-isometry-test-cannot-tell-a-fold-from-a-pleat"><i class="fas fa-link"></i></a>
+</h3>
+<p>A second pattern family, the Yoshimura, shipped for three days with a folding
+that was not one. It folded its horizontal creases and left every diagonal at
+<span class="math inline">\(\rho = \pi\)</span> — an accordion pleat wearing a diamond tessellation’s crease
+pattern.</p>
+<p>It passed the facet-isometry test perfectly, because <strong>a pleat is a rigid
+folding</strong>. It passed Kawasaki, because the flat pattern was never the problem.
+Neither test could have caught it: both are properties a correct implementation
+has, and a pleat has them too.</p>
+<p>What caught it was deriving the mountain/valley assignment from the <em>folded</em>
+dihedral angles and testing Maekawa on the result. A pleat leaves whole crease
+families flat, and a vertex with unfolded creases cannot balance:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">a</span>  <span class="op">&lt;-</span> <span class="fu">crease_assignment</span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
+<span><span class="va">iv</span> <span class="op">&lt;-</span> <span class="fu">interior_vertices</span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
+<span><span class="va">maekawa</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">iv</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">sel</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">creases</span><span class="op">$</span><span class="va">i</span> <span class="op">==</span> <span class="va">v</span> <span class="op">|</span> <span class="va">p</span><span class="op">$</span><span class="va">creases</span><span class="op">$</span><span class="va">j</span> <span class="op">==</span> <span class="va">v</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">a</span> <span class="op">!=</span> <span class="st">"B"</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a</span><span class="op">[</span><span class="va">sel</span><span class="op">]</span> <span class="op">==</span> <span class="st">"M"</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a</span><span class="op">[</span><span class="va">sel</span><span class="op">]</span> <span class="op">==</span> <span class="st">"V"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>On this Miura all 25 interior vertices satisfy
+<span class="math inline">\(\lvert M - V \rvert = 2\)</span>. On the pleat, twelve of sixteen
+failed.</p>
+</div>
+<div id="a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails" class="section level3" number="2.6.2">
+<h3>
+<span class="header-section-number">2.6.2</span> A test that a correct implementation passes is not a test a wrong one fails<a class="anchor" aria-label="anchor" href="#a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails"><i class="fas fa-link"></i></a>
+</h3>
+<p>That is the moral, and the same chapter has to record that this book learned it
+twice.</p>
+<p>The derived assignment above was itself wrong for four days, in a way Maekawa
+could not see. Maekawa counts labels at a vertex; it is therefore invariant
+under swapping every mountain for every valley, so it passes on a labelling, on
+that labelling’s exact inverse, and on a third that agrees with neither on half
+the creases. All three were live in this repository at once, and the one the
+figures drew was correct on half the interior creases.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">inverted</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="va">a</span> <span class="op">==</span> <span class="st">"M"</span>, <span class="st">"V"</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="va">a</span> <span class="op">==</span> <span class="st">"V"</span>, <span class="st">"M"</span>, <span class="st">"B"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">maekawa_inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">iv</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">sel</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">creases</span><span class="op">$</span><span class="va">i</span> <span class="op">==</span> <span class="va">v</span> <span class="op">|</span> <span class="va">p</span><span class="op">$</span><span class="va">creases</span><span class="op">$</span><span class="va">j</span> <span class="op">==</span> <span class="va">v</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">inverted</span> <span class="op">!=</span> <span class="st">"B"</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">inverted</span><span class="op">[</span><span class="va">sel</span><span class="op">]</span> <span class="op">==</span> <span class="st">"M"</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">inverted</span><span class="op">[</span><span class="va">sel</span><span class="op">]</span> <span class="op">==</span> <span class="st">"V"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The inverted labelling — every mountain a valley — satisfies Maekawa at
+25 of 25 interior vertices, which is all of
+them. The check that finally settled it computes the assignment a second time by
+an independent route, from facet normals oriented against the ambient frame
+rather than against the mesh’s own winding, and compares.</p>
+</div>
+<div id="a-first-order-flex-at-the-flat-state-proves-nothing" class="section level3" number="2.6.3">
+<h3>
+<span class="header-section-number">2.6.3</span> A first-order flex at the flat state proves nothing<a class="anchor" aria-label="anchor" href="#a-first-order-flex-at-the-flat-state-proves-nothing"><i class="fas fa-link"></i></a>
+</h3>
+<p>The third instance, recorded here because it is the same error in a different
+costume. At <span class="math inline">\(\theta = 0\)</span> every <span class="math inline">\(z\)</span> column of a pattern’s rigidity Jacobian
+vanishes, so the count of non-trivial infinitesimal flexes is <span class="math inline">\(V - 3\)</span> for <strong>any</strong>
+planar pattern whatsoever — including patterns with no rigid folding at all. A
+first-order flex at the flat state is a property of being flat, not of being
+foldable. Second-order analysis and a finite continuation are what decide, and
+Chapter <a href="benchmarks.html#benchmarks">8</a> records what they decided.</p>
+</div>
+</div>
+<div id="geom-limits" class="section level2" number="2.7">
+<h2>
+<span class="header-section-number">2.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#geom-limits"><i class="fas fa-link"></i></a>
+</h2>
+<div id="the-chart-is-the-geodesic-only-inside-a-convex-region" class="section level3" number="2.7.1">
+<h3>
+<span class="header-section-number">2.7.1</span> The chart is the geodesic only inside a convex region<a class="anchor" aria-label="anchor" href="#the-chart-is-the-geodesic-only-inside-a-convex-region"><i class="fas fa-link"></i></a>
+</h3>
+<p>Step three claimed that geodesic distance equals chart distance. That is true
+when the straight segment between two chart points stays on the paper, and a
+Miura’s unfolded outline is <strong>not convex</strong> — its edge is a zigzag with teeth. For
+a pair straddling a tooth the straight chart segment leaves the sheet, the true
+geodesic must detour, and the chart distance is a <em>lower bound</em> rather than an
+equality.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m_in</span>  <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0.6</span>, n <span class="op">=</span> <span class="fl">400L</span>, seed <span class="op">=</span> <span class="fl">1001L</span><span class="op">)</span></span>
+<span><span class="va">m_out</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0.6</span>, n <span class="op">=</span> <span class="fl">400L</span>, seed <span class="op">=</span> <span class="fl">1001L</span>, boundary <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">exit_in</span>  <span class="op">&lt;-</span> <span class="fu">chart_exit_fraction</span><span class="op">(</span><span class="va">m_in</span>,  <span class="va">p</span><span class="op">)</span></span>
+<span><span class="va">exit_out</span> <span class="op">&lt;-</span> <span class="fu">chart_exit_fraction</span><span class="op">(</span><span class="va">m_out</span>, <span class="va">p</span><span class="op">)</span></span></code></pre></div>
+<p><code>chart_exit_fraction()</code> measures how often it happens by sampling pairs and
+walking the segment between them. Drawing strictly inside a convex sub-rectangle
+gives an exit fraction of 0; including the boundary strip
+gives 0.013. Every artefact in this book that the answer key is
+read against is drawn the first way, and the producer that generates the
+irreducible-loss suite asserts the zero rather than trusting this paragraph.</p>
+</div>
+<div id="self-intersection" class="section level3" number="2.7.2">
+<h3>
+<span class="header-section-number">2.7.2</span> Self-intersection<a class="anchor" aria-label="anchor" href="#self-intersection"><i class="fas fa-link"></i></a>
+</h3>
+<p>Nothing in the algebra of step one prevents a folded placement from passing
+through itself, and a self-intersecting surface would invalidate every ambient
+distance measured on it.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gap_at</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.6</span>, <span class="fl">0.9</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fu">facet_gap</span><span class="op">(</span><span class="va">p</span>, <span class="va">t</span><span class="op">)</span><span class="op">$</span><span class="va">gap</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code>facet_gap()</code> computes the exact minimum distance between non-adjacent facets —
+polygon to polygon, analytically, not by sampling points on them. At <span class="math inline">\(\theta\)</span> of
+0.3, 0.6 and 0.9 it is 0.851,
+0.786 and 0.526: falling as the sheet
+closes, as it must, and positive throughout.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:geom-clearance"></span>
+<img src="02-folding-geometry_files/figure-html/geom-clearance-1.png" alt="A line chart. The horizontal axis is the folding parameter from zero to one; the vertical axis is the minimum distance between non-adjacent facets. The curve starts high at the left and falls steadily, approaching but not reaching zero at the right-hand end. A vertical dashed line near the right marks the grid's largest fold angle, where the clearance is still clearly positive." width="90%"><p class="caption">
+Figure 2.4: Minimum clearance between non-adjacent facets, against the folding parameter. The surface approaches itself as it folds and never touches; the dashed line marks the largest fold angle the benchmark grid uses.
+</p>
+</div>
+<p>Figure <a href="folding-geometry.html#fig:geom-clearance">2.4</a> is the whole range. The clearance falls
+smoothly and stays positive, and the largest <span class="math inline">\(\theta\)</span> the benchmark grid uses is
+marked: at 0.95 the sheet still has 0.396
+of clearance. That is the check behind an assumption every ambient distance in
+this book depends on, and it is a check rather than an argument because the
+algebra of step one does not forbid self-intersection — it simply does not
+produce one for this family in this range.</p>
+</div>
+<div id="sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is" class="section level3" number="2.7.3">
+<h3>
+<span class="header-section-number">2.7.3</span> Sampling, and what a finite sample of a zero-reach surface is<a class="anchor" aria-label="anchor" href="#sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is"><i class="fas fa-link"></i></a>
+</h3>
+<p>The reach remark in <code>geom-background</code> has a practical edge that belongs here.
+Every guarantee about recovering a manifold from a finite sample is stated in
+terms of the density of the sample relative to the reach <span class="citation">(<a href="references.html#ref-niyogi2008homology">5</a>)</span>,
+and a crease has reach zero, so no such guarantee is available at any sample
+size. What replaces it in this book is not a weaker theorem but a measurement:
+the sampled surface is checked for how close distant parts of it come, in units
+of the local spacing, and that ratio is reported alongside every result that
+depends on it. Isomap’s failure mode on tightly folded surfaces is precisely a
+short circuit between sheets that the sampling cannot distinguish
+<span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">11</a>,<a href="references.html#ref-balasubramanian2002isomap">12</a>)</span>, and the quantity that
+predicts it is a property of the sample rather than of the surface.</p>
+</div>
+<div id="one-family" class="section level3" number="2.7.4">
+<h3>
+<span class="header-section-number">2.7.4</span> One family<a class="anchor" aria-label="anchor" href="#one-family"><i class="fas fa-link"></i></a>
+</h3>
+<p>This book ships one pattern family that folds. Two others were specified and
+both were withdrawn on evidence, which Chapter <a href="benchmarks.html#benchmarks">8</a> reports as
+results rather than as gaps. A benchmark built on a single family cannot support
+claims about pattern variety, and this book does not make any.</p>
+</div>
+<div id="what-the-chapter-does-not-settle" class="section level3" number="2.7.5">
+<h3>
+<span class="header-section-number">2.7.5</span> What the chapter does not settle<a class="anchor" aria-label="anchor" href="#what-the-chapter-does-not-settle"><i class="fas fa-link"></i></a>
+</h3>
+<p>Whether a folded sheet is a <em>good</em> model of the manifolds that arise in real
+data is not a geometric question and is not answered here. Chapter
+<a href="comparison.html#comparison">11</a> measures what this benchmark discriminates that the classical
+ones do not, and Chapter <a href="application.html#application">12</a> takes the result to a real dataset.
+The honest position in between is that a crease pattern is a manifold whose
+truth is known exactly, which is a property no real dataset has and no
+previously used benchmark provides.</p>
+</div>
+</div>
+<div id="geom-reproduce" class="section level2" number="2.8">
+<h2>
+<span class="header-section-number">2.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#geom-reproduce"><i class="fas fa-link"></i></a>
+</h2>
+<p>Every claim above is an assertion in the test suite, and the suite runs on every
+push:</p>
 <ul>
-<li>Intrinsic versus ambient isometry — the distinction the whole book turns on.
-A rigid folding preserves the <em>path</em> metric exactly. It is not an isometry of
-the <em>ambient</em> metric: across a crease of dihedral angle <span class="math inline">\(\rho\)</span>, the ratio of
-ambient to geodesic distance for a symmetric pair is exactly <span class="math inline">\(\sin(\rho/2)\)</span>,
-so folding strictly contracts ambient distance for every <span class="math inline">\(\theta &gt; 0\)</span>.</li>
-<li>The strictness has a floor in floating point, and the chapter states it rather
-than leaving a reader to trip over it. Because <span class="math inline">\(1 - \sin(\rho/2)\)</span> goes like
-<span class="math inline">\((\pi-\rho)^2\)</span>, the contraction stops being representable in double precision
-while the fold angle is still many orders of magnitude above machine epsilon.
-Compute that threshold in the chunk rather than quoting it, compare it against
-the smallest <span class="math inline">\(\theta\)</span> on the grid, and note what it implies for the
-vanishing-<span class="math inline">\(\theta\)</span> end of every curve in Part III.</li>
-<li>Developability and why a folded sheet has zero Gaussian curvature on facets.</li>
-<li>Curvature is <strong>not</strong> concentrated at the vertices, and the chapter argues
-against that reading rather than merely avoiding it — it is the natural wrong
-intuition. A folded flat sheet has vertex angle sums of exactly <span class="math inline">\(2\pi\)</span>, so
-discrete Gaussian curvature is identically zero; were it otherwise the
-isometry claim would collapse. What concentrates on the creases is the
-<em>extrinsic</em> second fundamental form, as a measure on the 1-skeleton, and the
-consequence that matters for manifold learning is that the <strong>reach is exactly
-zero</strong>.</li>
-<li>Rigid vs. non-rigid folding; why only rigid folding preserves the isometry we rely on.</li>
-<li>Maekawa’s theorem: <span class="math inline">\(|M - V| = 2\)</span> at every interior vertex of a flat-foldable pattern.</li>
-<li>Kawasaki’s theorem: alternating angle sums at an interior vertex are equal.
-Say plainly that the attribution history here is tangled: Kawasaki 1989,
-Justin 1986 and Murata 1966 have no resolvable identifiers between them, and
-Hull’s <em>Origametry</em> is the honest citation until one does.</li>
-<li>Boxed aside, one page, labelled background: the Huzita–Hatori axioms.</li>
 <li>
-<strong>Proposition (the stress inversion).</strong> Ambient-referenced stress measures
-reproduction of <span class="math inline">\(d_A\)</span>; the contraction result above gives <span class="math inline">\(d_A &lt; d_U\)</span> strictly
-for every <span class="math inline">\(\theta &gt; 0\)</span>; two-component PCA is the least-squares-optimal linear
-approximant to that same ambient configuration. Therefore
-<span class="math inline">\(\mathrm{stress}(\mathcal{U}) &gt; \mathrm{stress}(\mathrm{PCA})\)</span> — the exact
-answer key scores worse than a plainly wrong embedding. One line, no
-simulation. It arrives here rather than in Chapter <a href="evaluation.html#evaluation">9</a> because
-it is a theorem about a definition, and spending grid cells to demonstrate a
-definition invites exactly the objection it should be immune to.</li>
-<li>Piecewise-flat surfaces sit <em>outside</em> the smoothness assumptions of
-manifold-learning theory. Stated as realism, not as a caveat. The transfer
-argument is by <strong>disqualification</strong>, and it asserts nothing about biology: a
-method that fails where an exact answer exists has no claim on a problem
-where none does.</li>
+<code>tests/testthat/test-folding.R</code> — facet isometry across the <span class="math inline">\(\theta\)</span> sweep and
+the <span class="math inline">\(\alpha\)</span> range, no self-intersection, the dihedral contract.</li>
+<li>
+<code>tests/testthat/test-patterns.R</code> — congruence, Kawasaki, Maekawa, vertex
+degree.</li>
+<li>
+<code>tests/testthat/test-crease-assignment.R</code> — the mountain/valley derivation
+against an independent criterion, and the demonstration that Maekawa cannot
+discriminate.</li>
+<li>
+<code>tests/testthat/test-contraction.R</code> — <span class="math inline">\(\sin(\rho/2)\)</span> and the floating-point
+floor.</li>
 </ul>
+<p>Run them with <code>Rscript tests/testthat.R</code> from the repository root.</p>
+</div>
+<div id="geom-reading" class="section level2" number="2.9">
+<h2>
+<span class="header-section-number">2.9</span> Further reading<a class="anchor" aria-label="anchor" href="#geom-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Hull’s <em>Origametry</em> <span class="citation">(<a href="references.html#ref-hull2020origametry">3</a>)</span> is the single best entry point to the
+mathematics of flat-foldability and is the reference for both classical theorems
+above. Demaine and O’Rourke <span class="citation">(<a href="references.html#ref-demaine2007folding">2</a>)</span> is the standard treatment of
+the computational side, and Lang <span class="citation">(<a href="references.html#ref-lang2011origami">1</a>)</span> of design. Miura’s original
+report <span class="citation">(<a href="references.html#ref-miura1985method">6</a>)</span> introduces the pattern this book uses; Schenk and Guest
+<span class="citation">(<a href="references.html#ref-schenk2013geometry">13</a>)</span> give the mechanics of folded shell structures and are the
+natural next step for a reader interested in the surfaces rather than the
+sheets.</p>
+<p>On the manifold-learning side, Federer’s reach <span class="citation">(<a href="references.html#ref-federer1959curvature">4</a>)</span> and its
+role in sampling guarantees <span class="citation">(<a href="references.html#ref-niyogi2008homology">5</a>)</span> are what the zero-reach remark
+above refers to, and Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2007nonlinear">14</a>)</span> is the textbook
+treatment of the methods Part II takes up.</p>
+
+</div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
@@ -316,7 +795,47 @@ where none does.</li>
 <div class="next"><a href="generative.html"><span class="header-section-number">3</span> Folding as a generative model</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#folding-geometry"><span class="header-section-number">2</span> The geometry of folding</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#folding-geometry"><span class="header-section-number">2</span> The geometry of folding</a></li>
+<li><a class="nav-link" href="#geom-question"><span class="header-section-number">2.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#geom-setup"><span class="header-section-number">2.2</span> Setup</a></li>
+<li>
+<a class="nav-link" href="#geom-background"><span class="header-section-number">2.3</span> Background</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#what-a-crease-pattern-is-and-what-it-is-not"><span class="header-section-number">2.3.1</span> What a crease pattern is, and what it is not</a></li>
+<li><a class="nav-link" href="#rigid-folding"><span class="header-section-number">2.3.2</span> Rigid folding</a></li>
+<li><a class="nav-link" href="#two-kinds-of-isometry"><span class="header-section-number">2.3.3</span> Two kinds of isometry</a></li>
+<li><a class="nav-link" href="#curvature-and-where-it-is-not"><span class="header-section-number">2.3.4</span> Curvature, and where it is not</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#geom-core"><span class="header-section-number">2.4</span> The isometry, in five steps</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#one-the-folding-is-written-down-not-solved-for"><span class="header-section-number">2.4.1</span> One: the folding is written down, not solved for</a></li>
+<li><a class="nav-link" href="#two-the-isometry-is-exact-not-converged"><span class="header-section-number">2.4.2</span> Two: the isometry is exact, not converged</a></li>
+<li><a class="nav-link" href="#three-what-folding-does-to-distance-along-the-surface"><span class="header-section-number">2.4.3</span> Three: what folding does to distance along the surface</a></li>
+<li><a class="nav-link" href="#four-what-folding-does-to-distance-through-space"><span class="header-section-number">2.4.4</span> Four: what folding does to distance through space</a></li>
+<li><a class="nav-link" href="#five-the-floor-under-strictly"><span class="header-section-number">2.4.5</span> Five: the floor under “strictly”</a></li>
+</ul>
+</li>
+<li><a class="nav-link" href="#geom-results"><span class="header-section-number">2.5</span> Results</a></li>
+<li>
+<a class="nav-link" href="#geom-diagnostics"><span class="header-section-number">2.6</span> Diagnostics</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#an-isometry-test-cannot-tell-a-fold-from-a-pleat"><span class="header-section-number">2.6.1</span> An isometry test cannot tell a fold from a pleat</a></li>
+<li><a class="nav-link" href="#a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails"><span class="header-section-number">2.6.2</span> A test that a correct implementation passes is not a test a wrong one fails</a></li>
+<li><a class="nav-link" href="#a-first-order-flex-at-the-flat-state-proves-nothing"><span class="header-section-number">2.6.3</span> A first-order flex at the flat state proves nothing</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#geom-limits"><span class="header-section-number">2.7</span> Where it fails</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#the-chart-is-the-geodesic-only-inside-a-convex-region"><span class="header-section-number">2.7.1</span> The chart is the geodesic only inside a convex region</a></li>
+<li><a class="nav-link" href="#self-intersection"><span class="header-section-number">2.7.2</span> Self-intersection</a></li>
+<li><a class="nav-link" href="#sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is"><span class="header-section-number">2.7.3</span> Sampling, and what a finite sample of a zero-reach surface is</a></li>
+<li><a class="nav-link" href="#one-family"><span class="header-section-number">2.7.4</span> One family</a></li>
+<li><a class="nav-link" href="#what-the-chapter-does-not-settle"><span class="header-section-number">2.7.5</span> What the chapter does not settle</a></li>
+</ul>
+</li>
+<li><a class="nav-link" href="#geom-reproduce"><span class="header-section-number">2.8</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#geom-reading"><span class="header-section-number">2.9</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
