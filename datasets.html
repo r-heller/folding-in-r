@@ -133,6 +133,19 @@ sheets and a product of two Swiss rolls. Provenance:
 <p><code>data/processed/e1-difficulty.rds</code>, <code>e1-controlled.rds</code>, <code>e1-armB.rds</code> — the
 three arms of E1, which retired the book’s original headline claim. Provenance:
 <code>scripts/experiment-e1.R</code>.</p>
+<p><code>data/processed/part2-sweeps.rds</code> — the same cell as the main grid, swept over
+neighbourhood size instead of over noise. This is where Chapters
+<a href="linear.html#linear">4</a>, <a href="geodesic.html#geodesic">5</a> and <a href="neighbor.html#neighbor">6</a> answer how much of a
+method’s result is the method and how much is the <span class="math inline">\(k\)</span> it was handed. Provenance:
+<code>scripts/run-part2-sweeps.R</code>.</p>
+<p><code>data/processed/classic-grid.rds</code> — the Swiss roll, the S-curve and the severed
+sphere, scored by the same function, the same metrics and the same floor as the
+crease patterns. Chapter <a href="comparison.html#comparison">11</a> needs it: a comparison in which the
+two sides are scored by two code paths is not a comparison. Provenance:
+<code>scripts/run-classic-grid.R</code>.</p>
+<p><code>data/processed/evaluator-audit-pilot.rds</code> — the narrow pilot that decided
+whether Chapter <a href="evaluation.html#evaluation">9</a> had a subject. Provenance:
+<code>scripts/run-evaluator-audit.R --pilot</code>.</p>
 <p><code>data/processed/seed-budget.rds</code> — the within-cell spread of every method, and
 the seed count each one needs before a difference the size of the pre-registered
 reportable difference (<code>MIN_REPORTABLE</code>, fixed in <code>R/selection.R</code>) can be
@@ -385,7 +398,7 @@ keeps it from being read as a ranking.</li>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-30.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">
