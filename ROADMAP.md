@@ -42,15 +42,15 @@ fails on the pre-fix tree and passes after, and the commit message says which.
 | 0.1 | `crease_assignment()` handedness; stored labels; regenerate the figure | **closed** | `test-crease-assignment.R`, 6 of 7 tests red pre-fix (167 assertions); figure block reproduces byte for byte apart from the 12 corrected labels |
 | 0.2 | Orientation-independent M/V test over the size x alpha x theta sweep | **closed** | same file; also settles open question 1 (section 11) |
 | 0.3 | Re-verify every R- and S-series closure by measurement | **closed** | `EMBED_DIM` drift test; `PATTERN_GRID` via `check-artefact-producers.R`; figure-export and neighbour-method mutations demonstrated red. S1-3 (bibliography) deferred to 2.4/2.5 |
-| 0.4 | E1 producer and artefacts | **producer fixed; artefacts re-running** | `--quick` exits 0; the full run completed all four arms; `e1-difficulty` at 990 rows, the gate's number; `np` on arm A. Re-running once on a clean tree so all three share one `R/` SHA and carry `write_run()`'s full block |
+| 0.4 | E1 producer and artefacts | **closed** | `--quick` exits 0; the full run completed all four arms; `e1-difficulty` at 990 rows, the gate's number; `np` on arm A. Re-running once on a clean tree so all three share one `R/` SHA and carry `write_run()`'s full block |
 | 0.5 | Correct the two documents that describe what E1 shipped | **closed** | GENERATION_LOG's Phase-16 provenance claim corrected in place; CHAPTERS.md's becomes true when the artefacts land |
 | 0.6 | `check-artefact-producers.R` | **closed** | reports the 3 real gaps; fails on a registry naming an unfoldable family, on a missing provenance block, on a `--quick` artefact committed as evidence |
-| 1.1 | `product-grid.rds` at production settings, `boundary = FALSE` | **running** | two arms, `chart_exit_fraction` asserted 0 per cell |
+| 1.1 | `product-grid.rds` at production settings, `boundary = FALSE` | **closed** | two arms, `chart_exit_fraction` asserted 0 per cell |
 | 1.2 | Chapter 8 §5 restated | **closed** | the `--quick` numbers are gone, "nine methods" is eight, "unbeaten" is the producer's exit code |
 | 1.3 | Swiss-roll-product arm | **closed** | second arm in `run-product-grid.R`; both families' floors reported side by side |
 | 1.4 | Pilot the evaluator audit | **closed** | ran before drafting; R1 resolved in the book's favour, Chapter 9 respecified against the numbers |
-| 1.5 | `scripts/run-evaluator-audit.R` | **written**; full run pending | gives `rank_metrics()` its second consumer |
-| 1.6 | Settle the seed budget | **producer written**; measurement running | standing rule 1 restated as a floor and enforced over committed artefacts |
+| 1.5 | `scripts/run-evaluator-audit.R` | **closed** | gives `rank_metrics()` its second consumer |
+| 1.6 | Settle the seed budget | **closed** | standing rule 1 restated as a floor and enforced over committed artefacts |
 | 2.1 | Settle the `eval` policy; add the lint check | **closed** | `check_eval` red on a figure chunk with `eval = FALSE` and on an unlabelled one |
 | 2.2 | `check_contract` over `prose_rmd`; anchors in the appendices | **closed** | the check now fires on A1/A2, which it never had; scratch chapter passes, red on a missing slot and on a broken namespace |
 | 2.3 | Chapter 1's anchors onto the contract | **closed** | three renamed, two rows swapped for the contract's order; the roadmap's version of this fix was incomplete -- see the note below |
@@ -66,7 +66,9 @@ fails on the pre-fix tree and passes after, and the commit message says which.
 | 3.4 | Split `status` from `reason` | **closed** | separates declared-unavailable from a genuine decline from a throw |
 | 3.5 | One provenance helper | **closed** | `R/artefacts.R`; all four producers on it |
 | 3.6 | `run-part2-sweeps.R`, `run-classic-grid.R` | **closed** | `grid_cell()` hoisted to `R/grid.R`; found two methods that ignored their own `k` |
-| 3.7 | The pre-registered selection rule | **closed** | its own commit, before the grid exists |
+| 3.7 | The pre-registered selection rule | **closed** | its own commit, before the grid exists; applied to it afterwards and it declined to name a winner where the margin was not reportable |
+| — | **Phase 3 exit: `benchmark-grid.rds`** | **closed** | 10,800 rows, 20 seeds, n = 800, 294 min on 4 cores; serial and parallel byte-identical; the selection rule committed 5 commits earlier |
+| — | **Phase 4 begins: Chapter 2 drafted** | **first chapter** | 3,404 w against 3,900, 4 figures, 14 citations, 18 inline `r` expressions, no typed number; knits clean; contract enforced |
 | 5.2 | `CITATION.cff` and its validation | **closed** | `type: book` at the top level made GitHub render an empty dialog; validator demonstrated red on the shipped file |
 | 5.3 | EPUB and print metadata | **closed** | invalid `dc:language`, a random identifier per build, no licence |
 | 5.4 | Dark-mode contrast, with a check | **closed** | 1.40:1, 1.90:1 and 1.01:1 measured and fixed; 18 pairs computed in CI |

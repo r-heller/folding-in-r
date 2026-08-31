@@ -116,21 +116,39 @@ heading_ids <- function(f, what) {
     return(NULL)
   }
   incode <- fence_mask(lines)
-  anchor_on <- function(l) {
-    m <- regmatches(l, regexpr("\\{#[^} \t]+", l))
-    if (length(m)) sub("^\\{#", "", m) else NA_character_
-  }
 
-  # The mnemonic comes from the chapter's H1 anchor, not from the first H2.
-  # Deriving it by stripping a trailing "-word" off the first section anchor
-  # cannot tell `intro-answer-key` (mnemonic `intro`) from `folding-geometry-
-  # question` (mnemonic `folding-geometry`): one strips too little and the other
-  # too much, and there is no regex that gets both. The H1 says which it is.
+  # The mnemonic is the prefix every section anchor shares.
+  #
+  # Two earlier rules both failed, and on the same chapters. Stripping a trailing
+  # "-word" off the first anchor cannot tell `intro-answer-key` (mnemonic
+  # `intro`) from `folding-geometry-question` (`folding-geometry`). Taking the
+  # H1's anchor instead is wrong the other way: the specification pairs
+  # `{#folding-geometry}` with `geom-`, `{#comparison}` with `comp-` and
+  # `{#linear}` with `lin-`, deliberately, because a section anchor is typed by
+  # hand far more often than a chapter anchor.
+  #
+  # What the rule is actually for is pandoc id collision -- twelve headings
+  # called "Results" silently renumber each other's cross-references. So the
+  # mnemonic is derived from the anchors themselves, as their longest common
+  # prefix ending in "-", and check_anchors() enforces what matters: that there
+  # IS one, and that no two chapters have chosen the same one.
   h1 <- which(grepl("^#\\s+\\S", lines) & !incode)
-  mn <- if (length(h1)) anchor_on(lines[h1[1]]) else NA_character_
 
   h2 <- which(grepl("^##\\s+\\S", lines) & !incode)
   ids <- vapply(lines[h2], anchor_on, character(1), USE.NAMES = FALSE)
+
+  known <- ids[!is.na(ids)]
+  mn <- if (!length(known)) NA_character_ else if (length(known) == 1L) {
+    sub("-[^-]+$", "", known)
+  } else {
+    parts <- strsplit(known, "-", fixed = TRUE)
+    n <- min(lengths(parts)) - 1L                # never the whole anchor
+    keep <- 0L
+    while (keep < n && length(unique(vapply(parts, function(x) x[keep + 1L],
+                                            character(1)))) == 1L) keep <- keep + 1L
+    if (keep == 0L) NA_character_
+    else paste(parts[[1]][seq_len(keep)], collapse = "-")
+  }
   list(lines = lines, h1 = h1, mn = mn, h2 = h2, ids = ids)
 }
 
@@ -144,6 +162,13 @@ heading_ids <- function(f, what) {
 #
 # Namespacing is the whole point: twelve headings called "Results" collide in
 # pandoc and silently renumber each other's cross-references.
+anchor_on <- function(l) {
+  m <- regmatches(l, regexpr("\\{#[^} \t]+", l))
+  if (length(m)) sub("^\\{#", "", m) else NA_character_
+}
+
+MNEMONIC <- list()
+
 check_anchors <- function(f) {
   g <- heading_ids(f, "anchors")
   if (is.null(g)) return(invisible())
@@ -155,16 +180,21 @@ check_anchors <- function(f) {
   for (l in g$h2[is.na(g$ids)]) {
     err(f, l, "level-2 heading with no {#anchor}; every section is a cross-reference target")
   }
-  if (is.na(g$mn)) {
-    err(f, if (length(g$h1)) g$h1[1] else 1,
-        "the chapter's level-1 heading carries no {#anchor}; every section anchor is namespaced under it and bookdown names the page after it")
-    return(invisible())
-  }
   ids <- g$ids[!is.na(g$ids)]
   if (!length(ids)) return(invisible())
 
-  for (b in ids[!startsWith(ids, paste0(g$mn, "-"))]) {
-    err(f, 1, sprintf("anchor '%s' is not in this chapter's '%s-' namespace", b, g$mn))
+  if (is.na(g$mn)) {
+    err(f, g$h2[1], sprintf(
+      "the section anchors share no namespace (%s). Twelve headings called \"Results\" collide in pandoc and silently renumber each other's cross-references, which is what the prefix prevents.",
+      paste(utils::head(ids, 4), collapse = ", ")))
+    return(invisible())
+  }
+  MNEMONIC[[f]] <<- g$mn
+
+  # The H1 must be anchored too: bookdown names the page after it and every
+  # \@ref() to the chapter resolves against it.
+  if (is.na(anchor_on(g$lines[g$h1[1]]))) {
+    err(f, g$h1[1], "the chapter's level-1 heading carries no {#anchor}; bookdown names the page after it")
   }
 }
 
@@ -355,6 +385,16 @@ targets <- collect_targets(all_rmd)
 
 for (f in prose_rmd) check_typed_numbers(f)
 for (f in prose_rmd) check_anchors(f)
+
+# Two chapters cannot share a mnemonic: that is the collision the namespace
+# exists to prevent, and it is invisible from inside either file.
+local({
+  mn <- unlist(MNEMONIC)
+  for (d in unique(mn[duplicated(mn)])) {
+    err(paste(names(mn)[mn == d], collapse = " + "), 1,
+        sprintf("both use the '%s-' anchor namespace; pandoc will collide their sections", d))
+  }
+})
 for (f in body_rmd)  check_contract(f)
 for (f in all_rmd)   check_fig_alt(f)
 for (f in all_rmd)   check_eval(f)

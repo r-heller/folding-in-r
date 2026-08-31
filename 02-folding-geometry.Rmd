@@ -1,48 +1,547 @@
 # The geometry of folding {#folding-geometry}
 
-*What makes a crease pattern a valid manifold?*
+*What does folding preserve, and what does it destroy?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+## What this chapter answers {#geom-question}
 
-- Intrinsic versus ambient isometry — the distinction the whole book turns on.
-  A rigid folding preserves the *path* metric exactly. It is not an isometry of
-  the *ambient* metric: across a crease of dihedral angle $\rho$, the ratio of
-  ambient to geodesic distance for a symmetric pair is exactly $\sin(\rho/2)$,
-  so folding strictly contracts ambient distance for every $\theta > 0$.
-- The strictness has a floor in floating point, and the chapter states it rather
-  than leaving a reader to trip over it. Because $1 - \sin(\rho/2)$ goes like
-  $(\pi-\rho)^2$, the contraction stops being representable in double precision
-  while the fold angle is still many orders of magnitude above machine epsilon.
-  Compute that threshold in the chunk rather than quoting it, compare it against
-  the smallest $\theta$ on the grid, and note what it implies for the
-  vanishing-$\theta$ end of every curve in Part III.
-- Developability and why a folded sheet has zero Gaussian curvature on facets.
-- Curvature is **not** concentrated at the vertices, and the chapter argues
-  against that reading rather than merely avoiding it — it is the natural wrong
-  intuition. A folded flat sheet has vertex angle sums of exactly $2\pi$, so
-  discrete Gaussian curvature is identically zero; were it otherwise the
-  isometry claim would collapse. What concentrates on the creases is the
-  *extrinsic* second fundamental form, as a measure on the 1-skeleton, and the
-  consequence that matters for manifold learning is that the **reach is exactly
-  zero**.
-- Rigid vs. non-rigid folding; why only rigid folding preserves the isometry we rely on.
-- Maekawa's theorem: $|M - V| = 2$ at every interior vertex of a flat-foldable pattern.
-- Kawasaki's theorem: alternating angle sums at an interior vertex are equal.
-  Say plainly that the attribution history here is tangled: Kawasaki 1989,
-  Justin 1986 and Murata 1966 have no resolvable identifiers between them, and
-  Hull's *Origametry* is the honest citation until one does.
-- Boxed aside, one page, labelled background: the Huzita–Hatori axioms.
-- **Proposition (the stress inversion).** Ambient-referenced stress measures
-  reproduction of $d_A$; the contraction result above gives $d_A < d_U$ strictly
-  for every $\theta > 0$; two-component PCA is the least-squares-optimal linear
-  approximant to that same ambient configuration. Therefore
-  $\mathrm{stress}(\mathcal{U}) > \mathrm{stress}(\mathrm{PCA})$ — the exact
-  answer key scores worse than a plainly wrong embedding. One line, no
-  simulation. It arrives here rather than in Chapter \@ref(evaluation) because
-  it is a theorem about a definition, and spending grid cells to demonstrate a
-  definition invites exactly the objection it should be immune to.
-- Piecewise-flat surfaces sit *outside* the smoothness assumptions of
-  manifold-learning theory. Stated as realism, not as a caveat. The transfer
-  argument is by **disqualification**, and it asserts nothing about biology: a
-  method that fails where an exact answer exists has no claim on a problem
-  where none does.
+A sheet of paper folded along creases is a surface in space. Flattened out again
+it is a region of the plane. The two are the same paper, and that is the whole
+of this book's method: the flat region is not a good approximation to the folded
+surface's true two-dimensional structure, it *is* that structure, written down
+in closed form before any data are generated.
+
+This chapter establishes what that sameness does and does not mean. Folding
+preserves every distance measured **along** the surface and destroys a great
+many measured **through** the space around it, and almost every difficulty a
+dimension-reduction method has with a folded sheet is a consequence of that one
+sentence. A method sees the second kind of distance and is scored against the
+first.
+
+Nothing here is asserted. Every claim in this chapter is a check in
+`tests/testthat/`, and every number is computed while the page is built.
+
+## Setup {#geom-setup}
+
+```{r geom-setup-chunk, echo=TRUE}
+p <- miura_ori(nx = 6L, ny = 6L, alpha = pi / 3)
+f <- fold(p, theta = 0.6)
+```
+
+`miura_ori()` returns a flat crease pattern; `fold()` places it in space at a
+folding parameter $\theta$. Both are in `R/`, sourced when this book renders,
+and the [notation appendix](#notation) fixes the symbols.
+
+## Background {#geom-background}
+
+### What a crease pattern is, and what it is not
+
+A crease pattern is a planar straight-line graph on a region of paper: vertices,
+straight creases between them, and the facets those creases enclose. It carries
+one more piece of information per crease, an **assignment** — mountain or valley
+— which says which way the paper turns there.
+
+The literature on origami mathematics is largely about which patterns fold and
+how to design one that folds to a given shape [@lang2011origami;
+@demaine2007folding]. This book needs almost none of that. It needs one family
+that provably folds, and it needs the folding written as a map it can evaluate
+at any $\theta$.
+
+```{block, type='boxinfo'}
+**Not the Huzita–Hatori axioms.** A reader who has met origami mathematics
+before will expect the construction axioms — the seven operations that say which
+points and lines a folder can produce with a sequence of folds. They are not
+what makes a crease pattern a manifold, and they play no part in this book. They
+describe what can be *constructed*; the question here is what a given pattern,
+however obtained, *is* once folded. Hull's *Origametry* [@hull2020origametry]
+covers both and is the place to start if the constructive side is what you came
+for.
+```
+
+### Rigid folding
+
+The foldings this book uses are **rigid**: the facets stay flat and unstretched,
+and all the motion happens at the creases. That is a strong restriction and it
+is the source of everything that follows. A folding that let facets bend would
+still produce a surface, but its flat pattern would no longer be its unfolding,
+and the answer key would be gone.
+
+Two classical conditions constrain which flat patterns can fold flat at all. At
+every interior vertex, **Maekawa's theorem** says the numbers of mountain and
+valley creases differ by exactly two, and **Kawasaki's theorem** says the
+alternating sum of the sector angles around the vertex is zero
+[@hull2020origametry]. Both are necessary and neither is sufficient. Chapter
+\@ref(benchmarks) returns to how little they guarantee; this chapter uses them
+as checks rather than as foundations, which is the only honest way to use a
+necessary condition.
+
+The attribution here is tangled and it is better to say so than to pick a side.
+Kawasaki's condition appears independently in work by Justin and by Murata, and
+no citation resolves cleanly to a single first statement. *Origametry* is the
+honest reference until one does.
+
+### Two kinds of isometry
+
+The word *isometry* does two jobs and the difference between them is this book's
+crux.
+
+An **intrinsic** isometry preserves distances measured along the surface — the
+length of the shortest path an ant could walk without leaving the paper. Rigid
+folding is an intrinsic isometry, exactly and by construction: the facets do not
+stretch, so a path drawn on the flat sheet has the same length after folding.
+
+An **ambient** isometry preserves distances measured through the surrounding
+space — straight lines through the air. Folding is emphatically *not* an ambient
+isometry. Bring two points on either side of a crease together by folding, and
+the straight-line distance between them collapses while the path along the paper
+does not change at all.
+
+Every method in Part II consumes ambient distance or something built from it.
+The answer key is intrinsic. That mismatch is not a flaw in the benchmark; it is
+the benchmark's subject.
+
+### Curvature, and where it is not
+
+The natural wrong intuition about a folded sheet is that its curvature has been
+pushed into the vertices. It is worth writing against rather than merely
+avoiding, because it is wrong in a way that would undermine the whole
+construction if it were right.
+
+Discrete Gaussian curvature at a vertex of a polyhedral surface is its angle
+defect: $2\pi$ minus the sum of the sector angles meeting there. For a folded
+flat sheet those angles are the flat pattern's angles, unchanged by folding, and
+they sum to exactly $2\pi$ because the vertex was an interior point of a flat
+piece of paper. **The Gaussian curvature is identically zero, at every vertex
+and on every facet.** Were it otherwise the sheet would not be developable and
+the flat pattern would not be its unfolding.
+
+What does concentrate on the creases is *extrinsic*: the second fundamental
+form, which is a measure supported on the one-skeleton rather than a function.
+The surface is intrinsically flat and extrinsically as bent as one likes.
+
+For manifold learning the consequence that matters is a different quantity
+entirely. The **reach** of a submanifold [@federer1959curvature] is the largest
+distance within which every point of the ambient space has a unique nearest
+point on the surface. Sampling theory for manifold learning is generally stated
+in terms of it [@niyogi2008homology], and a crease has reach exactly zero: a
+point just outside the fold is equidistant from both facets. So the standard
+sampling guarantees do not apply here at all — not weakly, not approximately.
+This book's manifolds sit outside the hypotheses of the theory usually invoked
+to justify the methods being tested on them, which is worth knowing before Part
+III reports that some of those methods struggle.
+
+## The isometry, in five steps {#geom-core}
+
+### One: the folding is written down, not solved for
+
+The Miura-ori is a tessellation of congruent parallelograms [@miura1985method].
+Its flat vertex $(i, j)$ sits at
+
+$$x = i\,a + (j \bmod 2)\, b \cos\alpha, \qquad y = j\, b \sin\alpha,$$
+
+where $a$ and $b$ are the cell side lengths and $\alpha$ its acute angle. The
+$(j \bmod 2)$ term is the entire pattern: it makes the transverse crease lines
+zigzag with period two instead of running straight, which is what turns a plain
+parallelogram lattice into something that folds.
+
+The folded placement is obtained by *positing* a form and solving for the
+constants rather than by rotating facets about creases and hoping the result
+closes. Look for
+
+$$x = i L_x + (j \bmod 2)\, d_x, \qquad y = j L_y, \qquad z = (i \bmod 2)\, H .$$
+
+Two facet side vectors follow immediately, $e_1 = (L_x, 0, \pm H)$ for the
+horizontal edge of flat length $a$, and $e_2 = (\pm d_x, L_y, 0)$ for the zigzag
+edge of flat length $b$. Because both are shared by opposite sides, every facet
+is a parallelogram and therefore planar with no further conditions. Isometry
+then needs only the two edge lengths and the angle between them:
+
+$$L_x^2 + H^2 = a^2, \qquad d_x^2 + L_y^2 = b^2, \qquad L_x d_x = ab\cos\alpha .$$
+
+Three equations in four unknowns: a one-parameter family, which is the rigid
+folding. Writing $L_x = a\cos\varphi$ and $H = a\sin\varphi$ solves the first
+identically and leaves $d_x = b\cos\alpha/\cos\varphi$ and
+$L_y = b\sqrt{1 - \cos^2\alpha/\cos^2\varphi}$.
+
+$L_y$ is real only while $\varphi \le \alpha$, and vanishes exactly at
+$\varphi = \alpha$, which is the flat-folded state. So $\varphi$ runs on
+$[0, \alpha]$ and the natural normalised parameter is $\theta = \varphi/\alpha$.
+
+**$\theta$ is a parameter, not an angle.** It runs on $[0, 1]$: zero is the flat
+sheet and one is flat-folded. The dihedral angle $\rho$ at a crease is *derived*
+from it and is never a synonym for it — a distinction this project got wrong
+once and now states in three places.
+
+### Two: the isometry is exact, not converged
+
+Because the placement was derived by imposing edge lengths and facet angles, the
+isometry holds by construction rather than to a solver's tolerance. That is a
+claim about algebra, and algebra is exactly the thing that might be wrong, so it
+is measured.
+
+```{r geom-isometry, echo=TRUE}
+worst_iso <- max(vapply(seq(0, 1, by = 0.05),
+                        function(t) facet_isometry_error(p, t), numeric(1)))
+```
+
+`facet_isometry_error()` compares **all pairwise distances** between a facet's
+vertices, folded against flat, not just its edges: an implementation that
+preserved every edge of a parallelogram while shearing it would pass an edge
+test and would not be a rigid folding. Over the whole $\theta$ sweep the worst
+departure on this pattern is `r signif(worst_iso, 2)`, which is floating-point
+noise on a closed form rather than a tolerance anyone chose.
+
+```{r geom-pattern, echo=FALSE, fig.width=8, fig.height=4, fig.cap="The flat crease pattern and the same sheet folded. Mountain and valley creases are distinguished by colour and by line style together, so the distinction survives greyscale printing.", fig.alt="Two panels. The left panel is a flat Miura-ori crease pattern: a grid of congruent parallelograms whose vertical crease lines zigzag, with creases drawn in two colours and two line styles for mountain and valley. The right panel shows the same sheet folded into a corrugated surface, seen from above and to one side, with the near facets drawn over the far ones."}
+gridExtra::grid.arrange(
+  plot_crease_pattern(p, title = "A  The chart"),
+  plot_folded(f, title = "B  The same sheet, folded"),
+  ncol = 2)
+```
+
+Panel A of Figure \@ref(fig:geom-pattern) is the answer key. Panel B is what a
+dimension-reduction method is shown. Everything in Part III is a measurement of
+the gap between them.
+
+```{r geom-sweep, echo=FALSE, fig.width=9, fig.height=3.4, fig.cap="One pattern at three points of its one-parameter family. The sheet contracts in both directions as it folds; the flat chart behind it does not change at all.", fig.alt="Three panels showing the same Miura-ori sheet folded to increasing degrees, left to right. In the leftmost the sheet is nearly flat and wide; in the middle it is visibly corrugated; in the rightmost it has contracted to roughly half its width and the corrugations are deep. All three are drawn at the same scale."}
+gridExtra::grid.arrange(grobs = lapply(c(0.2, 0.5, 0.9), function(t) {
+  plot_folded(fold(p, t), title = NULL)
+}), ncol = 3)
+```
+
+Figure \@ref(fig:geom-sweep) is that family at three values of $\theta$, drawn
+at one scale. Two things are visible and both matter later. The sheet contracts
+in **both** directions at once, which is why fold angle is a difficulty
+parameter rather than a nuisance: it moves the ambient geometry continuously
+while leaving the chart exactly where it was. And the contraction is not
+uniform — the far end of the range does most of it, which is why the $\theta$
+grid in Part III is even in $\theta$ and uneven in everything a method cares
+about.
+
+The derivation above is for one family. Nothing in this book requires a second,
+and two candidates for one were withdrawn on evidence rather than dropped
+quietly; Chapter \@ref(benchmarks) reports both as results. What a reader should
+take from that is the standard a folding has to meet here: a closed form, an
+exact isometry, and a fold that reaches every crease family. Two of the three are
+easy.
+
+### Three: what folding does to distance along the surface
+
+Nothing. That is the point, and it needs no further argument once the facets are
+congruent: a path on the sheet crosses the same facets in the same places at any
+$\theta$, so its length is the same. Geodesic distance between two sample points
+is therefore exactly the distance between their positions in the flat chart,
+subject to one caveat that is stated in `geom-limits` rather than hidden here.
+
+### Four: what folding does to distance through space
+
+Here folding does a great deal, and the amount is exact.
+
+Take two points on opposite sides of a single crease, each at perpendicular
+distance $d$ from it and at the same position along it. Their chart distance is
+$2d$ at any fold angle. Their ambient distance, once the crease has closed to a
+dihedral angle $\rho$, is $2d\sin(\rho/2)$. So
+
+$$\frac{d_A}{d_U} = \sin(\rho/2),$$
+
+which depends on $\rho$ **alone**. Not on $d$, not on where along the crease the
+pair sits. That independence is the substance of the claim; a ratio that drifted
+with distance would mean the relation was an approximation.
+
+```{r geom-contraction, echo=TRUE}
+ratio_err <- max(vapply(seq(pi, 0.05, length.out = 40), function(rho) {
+  max(vapply(c(0.1, 1, 7.3), function(d) {
+    P <- c( d * sin(rho / 2), 0, d * cos(rho / 2))
+    Q <- c(-d * sin(rho / 2), 0, d * cos(rho / 2))
+    abs(sqrt(sum((P - Q)^2)) / (2 * d) - sin(rho / 2))
+  }, numeric(1)))
+}, numeric(1)))
+```
+
+Over forty dihedral angles and three separations the worst departure from
+$\sin(\rho/2)$ is `r signif(ratio_err, 2)` — one unit in the last place, which
+is what "exact" means in double precision.
+
+A flat sheet has $\rho = \pi$ and contracts nothing. Every fold contracts, and
+since $\sin(\rho/2) < 1$ for every $\rho < \pi$, **ambient distance is strictly
+less than chart distance for every $\theta > 0$.**
+
+### Five: the floor under "strictly"
+
+That last sentence is false as written, and the chapter says so rather than
+leaving a reader to trip over it in Part III.
+
+Because $1 - \sin(\rho/2) \approx (\pi - \rho)^2/8$ near the flat state, the
+contraction is quadratic in the fold angle while machine epsilon is not. There
+is therefore a fold angle below which the contraction exists mathematically and
+is not representable.
+
+```{r geom-floor, echo=TRUE}
+gap        <- function(g) 1 - sin((pi - g) / 2)          # g = pi - rho
+floor_pred <- sqrt(8 * .Machine$double.eps / 2)
+theta_min  <- min(THETA_GRID[THETA_GRID > 0])
+```
+
+The predicted floor is `r signif(floor_pred, 3)` radians, and it behaves:
+`gap()` returns `r gap(1e-3)` at a fold angle of $10^{-3}$ and exactly
+`r gap(1e-8)` at $10^{-8}$. The smallest non-zero $\theta$ this book's grid uses
+is `r theta_min`, which is above the floor by a wide margin — and that margin is
+the only reason Part III may treat the contraction as strict.
+
+## Results {#geom-results}
+
+Three consequences follow, and they are the reason this chapter comes before the
+methods rather than after them.
+
+**The answer key is not what the methods reproduce.** A method that consumes
+ambient distance is being asked to reproduce a configuration that folding has
+already contracted. Scoring it against the intrinsic chart is a legitimate
+question — it is the question of whether the method recovers the *surface* — but
+it is not the question the method's loss function asks.
+
+**The exact answer scores badly on the wrong metric, provably.** This deserves
+stating as a proposition rather than demonstrating with a simulation.
+
+> **Proposition.** Let stress be measured against ambient distance, and let the
+> candidate embeddings be the exact chart $\mathcal{U}$ and the two-component
+> PCA of the folded cloud. Then for every $\theta > 0$,
+> $\mathrm{stress}(\mathcal{U}) > \mathrm{stress}(\mathrm{PCA})$.
+
+The proof is one line given step four. Ambient-referenced stress measures
+reproduction of $d_A$; the contraction gives $d_A < d_U$ strictly; and
+two-component PCA is by construction the least-squares-optimal *linear*
+approximant to that same ambient configuration [@pearson1901lines;
+@eckart1936approximation]. The exact unfolding is not competing to reproduce
+ambient distance and loses to something that is.
+
+An evaluator that ranks the true answer below a plainly wrong one is not
+malfunctioning. It is answering the question it was asked. Chapter
+\@ref(evaluation) measures how far that goes on real evaluators, and finds it
+goes further than this proposition requires.
+
+**Difficulty has a knob.** Because $\theta$ is continuous and the contraction is
+monotone in it, every result in this book is a curve rather than a number. That
+is standing rule 2, and it is not a stylistic preference. Chapter
+\@ref(benchmarks) reports a case where two method families swap places partway
+along the $\theta$ axis, so that the average over $\theta$ names a different
+winner from the curve at seven of its nine points. A benchmark with one fixed
+geometry cannot produce that observation, because it has nowhere to put it.
+
+This is the specific sense in which a crease pattern is a better instrument than
+a Swiss roll, and it is worth separating from the claim it is often confused
+with. It is not that folded sheets resemble real data more closely. It is that
+the truth is known **and** the difficulty is continuously adjustable, so a
+method's performance is a function rather than a point, and the shape of that
+function is a property of the method. The critique that two-dimensional
+embeddings distort more than their users admit [@chari2023specious;
+@kobak2019art] is an argument this book answers with measurement, and
+measurement of that kind needs an axis to measure along.
+
+```{r geom-curve, echo=FALSE, fig.width=7, fig.height=4, fig.cap="The ambient-to-geodesic distance ratio across a single crease, against the dihedral angle. The curve is $\\sin(\\rho/2)$; the points are measured from folded coordinates. A flat sheet sits at the right-hand end and contracts nothing.", fig.alt="A line chart. The horizontal axis is the dihedral angle from zero to pi; the vertical axis is the ratio of ambient to geodesic distance, from zero to one. A smooth curve rises from the origin to one at pi, steeply at first and flattening as it approaches the right-hand end. Measured points lie exactly on the curve."}
+rho <- seq(0.02, pi, length.out = 200)
+meas <- seq(0.2, pi - 0.05, length.out = 12)
+mr <- vapply(meas, function(r) {
+  P <- c(sin(r / 2), 0, cos(r / 2)); Q <- c(-sin(r / 2), 0, cos(r / 2))
+  sqrt(sum((P - Q)^2)) / 2
+}, numeric(1))
+ggplot2::ggplot() +
+  ggplot2::geom_line(ggplot2::aes(rho, sin(rho / 2)), linewidth = 0.8,
+                     colour = "#1565c0") +
+  ggplot2::geom_point(ggplot2::aes(meas, mr), size = 1.9) +
+  ggplot2::labs(x = expression(paste("dihedral angle ", rho)),
+                y = expression(d[A] / d[U])) +
+  theme_fold()
+```
+
+## Diagnostics {#geom-diagnostics}
+
+The most useful material in this chapter is about two things this project got
+wrong. Both were caught, both are cheap to state, and both generalise past
+origami.
+
+### An isometry test cannot tell a fold from a pleat
+
+A second pattern family, the Yoshimura, shipped for three days with a folding
+that was not one. It folded its horizontal creases and left every diagonal at
+$\rho = \pi$ — an accordion pleat wearing a diamond tessellation's crease
+pattern.
+
+It passed the facet-isometry test perfectly, because **a pleat is a rigid
+folding**. It passed Kawasaki, because the flat pattern was never the problem.
+Neither test could have caught it: both are properties a correct implementation
+has, and a pleat has them too.
+
+What caught it was deriving the mountain/valley assignment from the *folded*
+dihedral angles and testing Maekawa on the result. A pleat leaves whole crease
+families flat, and a vertex with unfolded creases cannot balance:
+
+```{r geom-maekawa, echo=TRUE}
+a  <- crease_assignment(p)
+iv <- interior_vertices(p)
+maekawa <- vapply(iv, function(v) {
+  sel <- (p$creases$i == v | p$creases$j == v) & a != "B"
+  abs(sum(a[sel] == "M") - sum(a[sel] == "V"))
+}, numeric(1))
+```
+
+On this Miura all `r length(iv)` interior vertices satisfy
+$\lvert M - V \rvert = `r unique(maekawa)`$. On the pleat, twelve of sixteen
+failed.
+
+### A test that a correct implementation passes is not a test a wrong one fails
+
+That is the moral, and the same chapter has to record that this book learned it
+twice.
+
+The derived assignment above was itself wrong for four days, in a way Maekawa
+could not see. Maekawa counts labels at a vertex; it is therefore invariant
+under swapping every mountain for every valley, so it passes on a labelling, on
+that labelling's exact inverse, and on a third that agrees with neither on half
+the creases. All three were live in this repository at once, and the one the
+figures drew was correct on half the interior creases.
+
+```{r geom-inverted, echo=TRUE}
+inverted <- ifelse(a == "M", "V", ifelse(a == "V", "M", "B"))
+maekawa_inv <- vapply(iv, function(v) {
+  sel <- (p$creases$i == v | p$creases$j == v) & inverted != "B"
+  abs(sum(inverted[sel] == "M") - sum(inverted[sel] == "V"))
+}, numeric(1))
+```
+
+The inverted labelling — every mountain a valley — satisfies Maekawa at
+`r sum(maekawa_inv == 2)` of `r length(iv)` interior vertices, which is all of
+them. The check that finally settled it computes the assignment a second time by
+an independent route, from facet normals oriented against the ambient frame
+rather than against the mesh's own winding, and compares.
+
+### A first-order flex at the flat state proves nothing
+
+The third instance, recorded here because it is the same error in a different
+costume. At $\theta = 0$ every $z$ column of a pattern's rigidity Jacobian
+vanishes, so the count of non-trivial infinitesimal flexes is $V - 3$ for **any**
+planar pattern whatsoever — including patterns with no rigid folding at all. A
+first-order flex at the flat state is a property of being flat, not of being
+foldable. Second-order analysis and a finite continuation are what decide, and
+Chapter \@ref(benchmarks) records what they decided.
+
+## Where it fails {#geom-limits}
+
+### The chart is the geodesic only inside a convex region
+
+Step three claimed that geodesic distance equals chart distance. That is true
+when the straight segment between two chart points stays on the paper, and a
+Miura's unfolded outline is **not convex** — its edge is a zigzag with teeth. For
+a pair straddling a tooth the straight chart segment leaves the sheet, the true
+geodesic must detour, and the chart distance is a *lower bound* rather than an
+equality.
+
+```{r geom-exit, echo=TRUE}
+m_in  <- sample_manifold(p, theta = 0.6, n = 400L, seed = 1001L)
+m_out <- sample_manifold(p, theta = 0.6, n = 400L, seed = 1001L, boundary = TRUE)
+exit_in  <- chart_exit_fraction(m_in,  p)
+exit_out <- chart_exit_fraction(m_out, p)
+```
+
+`chart_exit_fraction()` measures how often it happens by sampling pairs and
+walking the segment between them. Drawing strictly inside a convex sub-rectangle
+gives an exit fraction of `r signif(exit_in, 3)`; including the boundary strip
+gives `r signif(exit_out, 3)`. Every artefact in this book that the answer key is
+read against is drawn the first way, and the producer that generates the
+irreducible-loss suite asserts the zero rather than trusting this paragraph.
+
+### Self-intersection
+
+Nothing in the algebra of step one prevents a folded placement from passing
+through itself, and a self-intersecting surface would invalidate every ambient
+distance measured on it.
+
+```{r geom-gap, echo=TRUE}
+gap_at <- vapply(c(0.3, 0.6, 0.9), function(t) facet_gap(p, t)$gap, numeric(1))
+```
+
+`facet_gap()` computes the exact minimum distance between non-adjacent facets —
+polygon to polygon, analytically, not by sampling points on them. At $\theta$ of
+`r 0.3`, `r 0.6` and `r 0.9` it is `r signif(gap_at[1], 3)`,
+`r signif(gap_at[2], 3)` and `r signif(gap_at[3], 3)`: falling as the sheet
+closes, as it must, and positive throughout.
+
+```{r geom-clearance, echo=FALSE, fig.width=7, fig.height=3.6, fig.cap="Minimum clearance between non-adjacent facets, against the folding parameter. The surface approaches itself as it folds and never touches; the dashed line marks the largest fold angle the benchmark grid uses.", fig.alt="A line chart. The horizontal axis is the folding parameter from zero to one; the vertical axis is the minimum distance between non-adjacent facets. The curve starts high at the left and falls steadily, approaching but not reaching zero at the right-hand end. A vertical dashed line near the right marks the grid's largest fold angle, where the clearance is still clearly positive."}
+th <- seq(0.05, 0.98, by = 0.031)
+gp <- vapply(th, function(t) facet_gap(p, t)$gap, numeric(1))
+ggplot2::ggplot() +
+  ggplot2::geom_line(ggplot2::aes(th, gp), linewidth = 0.8, colour = "#1565c0") +
+  ggplot2::geom_vline(xintercept = max(THETA_GRID), linetype = "dashed",
+                      colour = "grey50") +
+  ggplot2::labs(x = expression(theta), y = "minimum facet clearance") +
+  theme_fold()
+```
+
+Figure \@ref(fig:geom-clearance) is the whole range. The clearance falls
+smoothly and stays positive, and the largest $\theta$ the benchmark grid uses is
+marked: at `r max(THETA_GRID)` the sheet still has `r signif(facet_gap(p, max(THETA_GRID))$gap, 3)`
+of clearance. That is the check behind an assumption every ambient distance in
+this book depends on, and it is a check rather than an argument because the
+algebra of step one does not forbid self-intersection — it simply does not
+produce one for this family in this range.
+
+### Sampling, and what a finite sample of a zero-reach surface is
+
+The reach remark in `geom-background` has a practical edge that belongs here.
+Every guarantee about recovering a manifold from a finite sample is stated in
+terms of the density of the sample relative to the reach [@niyogi2008homology],
+and a crease has reach zero, so no such guarantee is available at any sample
+size. What replaces it in this book is not a weaker theorem but a measurement:
+the sampled surface is checked for how close distant parts of it come, in units
+of the local spacing, and that ratio is reported alongside every result that
+depends on it. Isomap's failure mode on tightly folded surfaces is precisely a
+short circuit between sheets that the sampling cannot distinguish
+[@tenenbaum2000isomap; @balasubramanian2002isomap], and the quantity that
+predicts it is a property of the sample rather than of the surface.
+
+### One family
+
+This book ships one pattern family that folds. Two others were specified and
+both were withdrawn on evidence, which Chapter \@ref(benchmarks) reports as
+results rather than as gaps. A benchmark built on a single family cannot support
+claims about pattern variety, and this book does not make any.
+
+### What the chapter does not settle
+
+Whether a folded sheet is a *good* model of the manifolds that arise in real
+data is not a geometric question and is not answered here. Chapter
+\@ref(comparison) measures what this benchmark discriminates that the classical
+ones do not, and Chapter \@ref(application) takes the result to a real dataset.
+The honest position in between is that a crease pattern is a manifold whose
+truth is known exactly, which is a property no real dataset has and no
+previously used benchmark provides.
+
+## Reproduce this {#geom-reproduce}
+
+Every claim above is an assertion in the test suite, and the suite runs on every
+push:
+
+- `tests/testthat/test-folding.R` — facet isometry across the $\theta$ sweep and
+  the $\alpha$ range, no self-intersection, the dihedral contract.
+- `tests/testthat/test-patterns.R` — congruence, Kawasaki, Maekawa, vertex
+  degree.
+- `tests/testthat/test-crease-assignment.R` — the mountain/valley derivation
+  against an independent criterion, and the demonstration that Maekawa cannot
+  discriminate.
+- `tests/testthat/test-contraction.R` — $\sin(\rho/2)$ and the floating-point
+  floor.
+
+Run them with `Rscript tests/testthat.R` from the repository root.
+
+## Further reading {#geom-reading}
+
+Hull's *Origametry* [@hull2020origametry] is the single best entry point to the
+mathematics of flat-foldability and is the reference for both classical theorems
+above. Demaine and O'Rourke [@demaine2007folding] is the standard treatment of
+the computational side, and Lang [@lang2011origami] of design. Miura's original
+report [@miura1985method] introduces the pattern this book uses; Schenk and Guest
+[@schenk2013geometry] give the mechanics of folded shell structures and are the
+natural next step for a reader interested in the surfaces rather than the
+sheets.
+
+On the manifold-learning side, Federer's reach [@federer1959curvature] and its
+role in sampling guarantees [@niyogi2008homology] are what the zero-reach remark
+above refers to, and Lee and Verleysen [@lee2007nonlinear] is the textbook
+treatment of the methods Part II takes up.

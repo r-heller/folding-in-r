@@ -1278,3 +1278,106 @@ two-dimensional -- the same statement the main crease grid makes, and the reason
 the product construction exists. On these three, every unit of error is loss the
 method is responsible for.
 
+## Phase 21 — the grid, the audit, and the first chapter
+
+### The main grid
+
+10,800 rows, 1,200 cells, 20 seeds at n = 800, 294 minutes on four cores,
+`dirty = FALSE`. The last artefact the book specifies that had never been
+produced.
+
+1,601 fits did not run and the artefact says why, which the old schema could
+not: 1,200 autoencoder cells declared unavailable, 400 Laplacian declines and
+one from diffusion maps. The 400 is the audit's S1 finding reproduced exactly --
+`embed_laplacian()` returns NULL on **every** outlier-noise cell, 400 of its
+1,200 -- and it is now a `status` and a `reason` in the table rather than an
+indistinguishable `ran = FALSE`.
+
+### The pre-registered rule, applied for the first time
+
+`select_method()` was committed before this grid existed. Run against it, over
+theta 0.4-0.6:
+
+| noise | R | decision | why |
+|---|---:|---|---|
+| none | 3.67 | select **MDS** | Isomap leads at 0.0272 but PCA and MDS are 0.0120 behind -- **below the reportable difference**, so it is a tie, broken toward the method that assumes least |
+| ambient | 4.78 | select **MDS** | the top three are within 0.0009 of each other |
+| outlier | 14.9 | select **UMAP** | ahead by 0.0485, which clears the threshold; the Laplacian is **excluded** for declining more than a tenth of its cells |
+
+Two things worth having written down before the numbers were seen. The rule
+**declines to name Isomap the winner** in the clean regime even though it is
+first, because the margin is not reportable -- that is the whole of what a
+pre-registered threshold buys. And under outlier noise the ordering inverts: a
+neighbourhood method beats the ambient methods outright, on a benchmark where
+the ambient methods win everywhere else.
+
+Read together with the seed budget, the two results are consistent and the pair
+is the story. The benchmark **can** separate method families -- R runs from 3.67
+to 14.9 -- and **cannot** separate methods within a family, because those
+differences are smaller than a spread that would need thousands of seeds to
+resolve. The rule says so instead of picking.
+
+### The evaluator audit, at full size
+
+19,200 rows, 20 theta x 4 k x 2 n x 20 seeds, 129 minutes. The pilot's finding
+survives and gains two controls that make the mechanism unambiguous.
+
+Ambient-referenced continuity's inversion rate, the share of cells where the
+evaluator ranks the exact unfolding below a two-component PCA:
+
+| | k = 5 | k = 10 | k = 20 | k = 40 |
+|---|---:|---:|---:|---:|
+| theta = 0 | 0.00 | 0.00 | 0.00 | 0.00 |
+| theta = 0.1 | 0.05 | 0.15 | 0.25 | 0.58 |
+| theta = 0.5 | 0.00 | 0.22 | 0.82 | 1.00 |
+| theta = 0.9 | 0.98 | 1.00 | 1.00 | 1.00 |
+
+**At theta = 0 the rate is exactly zero, at every k and every metric.** A flat
+sheet contracts nothing, so ambient distance *is* chart distance and there is
+nothing to invert. **Chart-referenced evaluators never invert either -- not once
+in 19,200 rows.** Two controls, both predicted by the contraction and both
+clean, which is what turns a rate into a mechanism.
+
+The effect size is unchanged from the pilot and is the part that must not be
+overstated: continuity's margin never exceeds 0.0223 and clears the reportable
+difference in 0.3% of cells. kNN preservation and Q_NX have margins an order of
+magnitude larger, and they mostly point the other way -- those two rank the truth
+first. The supportable claim is that **continuity cannot distinguish a perfect
+embedding from a plainly wrong one**, not that it prefers the wrong one by a
+margin worth reporting.
+
+### Chapter 2, drafted
+
+The first chapter of the book, and the first measurement of what drafting costs.
+
+3,404 words against a 3,900 budget -- **13% under**, inside the roadmap's own
+tolerance for R4 and without feeling thin. That is data for the re-budget
+question rather than a shortfall to pad: the section that came in shortest is
+`geom-core`, and it came in shortest because the derivation it carries is
+genuinely five steps long and not seven.
+
+Four figures, thirteen chunks, fourteen citations, eighteen inline `r`
+expressions and no typed number anywhere. It knits clean. Every claim in it is a
+test: the isometry over the theta sweep, the exact sin(rho/2) contraction, the
+floating-point floor under "strictly", Maekawa, and the clearance between
+non-adjacent facets.
+
+Its diagnostics section is about three of this project's own errors, which the
+specification asked for and which turned out to be the easiest section to write:
+an isometry test cannot tell a fold from a pleat; Maekawa cannot tell a labelling
+from its inverse; and a first-order flex at the flat state is a property of being
+flat rather than of being foldable. The moral the chapter draws is the one this
+whole phase has been earning -- **a test that a correct implementation passes is
+not the same as a test a wrong one fails.**
+
+### The anchor namespace, third time
+
+`check_anchors()` derives a chapter's mnemonic from the anchors themselves now,
+as their longest common prefix. Two earlier rules failed on the same chapters:
+stripping a trailing word off the first anchor cannot tell `intro-answer-key`
+from `folding-geometry-question`, and taking the H1's anchor instead is wrong the
+other way, because the specification deliberately pairs `{#folding-geometry}`
+with `geom-` and `{#comparison}` with `comp-`. What the rule is actually for is
+pandoc id collision, so it now checks the thing that matters and could not be
+seen from inside one file: that no two chapters have chosen the same namespace.
+
