@@ -105,8 +105,12 @@ budget <- budget[order(-budget$seeds_needed, budget$method), ]
 
 out <- if (quick) "data/processed/seed-budget-quick.rds" else
   "data/processed/seed-budget.rds"
+# `seeds` rather than `reps`, because that is the field
+# scripts/check-artefact-producers.R reads standing rule 1 against, and an
+# artefact about the seed budget that cannot itself be checked against the seed
+# floor would be a joke at its own expense.
 write_run(list(fits = fits, per_cell = agg, budget = budget), out,
-          quick = quick, n = N, reps = REPS, theta = THETA,
+          quick = quick, n = N, seeds = 1000L + seq_len(REPS), theta = THETA,
           noise = names(NOISE), delta = MIN_REPORTABLE,
           methods = METHODS, started = STARTED)
 

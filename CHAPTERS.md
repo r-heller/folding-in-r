@@ -832,18 +832,32 @@ Both siblings ship one. Gives `boxempty` its only call site (S1-7). Generate
 One file per concern, sourced alphabetically, so **no file may depend on another
 at source time** — only at call time.
 
-## Artefacts — nine
+## Artefacts, and what produces each
 
-`benchmark-grid` · `part2-sweeps` · `evaluator-audit` · `metric-calibration` ·
-`classic-grid` · `autoencoder-grid` · `autoencoder-example` ·
-`autoencoder-decoder-lattice` · processed single-cell matrix.
+Every one is committed and read; none is generated in CI. The producer column is
+enforced rather than documented — `scripts/check-artefact-producers.R` fails on
+an artefact the specification names and no script declares, on one with no
+provenance block, on one written by a `--quick` run, and on one below standing
+rule 1's seed floor without a named exemption.
 
-S2-2 merges `evaluator-audit` and `metric-calibration` into one script — they
-share every cell and every distance matrix, so computing them separately doubles
-the Dijkstra cost for nothing.
+| Artefact | Producer | State |
+|:--|:--|:--|
+| `benchmark-grid` | `run-benchmark-grid.R` | producer ready, `--cores`/`--shard`/`--merge` |
+| `part2-sweeps` | `run-part2-sweeps.R` | k swept where the main grid fixes it |
+| `classic-grid` | `run-classic-grid.R` | same cell as the crease grid, three classical families |
+| `product-grid` | `run-product-grid.R` | Claim B's artefact, two arms |
+| `evaluator-audit` | `run-evaluator-audit.R` | pilot committed; full run pending |
+| `metric-calibration` | — | **merged into the evaluator audit** (S2-2) |
+| `seed-budget` | `measure-seed-budget.R` | what standing rule 1's floor is measured against |
+| `e1-difficulty` / `e1-controlled` / `e1-armB` | `experiment-e1.R` | E1's three arms |
+| `autoencoder-grid` and its two companions | — | **open**, gated on the Chapter 7 cut decision |
+| processed single-cell matrix | `prepare-single-cell.R` | gated on the selection rule being committed first |
 
-All are committed and read; none is generated in CI. **All nine are blocked on the
-`.gitignore` fix (S0-1).**
+S2-2 is closed by construction: `metric-calibration` is not a separate artefact.
+The two shared every cell and every distance matrix, so computing them separately
+doubled the Dijkstra cost for nothing, and `run-evaluator-audit.R` computes both
+in one pass. The name survives here only so a reader of the older plan can find
+where it went.
 
 
 ---

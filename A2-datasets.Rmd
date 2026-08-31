@@ -20,6 +20,22 @@ sheets and a product of two Swiss rolls. Provenance:
 three arms of E1, which retired the book's original headline claim. Provenance:
 `scripts/experiment-e1.R`.
 
+`data/processed/part2-sweeps.rds` — the same cell as the main grid, swept over
+neighbourhood size instead of over noise. This is where Chapters
+\@ref(linear), \@ref(geodesic) and \@ref(neighbor) answer how much of a
+method's result is the method and how much is the $k$ it was handed. Provenance:
+`scripts/run-part2-sweeps.R`.
+
+`data/processed/classic-grid.rds` — the Swiss roll, the S-curve and the severed
+sphere, scored by the same function, the same metrics and the same floor as the
+crease patterns. Chapter \@ref(comparison) needs it: a comparison in which the
+two sides are scored by two code paths is not a comparison. Provenance:
+`scripts/run-classic-grid.R`.
+
+`data/processed/evaluator-audit-pilot.rds` — the narrow pilot that decided
+whether Chapter \@ref(evaluation) had a subject. Provenance:
+`scripts/run-evaluator-audit.R --pilot`.
+
 `data/processed/seed-budget.rds` — the within-cell spread of every method, and
 the seed count each one needs before a difference the size of the pre-registered
 reportable difference (`MIN_REPORTABLE`, fixed in `R/selection.R`) can be

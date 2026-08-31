@@ -1183,3 +1183,98 @@ removed from the tree rather than exempted: unlike E1's arms, which trade seeds
 for coverage of a setting space and say so, ten seeds here was a default nobody
 had defended.
 
+## Phase 20 — the evidence layer, generated
+
+Five artefacts, all from commit `f1bcc5f`, all with `dirty = FALSE` and one `R/`
+tree hash between them. This is the first time the book has had an evidence layer
+that `scripts/check-artefact-producers.R` reports as intact.
+
+### E1, regenerated
+
+Three arms, one `r_sha`, full provenance blocks, `e1-difficulty` at 990 rows.
+The first regeneration of these had arm A produced under a different `R/` than
+arms A2 and B, because a commit landed mid-run -- the difference was an unused
+new file and could not have changed a number, which is exactly the reasoning the
+`dirty` flag exists to stop anyone relying on. Re-run from a clean tree instead.
+
+### The seed budget, and what it costs standing rule 1
+
+Within-cell standard deviation of excess over the floor, worst cell over
+3 theta x 2 noise at n = 800, 40 seeds, and the seeds needed to make a difference
+of `MIN_REPORTABLE` detectable at 80% power:
+
+| method | sd | seeds needed |
+|---|---:|---:|
+| t-SNE | 0.2873 | **3,241** |
+| LLE | 0.2034 | **1,624** |
+| Laplacian eigenmaps | 0.0446 | 79 |
+| UMAP | 0.0438 | 76 |
+| diffusion maps | 0.0339 | 46 |
+| Isomap | 0.0159 | 10 |
+| PCA / classical MDS | 0.0132 | 7 |
+
+**Standing rule 1's floor of 20 is two orders of magnitude short for two
+methods and short for five of the eight.** That is a finding about the benchmark,
+not a compute plan: nobody is going to run 3,241 seeds, and the honest response
+is to say that at 20 seeds this benchmark cannot resolve a 0.02 difference for
+t-SNE, LLE, the Laplacian, UMAP or diffusion maps, and to let the pre-registered
+selection rule decline where it must. The rule was written before this was
+measured, which is the only reason that sentence can be written now.
+
+Note that LLE and the Laplacian are registered as DETERMINISTIC. Their spread is
+not method stochasticity -- it is sensitivity to which 800 points were drawn. A
+seed budget derived from stochastic methods alone would have missed the two
+worst offenders.
+
+### The product grid, and a crossover the audit's own re-measurement missed
+
+12,960 rows, 20 seeds, `boundary = FALSE`, chart-exit fraction asserted 0 in
+every cell, 153 minutes. Mean excess over the floor at d = 2, crease arm:
+
+| theta | PCA / MDS | Isomap | diffusion | Laplacian |
+|---|---:|---:|---:|---:|
+| 0.1 | **0.0063** | 0.0160 | 0.0771 | 0.0737 |
+| 0.5 | **0.0034** | 0.0157 | 0.0535 | 0.0716 |
+| 0.7 | **0.0047** | 0.0162 | 0.0248 | 0.0693 |
+| 0.8 | 0.0201 | **0.0194** | 0.0291 | 0.0694 |
+| 0.9 | 0.1839 | **0.0405** | 0.1901 | 0.0770 |
+
+**The ordering crosses over at theta = 0.8.** ROADMAP.md section 9 states, as a
+verified re-measurement, that "PCA/MDS have the lowest excess at all nine theta"
+and that "ambient < geodesic < neighbourhood holds throughout". Neither survives
+20 seeds at production settings: Isomap takes the lead at 0.8 and holds it at
+0.9, where the ambient methods lose a factor of forty.
+
+This is the strongest vindication standing rule 2 has had. A single summary
+number reverses the ordering the curve shows at seven of nine theta, and the mean
+over theta would have reported Isomap as the winner outright -- which is also
+wrong. The benchmark's whole reason to exist is that method ranking is a function
+of difficulty, and here it is.
+
+### Part II's k-sweep
+
+3,780 rows. Every method that takes a k now has a curve, because two of them did
+not use theirs until this phase. Q_NX at theta = 0.5:
+
+| method | k=5 | k=12 | k=20 | k=45 | k=70 |
+|---|---:|---:|---:|---:|---:|
+| Isomap | 0.851 | 0.941 | **0.950** | 0.942 | 0.936 |
+| LLE | 0.428 | 0.906 | 0.929 | 0.931 | 0.930 |
+| Laplacian | 0.701 | 0.766 | **0.777** | 0.766 | 0.759 |
+| t-SNE | 0.726 | 0.786 | 0.820 | 0.867 | 0.881 |
+| PCA / MDS | 0.944 | 0.944 | 0.944 | 0.944 | 0.944 |
+
+Isomap and the Laplacian have interior optima at k = 20; LLE is catastrophic at
+k = 5 and recovers by 12; t-SNE and UMAP rise monotonically over the whole range.
+PCA and MDS are flat to the digit, which is the control the sweep needs and the
+check it enforces.
+
+### The classic grid
+
+4,680 rows over the Swiss roll, the S-curve and the severed sphere, scored by the
+same `grid_cell()`, the same metrics and the same floor. The floor is **0 in
+every cell**, because all three have two-dimensional charts and the target is
+two-dimensional -- the same statement the main crease grid makes, and the reason
+the product construction exists. On these three, every unit of error is loss the
+method is responsible for.
+

@@ -140,4 +140,12 @@ See `CITATION.cff`, or:
 ## Licence
 
 Prose under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see
-`LICENSE`. Code under the MIT License; see `LICENSE-CODE.md`.
+`LICENSE`. Code under the MIT License; see `LICENSE-CODE.md`. Generated data
+under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/); see
+`LICENSE-DATA.md`, which also covers external data the book fetches rather than
+redistributes. Vendored third-party material is listed in `THIRD-PARTY.md`.
+
+The data licence is not boilerplate. This book's argument is that its results are
+reproducible from committed artefacts, so a reader is expected to download
+`data/processed/`, re-run the analysis and publish what they find — and the dual
+licence covered prose and code and left that third thing unaddressed.

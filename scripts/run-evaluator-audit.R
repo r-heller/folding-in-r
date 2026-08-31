@@ -2,7 +2,9 @@
 #
 # Claim A: are the evaluators optimistic, and is there a law to it?
 #
-# @artefact data/processed/evaluator-audit.rds
+# @artefact data/processed/evaluator-audit.rds        the full sweep
+# @artefact data/processed/evaluator-audit-pilot.rds  --pilot, the narrow design
+#                                                     that decided the chapter
 #
 # THE CLAIM, AND WHY IT NEEDS A PRODUCER BEFORE IT NEEDS A CHAPTER.
 # Chapter 9 is 4,400 words, the largest in the book, and is where
