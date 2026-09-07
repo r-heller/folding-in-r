@@ -13,13 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Style assets: Hugo Coder palette, Inter and JetBrains Mono, LaTeX preamble.
 - Chapter stubs for twelve body chapters in four parts, front and back matter,
   and two appendices.
-- Companion package `foldbench` (local sibling directory).
+- Companion package `foldbenchR` (local sibling directory).
 - Verified bibliography and a citation checker.
 - Render, citation-check and package-check workflows.
 - `README.md`, `CITATION.cff` and contribution guide.
 - VG Wort instrumentation scaffold.
 - Chapter prose for ten of the twelve body chapters, the glossary, and both
-  appendices, written against the `foldbench` API.
+  appendices, written against the `foldbenchR` API.
 - Benchmark grid now scores five methods (PCA, classical MDS, Isomap, t-SNE,
   UMAP) instead of PCA alone.
 - 61 bibliography entries added alongside the prose.

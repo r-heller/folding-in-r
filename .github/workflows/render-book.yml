@@ -29,20 +29,20 @@ jobs:
       - name: Restore the pinned library, minus torch
         run: Rscript -e 'renv::restore(exclude = "torch", prompt = FALSE)'
 
-      # foldbench is a sibling repository. It is not needed to render the
+      # foldbenchR is a sibling repository. It is not needed to render the
       # scaffold — every chunk is eval = FALSE until a chapter is written — so
       # the checkout is allowed to fail and the render continues without it.
-      - name: Check out foldbench
-        id: foldbench
+      - name: Check out foldbenchR
+        id: foldbenchR
         continue-on-error: true
         uses: actions/checkout@v4
         with:
-          repository: r-heller/foldbench
-          path: .foldbench-src
+          repository: r-heller/foldbenchR
+          path: .foldbenchR-src
 
-      - name: Install foldbench
-        if: steps.foldbench.outcome == 'success'
-        run: R CMD INSTALL .foldbench-src
+      - name: Install foldbenchR
+        if: steps.foldbenchR.outcome == 'success'
+        run: R CMD INSTALL .foldbenchR-src
 
       - name: Install TinyTeX (TinyTeX-2 bundle — includes hyperref + common packages)
         run: Rscript -e 'tinytex::install_tinytex(force = TRUE, bundle = "TinyTeX-2")'

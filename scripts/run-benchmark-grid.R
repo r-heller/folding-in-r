@@ -6,13 +6,13 @@
 # NOT run in CI and not run at render time -- the full grid takes hours. Run it
 # locally, commit the .rds, and keep this script as the provenance record for
 # how that file was produced. If the grid is regenerated, note the date and the
-# foldbench version in GENERATION_LOG.md.
+# foldbenchR version in GENERATION_LOG.md.
 #
 # Usage:  Rscript scripts/run-benchmark-grid.R [--quick]
 #         --quick  runs a small grid for smoke-testing the pipeline
 
 suppressPackageStartupMessages({
-  library(foldbench)
+  library(foldbenchR)
   library(vegan)
   library(Rtsne)
   library(umap)

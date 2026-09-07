@@ -62,7 +62,7 @@ two surrogates track the distortion they stand in for.
 ## Fitting them honestly {#neighbor-fitting}
 
 ```{r neighbor-fit}
-library(foldbench)
+library(foldbenchR)
 library(Rtsne)
 library(umap)
 library(ggplot2)
@@ -107,7 +107,7 @@ reconstruction_error(fit_tsne(s$X, BENCH_SEEDS[1]), s$truth)
 reconstruction_error(fit_umap(s$X, BENCH_SEEDS[1]), s$truth)
 ```
 
-`foldbench` imports neither package, so both are loaded here explicitly. Four
+`foldbenchR` imports neither package, so both are loaded here explicitly. Four
 details in that chunk are load-bearing.
 
 `Rtsne`'s `theta` argument is the Barnes–Hut accuracy parameter

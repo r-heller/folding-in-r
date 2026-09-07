@@ -75,14 +75,14 @@ completeness.
 
 ## Companion package
 
-`foldbench` provides the pattern constructors, the folding and sampling
+`foldbenchR` provides the pattern constructors, the folding and sampling
 interface, the product and lift constructions, and the evaluation metrics.
 The book loads it; it does not reproduce its source.
 
 ## Building the book
 
 ```sh
-R CMD INSTALL ../foldbench
+R CMD INSTALL ../foldbenchR
 R -e 'renv::restore()'
 R -e 'bookdown::render_book("index.Rmd", output_format = "all")'
 ```
@@ -92,7 +92,7 @@ pinned in `renv.lock`.
 
 Two packages need a word of explanation.
 
-`foldbench` is deliberately absent from `renv.lock` — it is a sibling source
+`foldbenchR` is deliberately absent from `renv.lock` — it is a sibling source
 repository, not a CRAN package, so it is installed by hand as shown above and
 listed under `ignored.packages` in `renv/settings.json`. `renv::status()` will
 not mention it.

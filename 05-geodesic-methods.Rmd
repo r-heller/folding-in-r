@@ -31,7 +31,7 @@ this chapter uses. That is precisely its value here: it holds the embedding step
 fixed so that the distance matrix is the only thing that varies.
 
 ```{r geo-cmdscale}
-library(foldbench)
+library(foldbenchR)
 
 pat <- miura_ori(n_rows = 6, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
 fld <- fold(pat, theta = 0.8)

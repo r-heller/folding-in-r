@@ -37,7 +37,7 @@ normalisation step and nothing to rescale between families.
 
 ### Implementation note {-}
 
-The `pattern` field selects a *flat crease pattern*. In the `foldbench` version
+The `pattern` field selects a *flat crease pattern*. In the `foldbenchR` version
 shipped alongside this book the three constructors build genuinely different
 flat patterns — different vertices, different crease sets, different
 mountain/valley assignments — but `fold()` and `sample_manifold()` drive all of
@@ -87,7 +87,7 @@ str(mfd)          # list of two: X (n x 3 ambient) and truth (n x 2 answer key)
 
 ### Determinism {-}
 
-A specification reproduces a dataset bit for bit given the same `foldbench`
+A specification reproduces a dataset bit for bit given the same `foldbenchR`
 version and the same R RNG. R changed its default sampling algorithm in 3.6.0;
 the book assumes `RNGkind(sample.kind = "Rejection")`, the post-3.6.0 default,
 and results generated under the older `"Rounding"` rule will not match. No
@@ -142,7 +142,7 @@ closed-form or fixed-iteration procedure, and the render workflow excludes
 `torch` from the restored library; its figures come from a recorded run
 documented in that chapter instead of from this file.
 
-Kruskal stress is not in the committed grid. `foldbench` does not export it; it
+Kruskal stress is not in the committed grid. `foldbenchR` does not export it; it
 is defined where it is used, in Chapter \@ref(evaluation), and computed there
 from the stored embeddings rather than carried as a column here.
 

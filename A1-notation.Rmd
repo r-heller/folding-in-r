@@ -1,7 +1,7 @@
 # Notation {#notation}
 
 Symbols keep the same meaning in every chapter. Where a symbol has a counterpart
-in the `foldbench` API, the third column names the argument, list element or
+in the `foldbenchR` API, the third column names the argument, list element or
 function; an em dash means the quantity is mathematical only and never surfaces
 as code.
 
@@ -14,7 +14,7 @@ it is dropped where no ambiguity follows.
 
 ## Pattern geometry {-}
 
-| Symbol | Meaning | `foldbench` |
+| Symbol | Meaning | `foldbenchR` |
 |---|---|---|
 | $\Omega \subset \mathbb{R}^2$ | The flat sheet: the planar domain the pattern is drawn on, before folding | — |
 | $P$ | A crease pattern — $\Omega$ together with its crease segments and their assignment | `crease_pattern` |
@@ -32,7 +32,7 @@ it is dropped where no ambiguity follows.
 
 ## Folding {-}
 
-| Symbol | Meaning | `foldbench` |
+| Symbol | Meaning | `foldbenchR` |
 |---|---|---|
 | $\theta$ | Fold angle; the difficulty parameter. $\theta = 0$ is the flat sheet | `theta` |
 | $\pi/2$ | Open upper bound on the fold angle. `fold()` and `sample_manifold()` accept $\theta \in [0, \pi/2)$; there is no `theta_max()`, because the bound is the same for every pattern | — |
@@ -62,7 +62,7 @@ is still exact, but $\lVert u - u' \rVert_2$ is no longer the whole story.
 
 ## Sampling and noise {-}
 
-| Symbol | Meaning | `foldbench` |
+| Symbol | Meaning | `foldbenchR` |
 |---|---|---|
 | $n$ | Number of sampled points | `n` |
 | $X$ | Ambient sample: $n \times 3$, or $n \times D$ after a lift. Rows $x_i$ | `X` |
@@ -75,7 +75,7 @@ is still exact, but $\lVert u - u' \rVert_2$ is no longer the whole story.
 
 ## Embedding and evaluation {-}
 
-| Symbol | Meaning | `foldbench` |
+| Symbol | Meaning | `foldbenchR` |
 |---|---|---|
 | $d$ | Intrinsic dimension. $d = 2$ for one crease pattern, $2k$ for a $k$-factor product | — |
 | $D$ | Ambient dimension after linear lift, $D \ge 3$ | `D` |
@@ -92,7 +92,7 @@ is still exact, but $\lVert u - u' \rVert_2$ is no longer the whole story.
 | $T_k$ | Trustworthiness at $k$. Penalises false neighbours — close in $Y$, far in $X$. In $[0,1]$, higher better | `trustworthiness()` |
 | $C_k$ | Continuity at $k$. Penalises missed neighbours — close in $X$, far in $Y$. In $[0,1]$, higher better | `continuity()` |
 | $P_k$ | kNN preservation: mean over $i$ of $\lvert \mathcal{N}^X_k(i) \cap \mathcal{N}^Y_k(i)\rvert / k$. In $[0,1]$, higher better | `knn_preservation()` |
-| $\sigma_1$ | Kruskal stress-1. Lower is better, $0$ is exact. Not exported by `foldbench`; defined where it is used, in Chapter \@ref(evaluation) | — |
+| $\sigma_1$ | Kruskal stress-1. Lower is better, $0$ is exact. Not exported by `foldbenchR`; defined where it is used, in Chapter \@ref(evaluation) | — |
 
 Written out, the four evaluation quantities that are not one-liners are
 
@@ -119,7 +119,7 @@ That asymmetry is the subject of Chapter \@ref(evaluation).
 
 ## Benchmark grid {-}
 
-| Symbol | Meaning | `foldbench` |
+| Symbol | Meaning | `foldbenchR` |
 |---|---|---|
 | $\mathsf{P}$ | Set of pattern families under test: Miura-ori, Yoshimura, waterbomb. Note these differ in their *flat* crease pattern only; the folding stage treats all three alike (Chapter \@ref(benchmarks)) | `PATTERNS` |
 | $\Theta$ | Grid of fold angles within $[0, \pi/2)$ | `THETA` |

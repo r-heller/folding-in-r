@@ -11,7 +11,7 @@ the map in closed form, shows that it is an exact isometry, and traces what
 $\theta$ does to the $k$-nearest-neighbour graph that most manifold-learning
 methods are built on.
 
-Everything below describes `foldbench` as it is implemented, not as it might
+Everything below describes `foldbenchR` as it is implemented, not as it might
 ideally be. Where the implementation is narrower than the geometry it is named
 after, the narrowing is stated rather than glossed.
 
@@ -36,7 +36,7 @@ accordion pleat [@schenk2013geometry]. The mountain/valley bookkeeping and the
 vertex-degree conditions behind it are Chapter \@ref(folding-geometry)'s subject.
 
 ```{r gen-setup}
-library(foldbench)
+library(foldbenchR)
 library(ggplot2)
 
 p <- miura_ori(n_rows = 4, n_cols = 4, a = 1, b = 1, alpha = pi / 3)

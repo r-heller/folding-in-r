@@ -5,7 +5,7 @@
 Chapter \@ref(generative) established the object: a rigid fold is an isometry,
 so the flat crease pattern is the exact two-dimensional embedding of the folded
 surface, not an approximation of it. This chapter is the operating manual for
-`foldbench`, the companion package that turns that fact into data. It runs the
+`foldbenchR`, the companion package that turns that fact into data. It runs the
 API from a pattern specification to a table of metrics, sets out the three
 pattern families and states precisely how far the difference between them
 currently goes, and then does the thing that makes the construction more than a
@@ -27,7 +27,7 @@ see, and `truth`, what it is scored against. `fold_product()` and `lift()`
 compose samples into higher dimension.
 
 ```{r bench-pipeline}
-library(foldbench)
+library(foldbenchR)
 library(ggplot2)
 
 pat <- miura_ori(n_rows = 6, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
@@ -81,7 +81,7 @@ what the method is trying to reconstruct — is the whole apparatus in miniature
 
 ## From a sample to a metric table
 
-`foldbench` does not wrap embedding methods. It scores them. Any function taking
+`foldbenchR` does not wrap embedding methods. It scores them. Any function taking
 an $n \times p$ matrix and returning an $n \times d$ one will do.
 
 ```{r bench-methods}
@@ -97,7 +97,7 @@ methods <- list(
   umap   = function(X, d = 2) umap::umap(X, n_components = d)$layout
 )
 
-# Kruskal stress is not in foldbench; it is small enough to keep local.
+# Kruskal stress is not in foldbenchR; it is small enough to keep local.
 kruskal_stress <- function(X, Y) {
   dx <- as.numeric(stats::dist(X)); dy <- as.numeric(stats::dist(Y))
   sqrt(sum((dx - dy * (sum(dx * dy) / sum(dy^2)))^2) / sum(dx^2))
@@ -197,7 +197,7 @@ knitr::kable(
                 "Differs: flat lattice", "Differs: crease assignment",
                 "Does not differ: folded geometry"),
   caption = paste("What the three families do and do not change in",
-                  "foldbench 0.1.0.")
+                  "foldbenchR 0.1.0.")
 )
 ```
 
@@ -214,7 +214,7 @@ negative-Poisson-ratio metamaterials that made it well known
 
 **Yoshimura** is the diamond pattern that forms spontaneously when a thin
 cylindrical shell buckles under axial load [@yoshimura1955buckling].
-`foldbench` builds its planar tessellation: alternate rows offset by half a
+`foldbenchR` builds its planar tessellation: alternate rows offset by half a
 cell, with every vertical crease assigned V. The resulting 24 : 60 mountain to
 valley ratio is strongly asymmetric where Miura-ori is balanced.
 
@@ -515,7 +515,7 @@ ggplot(res, aes(theta, rmse, colour = method, linetype = method,
 ```
 
 The loop above is the whole grid machinery: there is no `benchmark_grid()` in
-`foldbench`, and there does not need to be. `scripts/run-benchmark-grid.R`
+`foldbenchR`, and there does not need to be. `scripts/run-benchmark-grid.R`
 builds the Chapter \@ref(results) version the same way, over pattern $\times$
 $\theta$ $\times$ noise $\times$ seed $\times$ method, and commits the result to
 `data/processed/benchmark-grid.rds` because the full run takes hours. Chapter

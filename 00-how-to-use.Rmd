@@ -18,7 +18,7 @@ Three rules apply throughout and are not restated in each chapter.
 ## What you need {-}
 
 R 4.1 or newer and the packages pinned in `renv.lock`. Run `renv::restore()`
-once after cloning. The companion package `foldbench` provides the pattern
+once after cloning. The companion package `foldbenchR` provides the pattern
 constructors, the sampler, and the evaluation metrics; the book loads it but
 does not reproduce its source.
 

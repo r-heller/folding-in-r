@@ -54,7 +54,7 @@ Gram matrix carries that ratio as $10^{-18}$, below `.Machine$double.eps`, and
 the third eigenvalue returns as noise or as a small negative number.
 
 ```{r linear-pca-basics}
-library(foldbench)
+library(foldbenchR)
 
 pattern <- miura_ori(n_rows = 4, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
 s       <- sample_manifold(pattern, theta = 0, n = 4000, seed = BENCH_SEEDS[1])
@@ -100,7 +100,7 @@ that it is an argument, not a default.
 
 ## The variance structure of a folded sheet {#linear-variance}
 
-`foldbench` folds the sheet as an accordion along $y$. A flat coordinate
+`foldbenchR` folds the sheet as an accordion along $y$. A flat coordinate
 $(u_x, u_y)$ maps to
 
 $$
@@ -382,7 +382,7 @@ ggplot(agg, aes(frac, med, colour = method, linetype = method, shape = method)) 
 ```
 
 The curve is faceted by aspect ratio rather than by pattern family for a reason
-worth recording. In `foldbench` 0.1.0 the sampler applies the same accordion map
+worth recording. In `foldbenchR` 0.1.0 the sampler applies the same accordion map
 to every family, so `miura_ori()`, `yoshimura()` and `waterbomb()` differ in the
 sampled manifold only through the flat extent of their vertex lattice — the
 crease assignment reaches `plot_crease()` and not `sample_manifold()`. The

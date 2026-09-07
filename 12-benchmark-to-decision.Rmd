@@ -52,10 +52,10 @@ $\mathbb{R}^3$ while staying fixed distances apart on the sheet, so the ambient
 $k$NN graph acquires short-circuit edges and the local intrinsic dimension
 estimated across a crease rises above two.
 
-`foldbench` already localises the first of these exactly:
+`foldbenchR` already localises the first of these exactly:
 
 ```{r decision-sc-theta}
-library(foldbench)
+library(foldbenchR)
 
 pat <- miura_ori(n_rows = 6, n_cols = 6)
 
@@ -93,7 +93,7 @@ its own neighbourhood; a short circuit has a detour the length of the fold.
 ```{r decision-shortcircuit}
 # Short-circuit diagnostic for an arbitrary n x p data matrix.
 # No ground truth required: it is a statement about the kNN graph alone.
-# foldbench does not import these; load them explicitly.
+# foldbenchR does not import these; load them explicitly.
 short_circuit_index <- function(X, k = 15, n_candidates = 500, detour = 4) {
   stopifnot(is.matrix(X), k >= 2)
   n  <- nrow(X)

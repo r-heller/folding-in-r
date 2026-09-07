@@ -70,7 +70,7 @@ between them is the benchmark.
 The lattice below is the Miura-ori vertex grid, built in base R so that the
 check runs without the companion package. Alternate rows are sheared along $x$
 by $b / \tan\alpha$, which is what makes the vertical creases zigzag; this is
-the same construction `foldbench::miura_ori()` uses.
+the same construction `foldbenchR::miura_ori()` uses.
 
 ```{r geom-lattice, eval = TRUE}
 miura_grid <- function(n_rows, n_cols, a = 1, b = 1, alpha = pi / 3) {
@@ -148,7 +148,7 @@ embedded surface. This is why the fold angle stops strictly short of the
 flat-folded limit, $\theta \in [0, \pi/2)$, and why the hardest configurations
 in Chapter \@ref(results) are approached but never reached.
 
-The fold `foldbench` implements is the simplest map with these properties: a
+The fold `foldbenchR` implements is the simplest map with these properties: a
 rigid accordion pleat, in which bands of the sheet rotate alternately out of
 plane about parallel creases. A step of $b$ across a band becomes
 $b\cos\theta$ in $y$ and $b\sin\theta$ in $z$, so the map is unit-speed along
@@ -158,7 +158,7 @@ the two-directional Miura fold whose flat pattern the constructors build.
 Chapter \@ref(generative) states the consequences for the generative model.
 
 ```{r geom-isometry}
-library(foldbench)
+library(foldbenchR)
 
 p <- miura_ori(n_rows = 4, n_cols = 6)
 
@@ -256,7 +256,7 @@ ggplot(seg, aes(x, y, xend = xend, yend = yend,
 
 The theorem is worth stating as a *test*, not only as a fact, because it is
 cheap to check and it catches errors. Applied to the assignment shipped in
-`foldbench::miura_ori()`, which types every horizontal crease by its row index
+`foldbenchR::miura_ori()`, which types every horizontal crease by its row index
 and every zigzag crease by its column index, it fails: at each interior vertex
 both horizontal creases inherit the same row and both zigzag creases the same
 column, so the counts come out $2$–$2$ or $4$–$0$ and $|M - V|$ is $0$ or $4$,

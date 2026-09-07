@@ -4,7 +4,7 @@ Build record for *Folding in R*. One entry per merged phase, newest last.
 Each entry names the branch, the gate that was checked, and the resulting SHA.
 
 Scope note: this scaffold was generated locally. Nothing has been pushed to
-`origin`, no release was cut, and the sibling package `foldbench` exists as a
+`origin`, no release was cut, and the sibling package `foldbenchR` exists as a
 local directory rather than a GitHub repository. Phases 1–10 of the scaffold
 prompt are therefore executed up to, but not including, their remote steps.
 
@@ -25,9 +25,9 @@ carry over its `tweak_part_screwup()` no-op. It works around a bookdown 0.46
 crash that is fixed in 0.47, and under 0.47 it suppresses every part heading:
 0 occurrences of "Part I" with the patch against 98 without it.
 
-## Phase 5 — Companion package `foldbench`
+## Phase 5 — Companion package `foldbenchR`
 
-Built at `../foldbench` as a local directory, per the scope note above.
+Built at `../foldbenchR` as a local directory, per the scope note above.
 Patterns, folding and sampling, product and lift, and the evaluation metrics.
 
 Gate: `R CMD check --as-cran` — 0 errors, 0 warnings, 0 notes.
@@ -52,7 +52,7 @@ Gate: `scripts/verify-citations.R` — all 9 identifiers resolve.
 
 ## Environment
 
-`chore/renv` → `48dce7a`. `renv.lock` pins 87 packages. `foldbench` is excluded
+`chore/renv` → `48dce7a`. `renv.lock` pins 87 packages. `foldbenchR` is excluded
 as a sibling source repository; `torch` is recorded but not installed, so
 `scripts/renv-snapshot.R` is used in place of a bare `renv::snapshot()`, which
 would drop it every time.
@@ -81,6 +81,44 @@ and bs4_book's kit fallback answers 403, and every per-chapter download link
 dead because the PDFs were named after source files rather than pages.
 
 Gates: `render_book(output_format = "all")` clean; 18 chapter PDFs, each
-matching an HTML page; 9 identifiers resolve; `foldbench` checks 0/0/0.
+matching an HTML page; 9 identifiers resolve; `foldbenchR` checks 0/0/0.
 
 Not done, per the scope note: push, release, GitHub Pages.
+
+## Phase 11 — Chapter prose
+
+`feat/chapter-prose` → `85f85c7`. Ten of the twelve body chapters, the glossary
+and both appendices written from their stub outlines. Chapters 9 (ground truth
+and the evaluators) and 11 (crease patterns vs. the Swiss roll) are still stubs.
+
+Gates: every `\@ref()` target resolves against a heading that exists; no
+duplicate chunk labels; every figure chunk carries `fig.alt`; all 70 `book.bib`
+entries parse under `pandoc --citeproc` and every cited key resolves.
+Not yet run: a full render, and the benchmark grid itself.
+
+Finding, recorded here because it constrains what the book may claim.
+`fold()` and `sample_manifold()` compute the folded state from the row index and
+`params$b` alone. Neither reads `$creases`, `$family` or `alpha`. So the shipped
+fold is a one-dimensional accordion rather than a Miura-ori, `alpha` changes only
+the flat bounding box, and `miura_ori()`, `yoshimura()` and `waterbomb()` fold
+identically — which makes the `pattern` factor of the grid very nearly a no-op.
+The isometry is unaffected: the map is unit-speed, so `dist(truth)` is the exact
+geodesic distance matrix and the ground-truth thesis holds. Chapters 3, 8 and 10
+and Appendix A2 now say that the three families differ in their flat crease
+pattern only. Whether to implement a genuinely two-dimensional Miura fold in
+`foldbenchR` is left to the author; it is a design change, not a bug fix, and it
+would invalidate any committed grid.
+
+Two defects fixed on the way. `.gitignore` matched `*.rds` everywhere, which
+made `data/processed/benchmark-grid.rds` uncommittable even though
+`scripts/run-benchmark-grid.R` says to commit it; the rule is now scoped to the
+repository root, where the bookdown session cache actually lands. And the grid
+script scored PCA alone — it now scores PCA, classical MDS, Isomap, t-SNE and
+UMAP, with `torch` excluded to match `render-book.yml`, and records `NA` for a
+method that cannot embed a configuration instead of dropping the row.
+
+Environment note for whoever picks this up: this machine is Ubuntu *resolute*.
+The 77-package library under `renv/library/linux-ubuntu-noble/` is stale and
+invisible to R; the live path is `renv/library/linux-ubuntu-resolute/R-4.6/`.
+Restore with `renv::restore(exclude = "torch")` as CI does — torch is a very
+slow source build and no chapter needs it to render.

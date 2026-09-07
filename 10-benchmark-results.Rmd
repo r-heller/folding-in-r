@@ -107,7 +107,7 @@ Stripped of its bookkeeping, the script is an `expand.grid()` over the design
 and a loop:
 
 ```{r results-provenance}
-library(foldbench)
+library(foldbenchR)
 
 PATTERNS <- list(miura     = miura_ori(6, 6),
                  yoshimura = yoshimura(6, 6),

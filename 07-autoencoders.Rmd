@@ -43,7 +43,7 @@ the R dependency graph, at the cost of being excluded from the render.
 
 ```{r ae-module}
 library(torch)
-library(foldbench)
+library(foldbenchR)
 library(ggplot2)
 
 fold_autoencoder <- nn_module(

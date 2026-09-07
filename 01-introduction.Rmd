@@ -56,7 +56,7 @@ eye. It is the generating coordinate itself, returned by the constructor before
 any folding happens.
 
 ```{r intro-answer-key-demo}
-library(foldbench)
+library(foldbenchR)
 
 # A Miura-ori sheet: 4 by 6 parallelogram cells.
 pattern <- miura_ori(n_rows = 4, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
@@ -306,14 +306,14 @@ everything after it. Geodesic methods in Chapter \@ref(geodesic): classical
 MDS, Isomap [@tenenbaum2000isomap], locally linear embedding
 [@roweis2000lle] — Isomap is *built* for isometric embeddings, so the
 informative question is the exact angle at which its graph first bridges two
-facets, which `foldbench` locates directly. Neighbour embeddings in Chapter
+facets, which `foldbenchR` locates directly. Neighbour embeddings in Chapter
 \@ref(neighbor), where t-SNE [@vandermaaten2008tsne] and UMAP
 [@mcinnes2018umap] are separated from their own seed noise. Autoencoders in
 Chapter \@ref(autoencoders), the only family that learns an explicit inverse,
 which makes the fold–unfold identity directly computable.
 
 **Part III — The benchmark.** Chapter \@ref(benchmarks) is the construction
-proper: the `foldbench` API end to end, pattern families beyond Miura-ori,
+proper: the `foldbenchR` API end to end, pattern families beyond Miura-ori,
 product manifolds at intrinsic dimension $2k$, and random orthonormal lifts to
 arbitrary ambient dimension. Chapter \@ref(evaluation) audits the evaluators.
 Chapter \@ref(results) reports the full method $\times$ pattern $\times$
