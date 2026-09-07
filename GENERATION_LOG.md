@@ -122,3 +122,22 @@ The 77-package library under `renv/library/linux-ubuntu-noble/` is stale and
 invisible to R; the live path is `renv/library/linux-ubuntu-resolute/R-4.6/`.
 Restore with `renv::restore(exclude = "torch")` as CI does — torch is a very
 slow source build and no chapter needs it to render.
+
+## Phase 12 — Package renamed to `foldbenchR`
+
+`feat/chapter-prose` → `cee6563`, with `foldbenchR` → `151cdad` in the sibling
+repository. Package name, package-level doc and its generated Rd, test
+bootstrap, chapter prose, both appendices, README, grid script, the renv ignore
+list, and both CI workflows including the checkout paths and the sibling
+repository name they resolve against.
+
+`docs/` was deliberately left untouched. It is generated output and still names
+the old package; the next render refreshes it.
+
+Gates: `testthat::test_dir(load_package = "installed")` — 54 pass, 0 fail;
+`library(foldbenchR)` resolves all 15 exports from the project library;
+`reconstruction_error(truth, truth)` returns 7.5e-16, i.e. machine zero.
+
+Still local. `r-heller/foldbenchR` does not exist on GitHub — neither did
+`r-heller/foldbench` — so the workflows that check it out remain inert by
+design until the repository is published.
