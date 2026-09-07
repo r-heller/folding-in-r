@@ -2,15 +2,568 @@
 
 *Does the new benchmark actually add anything?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+## What this chapter answers {#comp-question}
 
-- Head-to-head against Swiss roll and S-curve, same methods and same metrics.
-- What separates the benchmarks is the SPREAD between methods at matched
-  difficulty, not a flip in their order. E1 looked for a flip and found none; it
-  found a separation, with an interval from a cluster bootstrap over settings and
-  a p-value from cluster-robust regression. A benchmark earns its keep by telling
-  methods apart, and that is the statistic the chapter reports -- read from
-  `e1-controlled.rds` through an inline `r` expression, ratio and interval
-  together, never the ratio alone.
-- What the crease-pattern family surfaces that a single fixed geometry hides.
-- An honest answer to "why not just use the Swiss roll?"
+Yes — and not the thing this book set out to claim.
+
+The claim under test was that a crease pattern is a *harder* benchmark than the
+Swiss roll: that folding reaches difficulty the classical surfaces cannot.
+Experiment E1 was run before this chapter was drafted, precisely so that the
+prose could not outlive a refutation, and it refuted it. At matched difficulty a
+folded Miura is **easier** than a Swiss roll, and it tells the methods apart
+about five times less well.
+
+What survives is narrower and better founded. The Swiss roll is one fixed
+geometry, and the answer key usually shipped with it is not its isometric chart.
+The severed sphere has no exact answer key and, by Gauss's theorem, cannot have
+one. A crease pattern is a whole family indexed by $\theta$ whose chart is exact
+at every point of it. The contribution is the answer key and the axis, not the
+difficulty — which is why Chapters \@ref(benchmarks) and \@ref(evaluation) are
+where it pays, and this chapter is where it does not.
+
+## Setup {#comp-setup}
+
+```{r comp-setup-chunk, echo=TRUE}
+classic <- read_run("data/processed/classic-grid.rds",   "d71fb3ba0ad5de68")
+crease  <- read_run("data/processed/benchmark-grid.rds", "2483a468d82d4d64")
+e1      <- read_run("data/processed/e1-controlled.rds",  "01d82cfe8f45bb44")
+armB    <- read_run("data/processed/e1-armB.rds",        "cbf9ce13782a556d")
+```
+
+`classic-grid.rds` is the Swiss roll, the S-curve and the severed sphere scored
+through the same `grid_cell()` the crease grid uses: same methods, same metrics,
+same floor. Nothing on either side is special-cased. The two E1 artefacts are the
+controlled arm and the crease-count arm of the experiment that decided this
+chapter's claim, and `scripts/experiment-e1.R` produced both before it was
+drafted.
+
+## Background {#comp-background}
+
+### The Swiss roll has an exact chart, and it is usually not the one shipped
+
+A Swiss roll is a rectangle of paper wound onto a spiral. It arrived with Isomap
+[@tenenbaum2000isomap], appeared the same year in the LLE paper beside the
+S-curve [@roweis2000lle], and has been the first figure of the subject ever
+since [@lee2007nonlinear].
+
+It is developable, so it *does* have an isometric chart, and the chart is cheap:
+arc length along the spiral paired with height. For the Archimedean spiral
+$r = at$ the arc length is closed form,
+
+$$s(t) = \frac{a}{2}\left[\,t\sqrt{1+t^{2}} + \operatorname{asinh} t\,\right],$$
+
+which is `archimedean_arclength()` in `R/baselines.R`. So the Swiss roll is not
+short of ground truth. What it is usually short of is the *right* ground truth:
+the key shipped with it is the generating angle, and arc length is not
+proportional to angle.
+
+```{r comp-answer-key, echo=TRUE, comment=""}
+roll_ang <- swiss_roll(N_DEFAULT, turns = 2, seed = BENCH_SEEDS[1],
+                       isometric = FALSE)
+eul_ang  <- swiss_roll(N_DEFAULT, turns = 2, seed = BENCH_SEEDS[1],
+                       isometric = FALSE, spiral = "euler")
+key_gap  <- c(archimedean = reconstruction_error(roll_ang$truth, roll_ang$iso_chart),
+              euler       = reconstruction_error(eul_ang$truth,  eul_ang$iso_chart))
+key_qnx  <- c(archimedean = qnx(roll_ang$truth, roll_ang$iso_chart, K = K_QNX),
+              euler       = qnx(eul_ang$truth,  eul_ang$iso_chart,  K = K_QNX))
+
+sphere   <- severed_sphere(N_DEFAULT, cap = 0.4, seed = BENCH_SEEDS[1])
+stretch  <- (pi - sphere$cap) / sin(sphere$cap)    # r / (R sin(r/R)) at the rim
+n_sphere <- sum(classic$family == "severed_sphere" & classic$ran)
+cat(strwrap(tryCatch(require_exact_truth(sphere, "a reconstruction score"),
+                     error = conditionMessage), 72), sep = "\n")
+```
+
+Score the customary angle chart against the arc-length chart on one two-turn
+roll and the gap is `r signif(key_gap[["archimedean"]], 3)` in normalised
+Procrustes RMSE, with $Q_{NX}$ at `r signif(key_qnx[["archimedean"]], 3)`. That
+is not a rounding difference. An evaluation against the angle chart measures
+recovery of a reparameterisation, and the factor by which it is wrong is a
+property of the roll rather than of the method under test.
+
+The defect is known and was fixed in 2017. Schoeneman et al. proposed the Euler
+Isometric Swiss Roll [@schoeneman2017error], replacing the Archimedean spiral
+with the Fresnel integrals; it has been used since [@mahapatra2018learning].
+Their stated reason is that curvature proportional to arc length "ensures that
+isometry is preserved". The checkable reason is simpler: the Fresnel
+parameterisation is **unit speed**, so the parameter *is* arc length by
+definition. Label an Euler roll by its turning angle instead and the same error
+appears at `r signif(key_gap[["euler"]], 3)` — smaller, and not zero.
+
+Every Swiss roll in this book is scored against arc length. Figure
+\@ref(fig:comp-chart) is why.
+
+```{r comp-chart, echo=FALSE, fig.width=6.5, fig.height=4, fig.cap="Position along the spiral measured two ways, on the same sample. The grey diagonal is where the two agree. The Archimedean roll's customary angle chart departs from arc length across the whole sweep; the Euler roll's departs far less, because its parameterisation is unit speed.", fig.alt="A line chart with position by turning angle on the horizontal axis and position by arc length on the vertical axis, both scaled to the unit interval. A straight grey diagonal marks equality. A solid dark curve for the Archimedean spiral bows well below the diagonal, farthest from it around the middle of the range. A dashed lighter curve for the Euler spiral bows above the diagonal by a much smaller amount. Both curves meet the diagonal only at the two ends."}
+key <- rbind(
+  data.frame(spiral = "Archimedean", angle = roll_ang$truth[, 1],
+             arc = roll_ang$iso_chart[, 1]),
+  data.frame(spiral = "Euler", angle = eul_ang$truth[, 1],
+             arc = eul_ang$iso_chart[, 1]))
+key <- do.call(rbind, lapply(split(key, key$spiral), function(d) {
+  d$angle <- (d$angle - min(d$angle)) / diff(range(d$angle))
+  d$arc   <- (d$arc   - min(d$arc))   / diff(range(d$arc))
+  d[order(d$angle), ]
+}))
+ggplot2::ggplot(key, ggplot2::aes(angle, arc, colour = spiral, linetype = spiral)) +
+  ggplot2::geom_abline(slope = 1, intercept = 0, colour = "grey65", linewidth = 0.4) +
+  ggplot2::geom_line(linewidth = 0.9) +
+  scale_colour_book(begin = 0.08, end = 0.68) +
+  ggplot2::labs(x = "position by turning angle", y = "position by arc length",
+                colour = NULL, linetype = NULL) +
+  theme_fold()
+```
+
+### The severed sphere has no answer key at all
+
+Say it bluntly. A sphere has constant positive Gaussian curvature, the plane has
+none, and curvature is intrinsic — Gauss's *Theorema Egregium*. No chart of any
+patch of a sphere preserves distances, however small the patch and however
+clever the chart. `severed_sphere()` therefore ships a **convention**: the
+azimuthal-equidistant chart about the retained pole, which gets every radial
+geodesic exactly right and stretches every circle around it by
+$r / (R\sin(r/R))$ — a factor reaching `r signif(stretch, 3)` at the rim of the
+largest patch in the classic grid.
+
+The object knows this, and the refusal printed above is `require_exact_truth()`
+reading the flag. That guard fires only where something calls it. `grid_cell()`
+does not, so the classic grid scored the severed sphere `r n_sphere` times,
+exactly as it scored the roll. Those numbers exist, they are in the committed
+artefact, and this chapter reports none of them as recovery of a structure.
+
+## Difficulty has two axes, not one {#comp-core}
+
+### The knob has to move the right thing
+
+Both families have a difficulty parameter, and both parameters have to be
+checked, because the obvious version of each does nothing.
+
+For the Swiss roll it is the turn count, and the obvious parameterisation — let
+the angle run further and the radius run with it — adds revolutions at *constant*
+sheet spacing, so the $k$-nearest-neighbour graph stays faithful however many
+turns are asked for. `swiss_roll()` instead holds the outer radius fixed and
+fits the requested revolutions inside it, so the radial gap between consecutive
+sheets falls as one over the turn count. That is Balasubramanian and Schwartz's
+gap-to-spacing ratio $g/s$ [@balasubramanian2002isomap], and it is the one axis
+both families can be plotted against.
+
+For a crease pattern it is $\theta$. But folding does two things at once: it
+brings distant sheets together *and* it lifts the sheet out of the plane. The
+second is what `non_planarity()` measures — the share of ambient variance no
+plane captures, the third principal eigenvalue over their sum.
+
+```{r comp-plane, echo=TRUE, fig.width=7, fig.height=4.4, fig.cap="The two difficulty axes. Each family sweeps its own parameter; difficulty rises to the right. The shaded band is empty, so over this design there is no setting at which a folded Miura and a classical surface are comparable on both axes at once.", fig.alt="A scatter plot with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and ambient non-planarity from zero to about 0.32 on the vertical axis. A connected run of Miura points sweeps along the bottom of the panel and never rises above about 0.06. A connected run of Swiss roll points sits in a narrow horizontal band near 0.09 to 0.13, with the S-curve as a single point beside them, and severed sphere points well above at 0.22 to 0.30. A grey shaded horizontal band separates the Miura run from everything else and contains no points."}
+axes <- local({
+  seeds <- BENCH_SEEDS[1:3]
+  one <- function(m, family, par) data.frame(
+    family = family, par = par, np = non_planarity(m),
+    gs = branch_gap(m)$ratio, sc = short_circuit_index(m))
+  run <- function(vals, family, make) do.call(rbind, lapply(vals, function(v)
+    do.call(rbind, lapply(seeds, function(s) one(make(v, s), family, v)))))
+  rbind(
+    run(sort(unique(classic$par[classic$family == "swiss_roll"])), "Swiss roll",
+        function(v, s) swiss_roll(N_DEFAULT, turns = v, seed = s)),
+    run(sort(unique(classic$par[classic$family == "severed_sphere"])),
+        "severed sphere", function(v, s) severed_sphere(N_DEFAULT, cap = v, seed = s)),
+    run(NA_real_, "S-curve", function(v, s) s_curve(N_DEFAULT, seed = s)),
+    run(THETA_GRID, "Miura", function(v, s)
+      sample_manifold(miura_ori(6L, 6L), theta = v, n = N_DEFAULT, seed = s)))
+})
+# The S-curve is added by hand because it has no difficulty parameter at all;
+# aggregate() drops a group whose key is NA, and inventing a key would be worse.
+cell <- aggregate(cbind(np, gs, sc) ~ family + par, axes, mean)
+sc_rows <- axes[axes$family == "S-curve", ]
+cell <- rbind(cell, data.frame(family = "S-curve", par = NA_real_,
+                               np = mean(sc_rows$np), gs = mean(sc_rows$gs),
+                               sc = mean(sc_rows$sc)))
+np_top <- max(cell$np[cell$family == "Miura"])
+np_bot <- min(cell$np[cell$family != "Miura"])
+
+swept <- cell[cell$family != "S-curve", ]
+ggplot2::ggplot(cell, ggplot2::aes(gs, np, colour = family, shape = family)) +
+  # Finite bounds, not +/- Inf: under a log transform an infinite limit is NaN
+  # and the band silently does not draw.
+  ggplot2::annotate("rect", xmin = min(cell$gs) / 2, xmax = max(cell$gs) * 2,
+                    ymin = np_top, ymax = np_bot, fill = "grey70", alpha = 0.4) +
+  ggplot2::geom_line(data = swept[order(swept$family, swept$par), ],
+                     ggplot2::aes(group = family), linewidth = 0.5) +
+  ggplot2::geom_point(size = 2.3) +
+  ggplot2::scale_x_continuous(transform = c("log10", "reverse")) +
+  scale_colour_book(begin = 0.05, end = 0.78) +
+  ggplot2::labs(x = "gap-to-spacing ratio (log scale, harder to the right)",
+                y = "ambient non-planarity", colour = NULL, shape = NULL) +
+  theme_fold()
+```
+
+The ranges are **disjoint**. Across the whole $\theta$ sweep a six-by-six Miura
+covers non-planarity from
+`r sprintf("%.3f", min(cell$np[cell$family == "Miura"]))` to
+`r sprintf("%.3f", np_top)`; the Swiss rolls in the classic grid cover
+`r sprintf("%.3f", min(cell$np[cell$family == "Swiss roll"]))` to
+`r sprintf("%.3f", max(cell$np[cell$family == "Swiss roll"]))`, the S-curve sits
+at `r sprintf("%.3f", cell$np[cell$family == "S-curve"])`, and the severed
+sphere starts at
+`r sprintf("%.3f", min(cell$np[cell$family == "severed sphere"]))` and rises. The
+corridor between `r sprintf("%.3f", np_top)` and `r sprintf("%.3f", np_bot)` is
+empty.
+
+Figure \@ref(fig:comp-plane) is the argument. A sweep of $\theta$ alone is not a
+controlled comparison, because it moves both axes together and the families
+never meet on the second. At the easy end of the $g/s$ range a Miura is a flat
+plane, which PCA recovers exactly; a Swiss roll at the same separation is still
+curved, and PCA cannot.
+
+The third column of `cell` is the reason $g/s$ carries the first axis rather
+than the more obvious candidate. `short_circuit_index()` asks whether the
+neighbours a method would actually pick are neighbours on the surface too; it is
+scale-free, bounded above by one, and comparable across families, which makes it
+the better-behaved statistic of the two. It is also nearly constant over most of
+this design. Across the classic grid's turn range it falls only from
+`r sprintf("%.3f", max(cell$sc[cell$family == "Swiss roll"]))` to
+`r sprintf("%.3f", min(cell$sc[cell$family == "Swiss roll"]))`, and almost all of
+that drop happens at the last two settings; across the whole $\theta$ sweep the
+Miura falls from `r sprintf("%.3f", max(cell$sc[cell$family == "Miura"]))` to
+`r sprintf("%.3f", min(cell$sc[cell$family == "Miura"]))`; the severed sphere
+never leaves
+`r sprintf("%.3f", min(cell$sc[cell$family == "severed sphere"]))`. A difficulty
+axis that is flat until the very end of the range cannot order the settings in
+between, so the comparison is made on $g/s$ and the short-circuit index is
+reported beside it as the check that $g/s$ is not measuring the sampler.
+
+### The fix, and what it costs
+
+$\theta$ is not the only knob the generator has. Cell count dominates
+non-planarity: a small Miura at a wide opening angle and a deep fold reaches
+above anything the Swiss roll produces, while a six-by-six at the same angles
+stays an order of magnitude below. Sweeping $(n_x, \alpha, \theta)$ decouples the
+axes and creates the overlap a $\theta$ sweep lacks. That is what E1's second arm
+did, and it is what `e1-controlled.rds` holds.
+
+Crease count on its own does nothing. Arm B holds $g/s$ fixed and varies the
+tessellation from nine facets to a hundred and forty-four; PCA's mean error moves
+between
+`r sprintf("%.3f", min(aggregate(rmse ~ creases, armB[armB$method == "pca", ], mean)$rmse))`
+and
+`r sprintf("%.3f", max(aggregate(rmse ~ creases, armB[armB$method == "pca", ], mean)$rmse))`,
+Isomap's between
+`r sprintf("%.3f", min(aggregate(rmse ~ creases, armB[armB$method == "isomap", ], mean)$rmse))`
+and
+`r sprintf("%.3f", max(aggregate(rmse ~ creases, armB[armB$method == "isomap", ], mean)$rmse))`,
+and neither monotonically. Error is flat in crease count at matched separation.
+Whatever makes these patterns hard, it is not that they have creases.
+
+### One geometry against a family
+
+This is the structural difference, and it survives everything the measurements
+below do to the rest of the chapter. A Swiss roll's turn count changes how
+tightly one shape is wound; it is a real knob, and `swiss_roll()` makes it one. A
+crease pattern gives a *family*: the same exact chart at every $\theta$, so a
+method's score is a curve rather than a point and the shape of the curve is a
+property of the method. Nothing about the classical surfaces forbids such a
+sweep, and one is drawn here. What they cannot supply is the exact key at the far
+end of it.
+
+Nor have they had to break the habit that goes with a fixed geometry. A Swiss
+roll's answer key is two-dimensional and its failures are legible, so the
+customary report is a picture: the unrolled sheet either comes out as a rectangle
+or it does not, and the reader is invited to agree. That is a serviceable way to
+show a method working and a poor way to compare two that both nearly work — which
+is exactly the regime the dispute over two-dimensional embeddings lives in
+[@chari2023specious; @lause2024elephant]. A parameterised family forces the
+question into a number at every setting, and the number is what the rest of this
+chapter argues over.
+
+## Results {#comp-results}
+
+### The head-to-head, matched on separation alone
+
+Match each Swiss roll to the $\theta$ whose measured $g/s$ is nearest, keep the
+ones landing inside the crease family's range, and score both sides from the
+committed grids at the same eight methods, the same twenty seeds and no noise.
+
+```{r comp-matched, echo=TRUE}
+mi <- cell[cell$family == "Miura", ]
+ro <- cell[cell$family == "Swiss roll", ]
+ro <- ro[ro$gs >= min(mi$gs) & ro$gs <= max(mi$gs), ]
+near <- vapply(ro$gs, function(x) which.min(abs(mi$gs - x)), integer(1))
+ro$theta    <- mi$par[near]
+ro$mismatch <- abs(mi$gs[near] - ro$gs) / ro$gs
+
+A <- classic[classic$family == "swiss_roll" & classic$noise == "none" &
+             classic$ran & classic$par %in% ro$par, ]
+B <- crease[crease$noise == "none" & crease$ran & crease$theta %in% ro$theta, ]
+stopifnot(all(A$seed %in% BENCH_SEEDS), all(B$seed %in% BENCH_SEEDS))
+h <- merge(setNames(aggregate(cbind(rmse, qnx) ~ method, A, mean),
+                    c("method", "roll_rmse", "roll_qnx")),
+           setNames(aggregate(cbind(rmse, qnx) ~ method, B, mean),
+                    c("method", "cr_rmse", "cr_qnx")))
+h <- h[order(h$roll_rmse), ]
+rho <- c(rmse = cor(h$roll_rmse, h$cr_rmse, method = "spearman"),
+         qnx  = cor(h$roll_qnx,  h$cr_qnx,  method = "spearman"))
+gap <- function(d, key) {
+  w <- reshape(d[d$method %in% c("pca", "isomap"), c(key, "seed", "method", "rmse")],
+               idvar = c(key, "seed"), timevar = "method", direction = "wide")
+  abs(w$rmse.pca - w$rmse.isomap)
+}
+naive <- mean(gap(A, "par")) / mean(gap(B, "theta"))
+```
+
+That leaves `r nrow(ro)` matched pairs, agreeing to within
+`r sprintf("%.1f", 100 * max(ro$mismatch))`% in $g/s$.
+
+```{r comp-ranking, echo=FALSE, fig.width=6.8, fig.height=4, fig.cap="Mean reconstruction error of eight methods on a Swiss roll and on a Miura matched to it in gap-to-spacing ratio. Methods are ordered by their Swiss-roll score, and the connecting segments make the reordering visible: the two linear methods move from joint last to near the front.", fig.alt="A dumbbell chart. Eight methods run down the vertical axis, ordered by Swiss-roll error with Isomap at the top and PCA and classical MDS at the bottom. Each method carries two markers joined by a grey segment, one for the Swiss roll and one for the matched Miura. Every Miura marker lies to the left of its Swiss-roll marker, that is at lower error. For Isomap the two nearly coincide near zero; for PCA and MDS the Miura marker sits far to the left while the Swiss-roll marker is at the extreme right."}
+lv <- h$method
+long <- rbind(data.frame(method = lv, benchmark = "Swiss roll", rmse = h$roll_rmse),
+              data.frame(method = lv, benchmark = "Miura, matched", rmse = h$cr_rmse))
+long$method <- factor(long$method, levels = rev(lv))
+ggplot2::ggplot(long, ggplot2::aes(rmse, method)) +
+  ggplot2::geom_line(ggplot2::aes(group = method), colour = "grey65", linewidth = 0.6) +
+  ggplot2::geom_point(ggplot2::aes(colour = benchmark, shape = benchmark), size = 2.9) +
+  scale_colour_book(begin = 0.08, end = 0.68) +
+  ggplot2::labs(x = "mean reconstruction error", y = NULL,
+                colour = NULL, shape = NULL) +
+  theme_fold()
+```
+
+The two rankings barely correlate: Spearman `r sprintf("%.3f", rho[["rmse"]])` on
+reconstruction error and `r sprintf("%.3f", rho[["qnx"]])` on $Q_{NX}$. So the
+classical benchmark *does* rank methods differently — and the order it produces
+is the one the field has internalised. Isomap first, the linear methods joint
+last: the picture the Swiss roll was introduced to make
+[@tenenbaum2000isomap], and the one against which the neighbour embeddings have
+been read ever since [@vandermaaten2008tsne; @mcinnes2018umap].
+
+The reordering is not a shuffle at the margin. PCA and classical MDS score
+`r sprintf("%.3f", h$roll_rmse[h$method == "pca"])` on the roll, joint last of
+eight, and `r sprintf("%.3f", h$cr_rmse[h$method == "pca"])` on the Miura matched
+to it, which is second. Isomap barely moves —
+`r sprintf("%.3f", h$roll_rmse[h$method == "isomap"])` against
+`r sprintf("%.3f", h$cr_rmse[h$method == "isomap"])` — and neither does its
+$Q_{NX}$, `r sprintf("%.3f", h$roll_qnx[h$method == "isomap"])` against
+`r sprintf("%.3f", h$cr_qnx[h$method == "isomap"])`. Every method scores better
+on the crease side, which is the first thing to notice: at matched separation the
+folded sheet is the easier object for all eight. What changes the order is that
+the linear methods gain far more from the change than the geodesic one does.
+
+### Why that answer is the wrong one
+
+Because the match was on one axis and there are two. PCA does well on a folded
+Miura for a reason that has nothing to do with creases: even at the largest
+$\theta$ this grid uses the sheet is still nearly planar, and a nearly planar
+object is what PCA is optimal for. Read off this comparison, the Swiss roll
+separates PCA from Isomap `r sprintf("%.0f", naive)` times better than the crease
+pattern does — a number produced almost entirely by the axis the match failed to
+control.
+
+### The controlled comparison
+
+`e1-controlled.rds` sweeps $(n_x, \alpha, \theta)$ against turns, and has an
+overlap region in which both axes lie inside the joint range of the two families.
+
+```{r comp-controlled, echo=TRUE}
+ctl <- local({
+  s <- e1[is.finite(e1$rmse), ]; s$lg <- log(s$gs)
+  s[s$lg >= max(tapply(s$lg, s$kind, min)) & s$lg <= min(tapply(s$lg, s$kind, max)) &
+    s$np >= max(tapply(s$np, s$kind, min)) & s$np <= min(tapply(s$np, s$kind, max)), ]
+})
+w <- reshape(ctl[, c("kind", "label", "seed", "method", "rmse")],
+             idvar = c("kind", "label", "seed"), timevar = "method",
+             direction = "wide")
+w$spread <- abs(w$rmse.pca - w$rmse.isomap)
+sp    <- tapply(w$spread, w$kind, mean)
+ratio <- sp[["classic"]] / sp[["crease"]]
+
+set.seed(11)                       # cluster bootstrap, resampling whole settings
+boot <- replicate(2000, {
+  r <- vapply(split(w, w$kind), function(d) {
+    l <- sample(unique(d$label), length(unique(d$label)), replace = TRUE)
+    mean(unlist(lapply(l, function(x) d$spread[d$label == x])))
+  }, numeric(1))
+  r[["classic"]] / r[["crease"]]
+})
+ci <- quantile(boot, c(0.025, 0.975))
+
+fit  <- lm(spread ~ I(kind == "classic"), data = w)   # cluster-robust by setting
+X <- model.matrix(fit); u <- residuals(fit); bread <- solve(crossprod(X))
+meat <- Reduce(`+`, lapply(unique(w$label), function(l) {
+  i <- w$label == l
+  tcrossprod(crossprod(X[i, , drop = FALSE], u[i]))
+}))
+tval <- coef(fit)[2] / sqrt((bread %*% meat %*% bread)[2, 2])
+pval <- 2 * pt(-abs(tval), df = length(unique(w$label)) - 2)
+mscore <- aggregate(cbind(rmse, qnx) ~ kind + method, ctl, mean)
+score  <- function(k, m, col) mscore[[col]][mscore$kind == k & mscore$method == m]
+```
+
+`r length(unique(ctl$label[ctl$kind == "crease"]))` crease settings and
+`r length(unique(ctl$label[ctl$kind == "classic"]))` Swiss rolls survive the
+double restriction. Inside it **the ranking is identical**: Isomap first on both
+families, PCA and classical MDS behind it on both. Nothing flips.
+
+What differs is the spread. The mean gap between PCA and Isomap is
+`r sprintf("%.3f", sp[["classic"]])` on the classical side against
+`r sprintf("%.3f", sp[["crease"]])` on the crease side — a ratio of
+`r sprintf("%.2f", ratio)`, with a cluster bootstrap interval over settings of
+`r sprintf("%.1f", ci[[1]])` to `r sprintf("%.1f", ci[[2]])` and a
+cluster-robust $p$ of `r sprintf("%.2f", pval)`. The absolute scores go the same
+way: PCA at `r sprintf("%.3f", score("classic", "pca", "rmse"))` on a roll
+against `r sprintf("%.3f", score("crease", "pca", "rmse"))` on a crease pattern,
+Isomap at `r sprintf("%.3f", score("classic", "isomap", "rmse"))` against
+`r sprintf("%.3f", score("crease", "isomap", "rmse"))`.
+
+State it in the book's own voice. **Crease patterns are not a harder benchmark;
+they are an easier one that discriminates less.** A benchmark earns its keep by
+telling methods apart, and on that criterion the Swiss roll wins by a factor of
+about five.
+
+What that costs a reader is worth being concrete about. A benchmark whose methods
+sit `r sprintf("%.3f", sp[["crease"]])` apart needs more replicates to separate
+two of them than one whose methods sit `r sprintf("%.3f", sp[["classic"]])`
+apart. Chapter \@ref(results) turns that into a statistic of its own and reports
+where along the $\theta$ axis this benchmark has any resolving power at all;
+read next to the ratio above, the two are the same observation from opposite
+ends. It does not make the crease pattern useless — a benchmark whose
+answer key is exact can be asked questions a benchmark whose answer key is a
+convention cannot, and Chapter \@ref(evaluation) asks them — but anyone choosing
+between the two for a straight method comparison should choose the roll, and this
+chapter is where the book says so.
+
+```{r comp-spread, echo=FALSE, fig.width=7, fig.height=4, fig.cap="How far apart each benchmark holds PCA and Isomap, across its whole sweep and at every seed the grids carry. Difficulty rises to the right. The Miura curve stays near the floor throughout. The Swiss roll separates the two methods widely over a middle window and then stops separating them at all, because past that window Isomap short-circuits and fails as completely as PCA.", fig.alt="A line chart with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and the mean absolute difference between PCA and Isomap reconstruction error on the vertical axis from zero to about one. The Swiss roll curve climbs from about 0.4 at the left to a peak near 0.9 in the middle, then drops almost vertically to zero and stays there across the whole right-hand half. The Miura curve is nearly flat just above zero across its entire range, never exceeding about 0.05."}
+sp_by <- function(d, key, fam) {
+  s <- d[d$method %in% c("pca", "isomap") & d$noise == "none" & d$ran, ]
+  stopifnot(all(s$seed %in% BENCH_SEEDS))
+  w <- reshape(s[, c(key, "seed", "method", "rmse")], idvar = c(key, "seed"),
+               timevar = "method", direction = "wide")
+  data.frame(family = fam, par = w[[key]], spread = abs(w$rmse.pca - w$rmse.isomap))
+}
+s4 <- rbind(sp_by(classic[classic$family == "swiss_roll", ], "par", "Swiss roll"),
+            sp_by(crease, "theta", "Miura"))
+s4 <- merge(aggregate(spread ~ family + par, s4, mean),
+            cell[, c("family", "par", "gs")], by = c("family", "par"))
+ggplot2::ggplot(s4[order(s4$family, s4$gs), ],
+                ggplot2::aes(gs, spread, colour = family, shape = family)) +
+  ggplot2::geom_line(ggplot2::aes(group = family, linetype = family), linewidth = 0.7) +
+  ggplot2::geom_point(size = 2.2) +
+  ggplot2::scale_x_continuous(transform = c("log10", "reverse")) +
+  scale_colour_book(begin = 0.08, end = 0.68) +
+  ggplot2::labs(x = "gap-to-spacing ratio (log scale, harder to the right)",
+                y = "mean PCA-to-Isomap gap", colour = NULL, shape = NULL,
+                linetype = NULL) +
+  theme_fold()
+```
+
+Figure \@ref(fig:comp-spread) attaches a caveat to that factor of five. The Swiss
+roll's discriminating power is not monotone in its own difficulty. It reaches
+`r sprintf("%.3f", max(s4$spread[s4$family == "Swiss roll"]))` in a middle window
+and then collapses to
+`r sprintf("%.4f", min(s4$spread[s4$family == "Swiss roll"]))` at the tightest
+rolls, where Isomap short-circuits and fails as completely as PCA does — so past
+that window the classical benchmark separates nothing either. The settings the
+head-to-head matched on sit inside the peak. That is the right place to measure a
+benchmark, on its best window rather than its worst, but the number is a
+statement about Swiss rolls there and not about Swiss rolls generally.
+
+## Diagnostics {#comp-diagnostics}
+
+One objection deserves an answer before a reader raises it, and it is specific
+enough that a footnote would not do.
+
+E1's decisive arm sampled with `boundary = TRUE`, because a two-by-two Miura
+leaves no room for the interior margin `sample_manifold()` normally draws inside.
+A Miura's unfolded outline is not convex, so for a pair straddling one of its
+teeth the straight chart segment leaves the sheet and chart distance is a *lower
+bound* on the geodesic — Chapter \@ref(folding-geometry) measures this. An answer
+key that understates long distances penalises the geodesic method specifically,
+which is exactly the comparison being made.
+
+```{r comp-exit, echo=TRUE}
+labs <- unique(ctl$label[ctl$kind == "crease"])
+exit <- vapply(labs, function(l) {
+  q   <- as.numeric(strsplit(sub("^miura", "", l), "/")[[1]])
+  pat <- miura_ori(as.integer(q[1]), as.integer(q[1]), alpha = q[2])
+  chart_exit_fraction(sample_manifold(pat, theta = q[3], n = 600L,
+                                      seed = BENCH_SEEDS[1], boundary = TRUE), pat)
+}, numeric(1))
+loo <- vapply(labs, function(l) {
+  k <- w[w$kind == "classic" | w$label != l, ]
+  m <- tapply(k$spread, k$kind, mean)
+  m[["classic"]] / m[["crease"]]
+}, numeric(1))
+```
+
+Between `r sprintf("%.2f", 100 * min(exit))`% and
+`r sprintf("%.2f", 100 * max(exit))`% of sampled pairs are affected. Dropping the
+worst-affected setting moves the ratio from `r sprintf("%.2f", ratio)` to
+`r sprintf("%.2f", loo[[which.max(exit)]])`, and over the
+`r length(loo)` leave-one-out refits it stays between
+`r sprintf("%.2f", min(loo))` and `r sprintf("%.2f", max(loo))`. The
+approximation biases against the finding rather than for it, and no single
+setting carries it.
+
+The second question a reader is entitled to ask is how much of the ratio is seed
+noise. Every cell above is an average over seeds — `r length(unique(w$seed))` in
+the controlled arm, `r length(BENCH_SEEDS)` in the two grids — and the
+within-family scatter is large: the standard deviation of the PCA-to-Isomap gap
+across settings and seeds is `r sprintf("%.3f", tapply(w$spread, w$kind, sd)[["classic"]])`
+on the classical side against
+`r sprintf("%.3f", tapply(w$spread, w$kind, sd)[["crease"]])` on the crease side.
+That scatter is why the interval quoted above comes from a bootstrap over whole
+settings rather than over rows, and why the $p$-value is cluster-robust: seeds
+within a setting are not independent draws of the quantity being estimated, and
+treating them as such would report an interval several times too narrow.
+
+## Where it fails {#comp-limits}
+
+**The overlap is a corner.** It holds
+`r length(unique(ctl$label[ctl$kind == "crease"]))` crease settings,
+`r length(unique(ctl$label[ctl$kind == "classic"]))` rolls, three methods and two
+metrics. The bootstrap interval —
+`r sprintf("%.1f", ci[[1]])` to `r sprintf("%.1f", ci[[2]])` — is the honest
+width of the claim, and it is wide. The head-to-head above is broader in methods
+and narrower in control. Neither is the study a settled answer would need.
+
+**Under the neighbourhood metric the families nearly do collapse.** Isomap scores
+`r sprintf("%.3f", score("crease", "isomap", "qnx"))` on creases against
+`r sprintf("%.3f", score("classic", "isomap", "qnx"))` on Swiss rolls. The whole
+difference between the families sits in how badly the linear methods fail, and
+that is a fact about ambient non-planarity rather than about creases.
+
+**The pre-registration got nothing right.** `PLAN.md` drafted three outcomes
+before the run. The families did not collapse; they did not separate in the
+registered sense, which was *different rankings*, and the ranking is identical;
+and arm B's null settled neither. The replacement claim is in this book because
+it fits the evidence, not because its antecedent was met, and recording that is
+what pre-registration is for.
+
+**The Swiss roll is still the right tool for two jobs.** It is the clearest
+picture in the subject and it belongs in a first lecture, and a pipeline that
+fails on it is broken. What it cannot be is the evidence, because one fixed
+geometry has nowhere to put a curve.
+
+## Reproduce this {#comp-reproduce}
+
+`scripts/run-classic-grid.R` writes `classic-grid.rds`, `scripts/experiment-e1.R`
+the three E1 artefacts, `scripts/run-benchmark-grid.R` the crease grid; all are
+committed with provenance. `tests/testthat/test-baselines.R` asserts the
+arc-length closed form, the Fresnel error, the sphere's stretch factor and the
+refusal printed above.
+
+## Further reading {#comp-reading}
+
+The Swiss roll and the S-curve enter with Isomap [@tenenbaum2000isomap] and LLE
+[@roweis2000lle]; Lee and Verleysen [@lee2007nonlinear] is the textbook treatment
+and the place to see how settled their role became. Balasubramanian and Schwartz
+[@balasubramanian2002isomap] is one page long and is the origin of the
+gap-to-spacing argument this chapter's first axis rests on.
+
+On the answer key, Schoeneman et al. [@schoeneman2017error] is the paper that
+noticed the Archimedean roll's chart was not isometric and proposed the Euler
+replacement, and Mahapatra and Chandola [@mahapatra2018learning] use it. This
+chapter's contribution is not the observation but its size.
+
+On what a comparison of this kind can establish, Espadoto et al.
+[@espadoto2021survey] survey the quantitative benchmarks and Machado et al.
+[@machado2025necessary] argue that the projection quality metrics they rest on
+are necessary but not sufficient — a caution that applies with full force to the
+five-fold separation reported above. The dispute about reading two-dimensional
+embeddings at all [@chari2023specious; @lause2024elephant] is the reason this
+book measures rather than argues.

@@ -33,10 +33,25 @@
 # collapses twenty UMAP seeds into one while every other method varies
 # correctly. The failure is silent and the numbers look fine.
 #
-# PLAN.md S1-6 predicted this and named the wrong mechanism: it blamed a
-# preserve.seed argument, which the pinned version does not have. The effect is
-# real, the cause is not what was recorded, and tests/testthat/test-methods.R
-# asserts the behaviour rather than the explanation.
+# PLAN.md S1-6 predicted this AND named the mechanism correctly: umap::umap's
+# preserve.seed argument. An earlier note here said that argument does not exist
+# in the pinned version. It does -- it is a formal of umap::umap(), not a field
+# of umap.defaults(), which is where it was looked for -- and it defaults to
+# TRUE, meaning the function restores .Random.seed on exit. Restoring the state
+# is precisely what "does not advance the stream" means, so the argument is the
+# cause and not a rival explanation for it.
+#
+# Measured on the pinned umap 0.2.10.0, passing parameters directly rather than
+# through a config (a config carries random_state, which forces determinism by a
+# different route and hides the effect):
+#
+#   preserve.seed = TRUE   .Random.seed unchanged;  3 calls -> 1 distinct answer
+#   preserve.seed = FALSE  .Random.seed advanced;   3 calls -> 3 distinct answers
+#
+# None of which changes the decision below: embed_umap() uses uwot, because a
+# caller who forgets to seed should get visibly different answers rather than
+# twenty identical ones. tests/testthat/test-methods.R asserts the behaviour,
+# which is the right thing to pin regardless of the attribution.
 .seeded <- function(seed, expr) {
   if (is.null(seed)) return(force(expr))
   if (exists(".Random.seed", .GlobalEnv)) {

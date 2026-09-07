@@ -79,9 +79,11 @@ test_that("umap::umap does not advance the random stream, which is why it is not
   # The measured defect behind the seeding discipline in R/methods.R, asserted
   # so that a future change of package cannot reintroduce it unnoticed.
   #
-  # PLAN.md S1-6 attributed this to a preserve.seed argument. That argument does
-  # not exist in the pinned version; the behaviour does. The test is on the
-  # behaviour.
+  # PLAN.md S1-6 attributed this to umap::umap's preserve.seed argument, and was
+  # right: it is a formal of umap::umap() (not a field of umap.defaults, which is
+  # where an earlier note looked for it), it defaults to TRUE, and it restores
+  # .Random.seed on exit. The assertion below is still on the behaviour, which is
+  # what must not regress; the mechanism is asserted separately underneath.
   skip_if_not_installed("umap")
   set.seed(1L); X <- matrix(stats::rnorm(240L), 80L, 3L)
   set.seed(99L)
