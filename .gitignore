@@ -3,6 +3,12 @@ _bookdown_files/
 *_cache/
 *_files/
 
+# knitr's default fig.path when a chapter is rendered on its own. A full
+# bookdown build writes figures under docs/, so anything here is a by-product of
+# someone running rmarkdown::render() on a single chapter -- which is the
+# documented way to check a chapter knits, so the directory recurs.
+figure/
+
 # The rendered site. Built by render-book.yml and deployed to gh-pages with
 # clean: true, so nothing here needs to be tracked -- and a tracked copy means
 # whoever clones the repository gets a rendered book older than the sources.
