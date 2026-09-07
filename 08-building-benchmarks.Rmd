@@ -2,15 +2,596 @@
 
 *How do you build a manifold whose true geometry you already know?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+## What this chapter answers {#bench-question}
 
-- The helper API in `R/`, end to end.
-- Why there is one family and not three. The Yoshimura and the waterbomb were
-  specified here and both were withdrawn: no rigid folding of the Yoshimura is
-  certified in which all three crease families fold, and the waterbomb's is an
-  open question (PLAN.md R1-1 and E2). Both stay in the chapter as documented
-  negative results, which is a stronger section than a list of families would
-  have been -- it says what it takes for a pattern to qualify.
-- Product constructions: intrinsic dimension $2k$ in ambient $3k$, ground truth still exact.
-- Random linear lift to arbitrary ambient dimension $D$.
-- Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark.
+A benchmark for dimension reduction has to supply four things. Three of them are
+routine. Data: points in an ambient space that a method can be handed. A
+difficulty axis: some parameter that makes the same object harder without making
+it a different object. An answer key: the coordinates the method should have
+recovered. The Swiss roll and its relatives supply all three, and so does every
+folded sheet in this book.
+
+The fourth is the one that is almost never supplied, and it is what this chapter
+builds. **How much of the error was unavoidable?** A method that scores an error
+of one half on a dataset has either thrown away most of the structure or reached
+the limit of what two dimensions can hold, and the score alone does not say
+which. Without that number a benchmark can rank methods against each other but
+cannot say whether any of them did well, and a ranking with no scale under it is
+how a survey ends up reporting that every method is mediocre on every dataset
+[@espadoto2021survey].
+
+The number exists and is computable in closed form, but computing it needs a
+manifold whose intrinsic dimension exceeds the target. That is this chapter's
+argument: the constructions in `R/constructions.R` exist to raise intrinsic
+dimension while keeping the answer key exact, because a chart of dimension two
+embedded into dimension two has an irreducible loss of exactly zero and nothing
+to say.
+
+The chapter also records what the benchmark does *not* contain. Two pattern
+families were specified for it and both were withdrawn on evidence, and they are
+reported here as results — what it takes for a pattern to qualify is worth more
+to a reader than a list of the ones that did.
+
+## Setup {#bench-setup}
+
+```{r bench-setup-chunk, echo=TRUE}
+grid <- read_run("data/processed/product-grid.rds", "bb8ade76d88b95a3")
+fac_a <- miura_ori(4L, 4L, alpha = pi / 3)
+fac_b <- miura_ori(3L, 5L, b = 1.4, alpha = pi / 4)
+```
+
+`grid` is the product suite, `r nrow(grid)` rows produced by
+`scripts/run-product-grid.R`; `fac_a` and `fac_b` are the two factors it is
+built from. Everything else this chapter calls is in `R/`, sourced when the book
+renders.
+
+## Background {#bench-background}
+
+### Four objects, four verbs
+
+The helper API is small on purpose. Three S3 classes carry everything between
+files, each a plain list, and `R/README.md` states the contract field by field.
+
+A **`crease_pattern`** is a flat, unfolded pattern: vertices in the plane,
+facets as vertex-index cycles, and a crease table carrying a
+mountain/valley/boundary assignment. Its `vertices` matrix is the ground truth —
+not an approximation of the correct two-dimensional embedding, the embedding
+itself.
+
+A **`folded_pattern`** is the same pattern placed in $\mathbb{R}^3$ at folding
+parameter $\theta$, with one dihedral angle per crease derived from the
+placement rather than assumed.
+
+A **`manifold_sample`** is $n$ points drawn from a folded pattern: `X` in the
+ambient space, `truth` in the chart, row-aligned. `X[i, ]` and `truth[i, ]` are
+the same point seen two ways, and every measurement in this book compares an
+embedding of the first against the second. The verbs run one line each.
+
+```{r bench-api, echo=TRUE}
+p  <- miura_ori(nx = 6L, ny = 6L, alpha = pi / 3)
+s  <- sample_manifold(p, theta = 0.6, n = 400L, seed = BENCH_SEEDS[1])
+Y  <- embed("isomap", s, d = EMBED_DIM, k = K_DEFAULT)
+data.frame(vertices = nrow(p$vertices), creases = nrow(p$creases),
+           points = nrow(s$X), ambient = ncol(s$X), chart = ncol(s$truth),
+           error = round(reconstruction_error(Y, s$truth), 4))
+```
+
+Four things about that call are load-bearing and easy to get wrong.
+
+$\theta$ **is a parameter of the folding map, not an angle.** It runs on
+$[0, 1]$, zero being the flat sheet and one the flat-folded state, and `fold()`
+refuses anything outside it; the dihedral angles are derived from it. Chapter
+\@ref(folding-geometry) gives the derivation.
+
+`embed()` **takes the sample object, not a matrix.** The registry holds
+`r length(METHOD_REGISTRY)` entries and
+`r sum(vapply(METHOD_REGISTRY, function(s) is.null(s$unavailable), logical(1)))`
+of them run: the autoencoder declares itself unavailable rather than failing at
+fit time, and `method_table()` prints the registry with what each method
+consumes.
+
+**Stochastic methods refuse to run unseeded.** Standing rule 1 reports every
+stochastic result across `BENCH_SEEDS`, and an unseeded fit cannot be one of
+them, so `embed()` errors rather than quietly producing an anecdote.
+
+**Sampling trims the boundary by default.** The chart is the geodesic only while
+the straight chart segment between two points stays on the paper, and a Miura
+unfolds to a region with a zigzag edge. `boundary = FALSE` is not tidiness — it
+is the condition under which the answer key is the answer.
+
+## Constructions that keep the answer key {#bench-core}
+
+### One pattern family, and two honest gaps
+
+The book ships one family that folds. That is fewer than were specified, and the
+two that were withdrawn were withdrawn for different reasons, both of which are
+worth more than the families would have been.
+
+```{r bench-fig-families, echo=FALSE, fig.width=8, fig.height=4, fig.cap="Two valid flat crease patterns. Only the left one has a certified rigid folding; the right one is drawn here and never folded anywhere in this book. Mountain and valley are distinguished by colour and by line style together.", fig.alt="Two side-by-side panels of flat crease patterns drawn in the plane. The left panel is a Miura-ori: a grid of congruent parallelograms whose transverse crease lines zigzag, with a jagged left and right edge. The right panel is a Yoshimura diamond tessellation: rows of triangles with horizontal, slanted and diagonal creases meeting six to a vertex. Both use two colours and two line styles for mountain and valley creases and a solid grey line for the sheet boundary."}
+gridExtra::grid.arrange(
+  plot_crease_pattern(fac_a, title = "A  Miura: builds, and folds"),
+  plot_crease_pattern(yoshimura(6L, 6L),
+                      title = "B  Yoshimura: builds, and does not fold"),
+  ncol = 2)
+```
+
+Figure \@ref(fig:bench-fig-families) shows the Miura beside the Yoshimura. Both
+panels are legitimate crease patterns. `yoshimura()` returns a `crease_pattern`
+like any other, its facets are congruent, and its interior vertices satisfy
+Kawasaki's condition — the alternating sum of the sector angles vanishes — to
+numerical noise. What it does not have is a folding.
+
+```{r bench-refusals, echo=TRUE}
+yo <- yoshimura(6L, 6L)
+kaw <- max(vapply(interior_vertices(yo), function(v) {
+  a <- sector_angles(yo, v)
+  abs(sum(a[c(TRUE, FALSE)]) - sum(a[c(FALSE, TRUE)]))
+}, numeric(1)))
+first_line <- function(e) sub("\\. See .*", ".", conditionMessage(e))
+refusals <- c(
+  yoshimura = tryCatch(fold(yo, theta = 0.5), error = first_line),
+  waterbomb = tryCatch(waterbomb(), error = first_line))
+cat(strwrap(refusals, width = 76, prefix = "  ", initial = ""), sep = "\n")
+```
+
+Kawasaki's alternating sum is satisfied at all
+`r length(interior_vertices(yo))` interior vertices of that patch, worst
+departure `r format(signif(kaw, 2), scientific = TRUE)`, and that buys
+nothing. Kawasaki is a necessary condition for flat-foldability at a vertex; it
+is not sufficient, and
+flat-foldability of a pattern is not the same question as the existence of a
+one-parameter rigid folding of a tessellation [@hull2020origametry;
+@demaine2007folding].
+
+**The Yoshimura.** Two rigid foldings of the planar patch were derived,
+implemented and verified in this repository. Each of them is exact — facet
+isometry at the same order as the Miura's, flat at $\theta = 0$ — and each
+leaves one of the three crease families entirely unfolded, at a dihedral angle
+of $\pi$ along its whole length. A folding that leaves a crease family flat is a
+folding of a coarser pattern: fuse the facets across the creases that never
+move, and what remains is a parallelogram tessellation. It is a Miura wearing
+the Yoshimura's crease lines. Shipping it as a second, independent family would
+have been a claim about pattern variety that the geometry does not support, so
+`fold()` refuses it and says why.
+
+**The waterbomb.** `waterbomb()` stops before building anything. A degree-six
+vertex with sectors of forty-five, forty-five and ninety degrees repeated
+satisfies Kawasaki and is flat-foldable *as an isolated vertex*, which does not
+imply that the tessellation admits a one-parameter rigid folding. Whether it
+does is an open question in this project, not a coding task. A continuation
+moved it only under an imposed symmetry, and three things disqualified that
+result: the embedding is unproved, the fold amplitude is not monotone in
+$\theta$, and degrees of freedom remain on the free boundary, so $\theta$ does
+not determine the configuration.
+
+Both withdrawals share one moral and it generalises well past origami. **A test
+that a correct implementation passes is not the same as a test that a wrong one
+fails.** An isometry check cannot tell a fold from a pleat, because a pleat is a
+rigid folding and passes perfectly. A first-order flex at the flat state proves
+nothing either: at $\theta = 0$ every $z$ column of the rigidity Jacobian
+vanishes, so the count of non-trivial infinitesimal flexes is
+$V - 3 = `r nrow(p$vertices) - 3L`$ for a pattern of this size and for *any*
+planar pattern whatsoever, foldable or not. Each trap here was sprung, and each
+was caught only by a second, independent check.
+
+### The isometry certificate
+
+What a family has to produce, then, is a closed form, a fold that reaches every
+crease family, and an isometry that is exact rather than converged. The third is
+certified by measurement, not by the derivation that produced it.
+
+```{r bench-certificate, echo=TRUE}
+alphas <- seq(MIURA_ALPHA_RANGE[1], MIURA_ALPHA_RANGE[2], length.out = 6L)
+thetas <- seq(0, 1, by = 0.05)
+cert <- do.call(rbind, lapply(alphas, function(al) {
+  q <- miura_ori(4L, 4L, alpha = al)
+  data.frame(alpha = round(al * 180 / pi), theta = thetas,
+             err = vapply(thetas, function(t) facet_isometry_error(q, t),
+                          numeric(1)))
+}))
+worst <- max(cert$err)
+```
+
+`facet_isometry_error()` compares **all pairwise distances** between a facet's
+vertices, folded against flat, and not merely its edges: a placement that
+preserved every edge of a parallelogram while shearing it would pass an edge
+test and would not be a rigid folding. Over the whole $\theta$ sweep and the
+full $\alpha$ range the worst departure is
+`r format(signif(worst, 2), scientific = TRUE)`, against a contract of
+`r format(TOL$isometry, scientific = TRUE)`. That is floating-point noise on a
+closed form, not a tolerance anyone chose, and it is the certificate the product
+construction below inherits.
+
+```{r bench-fig-certificate, echo=FALSE, fig.width=7, fig.height=4, fig.cap="Worst within-facet distance error across the folding sweep, at six opening angles spanning the range the contract asserts. The dashed line is the contract; every curve sits five orders of magnitude below it and shows no trend in either the folding parameter or the opening angle.", fig.alt="A line chart with a logarithmic vertical axis. The horizontal axis is the folding parameter from zero to one. Six nearly flat curves, one per opening angle and distinguished by colour, sit together in a narrow band around ten to the power minus fifteen. A horizontal dashed line far above them at ten to the power minus ten marks the contract tolerance."}
+ggplot2::ggplot(cert, ggplot2::aes(theta, pmax(err, 1e-18),
+                                   colour = alpha, group = alpha)) +
+  ggplot2::geom_line(linewidth = 0.7) +
+  ggplot2::geom_hline(yintercept = TOL$isometry, linetype = "dashed",
+                      colour = "grey40") +
+  ggplot2::scale_y_log10() +
+  scale_colour_book_c(name = "opening angle (degrees)") +
+  ggplot2::labs(x = expression(theta),
+                y = "worst within-facet distance error") +
+  theme_fold()
+```
+
+Figure \@ref(fig:bench-fig-certificate) is that measurement across the sweep.
+The flatness matters as much as the level: an error growing with $\theta$ would
+mean the closed form was an approximation that happened to be good near the flat
+state, which is what a derivation by facet rotation tends to produce.
+
+### Products: raising intrinsic dimension without losing truth
+
+A folded sheet has intrinsic dimension two and every embedding in this book has
+target dimension two. That is a benchmark with no headroom, and the product
+construction supplies some.
+
+`product_manifold(a, b)` takes two samples of the same size and pairs them
+row-wise: the ambient coordinates concatenate to $\mathbb{R}^{3+3}$, the charts
+to $\mathbb{R}^{2+2}$. Nothing is fitted and nothing approximated, for a reason
+worth stating because everything downstream rests on it.
+
+**A product of isometries is an isometry.** In a Riemannian product the squared
+distances add: for points $(u, v)$ and $(u', v')$,
+$d^2 = d_1(u, u')^2 + d_2(v, v')^2$, and the same identity holds in the ambient
+product because concatenating coordinate blocks adds squared differences. Each
+factor map preserves its own term by construction, so the product map preserves
+the sum. The chart of the product is therefore the product of the charts, exactly, and
+its intrinsic dimension is the sum of the factors' — $2k$ in ambient $3k$ for
+$k$ sheets.
+
+```{r bench-product, echo=TRUE}
+sa <- sample_manifold(fac_a, theta = 0.55, n = 400L, seed = BENCH_SEEDS[1])
+sb <- sample_manifold(fac_b, theta = 0.60, n = 400L, seed = BENCH_SEEDS[1] + 500L)
+pr <- product_manifold(sa, sb)
+
+pythag <- max(abs(as.matrix(dist(pr$truth)) -
+                  sqrt(as.matrix(dist(sa$truth))^2 + as.matrix(dist(sb$truth))^2)))
+floors <- vapply(1:4, function(d) irreducible_loss(pr, d), numeric(1))
+data.frame(ambient = ncol(pr$X), chart = ncol(pr$truth),
+           pythagoras = formatC(pythag, format = "e", digits = 1),
+           one_sheet_floor = irreducible_loss(sa, 2L))
+```
+
+The Pythagorean identity holds to `r format(signif(pythag, 2), scientific = TRUE)` across all pairs, which
+is the numerical form of the argument above. The last entry is the sentence the
+whole construction exists to escape: a single folded sheet has a chart of
+dimension two, and the smallest error any two-dimensional embedding of it could
+achieve is `r irreducible_loss(sa, 2L)`. Exactly zero, in every cell, at every
+$\theta$, under every noise model.
+
+**The bound.** For an $n \times p$ chart $U$ and the normalised Procrustes error
+of `R/metrics.R` — which optimises over translation, rotation, reflection and
+isotropic scale [@schonemann1966procrustes; @gower1975procrustes] — every
+$n \times d$ configuration $Z$ satisfies
+
+$$\mathrm{err}(Z, U) \;\ge\; \mathrm{floor}(d) \;=\; \sqrt{\frac{\sum_{i > d}\lambda_i}{\sum_i \lambda_i}},$$
+
+where the $\lambda_i$ are the classical-MDS eigenvalues of the chart
+[@torgerson1952mds], equivalently the squared singular values of its centred
+coordinates. The proof is Eckart–Young [@eckart1936approximation] and it is
+short. As $Z$ ranges over all configurations and the similarity group ranges
+over its elements, the fitted matrix ranges over exactly the centred $n \times p$
+matrices of rank at most $d$; the best such matrix is the rank-$d$ truncated
+singular value decomposition; its residual is the tail sum of squared singular
+values; normalising gives the expression above.
+
+It is exact, it depends on the data alone, and no method appears anywhere in it.
+
+```{r bench-fig-spectrum, echo=FALSE, fig.width=8, fig.height=4, fig.cap="The chart spectrum of one product cell, and the bound it produces. Panel A: the four eigenvalues of the four-dimensional chart, as shares of its variance. Panel B: the bound at each target dimension, as a line, with the rank-d projection of the chart drawn on top of it as crosses. The tail of A is the square of B.", fig.alt="Two panels. Panel A is a bar chart of four bars, decreasing from about 0.43 to about 0.06, labelled as shares of chart variance. Panel B is a line falling from about 0.75 at target dimension one, through 0.53 and 0.25, to zero at target dimension four; black cross markers sit exactly on the line at all four points."}
+lam <- chart_spectrum(pr$truth)
+Uc  <- sweep(pr$truth, 2L, colMeans(pr$truth))
+sv  <- svd(Uc)
+att <- vapply(1:4, function(k)
+  reconstruction_error(Uc %*% sv$v[, seq_len(k), drop = FALSE], pr$truth),
+  numeric(1))
+pA <- ggplot2::ggplot(data.frame(k = seq_along(lam), share = lam / sum(lam)),
+                      ggplot2::aes(factor(k), share)) +
+  ggplot2::geom_col(fill = "grey78", colour = "grey30", width = 0.7) +
+  ggplot2::labs(x = "chart eigenvalue", y = "share of chart variance",
+                title = "A  The spectrum") + theme_fold()
+pB <- ggplot2::ggplot(data.frame(d = 1:4, floor = floors, attained = att),
+                      ggplot2::aes(d, floor)) +
+  ggplot2::geom_line(linewidth = 0.9, colour = "grey25") +
+  ggplot2::geom_point(ggplot2::aes(y = attained), shape = 4, size = 3,
+                      stroke = 1.2) +
+  ggplot2::labs(x = "target dimension d", y = "normalised Procrustes error",
+                title = "B  The bound, and a configuration on it") + theme_fold()
+gridExtra::grid.arrange(pA, pB, ncol = 2)
+```
+
+Figure \@ref(fig:bench-fig-spectrum) shows why it is a bound rather than a
+guess: **it is attained.** The crosses in panel B are the chart projected onto
+its own top $d$ principal directions, scored by the same function every method
+in the book is scored by. They sit on the line, to
+`r format(signif(max(abs(att - floors)), 2), scientific = TRUE)`. A minimum, not an infimum — which also
+makes clear what the bound is not. The minimiser is constructed from the answer
+key, so nothing that has not been given the answer can be expected to reach it.
+
+The floor depends on the chart and on nothing else. That is the property that
+makes it useful rather than a limitation: it does not move with $\theta$, with
+the noise model or with the sample's difficulty, so "every method landed within
+a few per cent of the floor" is a statement about a regime rather than about a
+lucky draw.
+
+### Lifting to arbitrary ambient dimension
+
+Real data does not arrive in three dimensions, and a method that only works when
+the ambient dimension is small should be caught by that rather than flattered by
+it. `lift()` maps a sample into $\mathbb{R}^D$ through a random orthonormal
+matrix.
+
+```{r bench-lift, echo=TRUE}
+lf <- lift(pr, D = 50L, seed = 20260901L)
+dist_change <- max(abs(as.matrix(dist(lf$X)) - as.matrix(dist(pr$X))))
+data.frame(ambient = ncol(lf$X),
+           dist_change = formatC(dist_change, format = "e", digits = 1),
+           floor_before = round(irreducible_loss(pr, 2L), 4),
+           floor_after  = round(irreducible_loss(lf, 2L), 4))
+```
+
+Orthonormality is load-bearing and `lift()` asserts it rather than assuming it:
+a merely random matrix would distort distances and invalidate the answer key
+silently. Because $Q^\top Q = I$ the map is exactly distance-preserving — the
+worst change over all
+`r format(choose(nrow(pr$X), 2))` pairs is
+`r format(signif(dist_change, 2), scientific = TRUE)` — and the
+chart is untouched, so the floor is the same number before and after.
+
+That decoupling is the point. Ambient dimension and intrinsic difficulty are two
+axes, and a benchmark that moves them together cannot say which a method is
+responding to. `lift()` moves the first alone.
+
+## Results {#bench-results}
+
+The product suite is `r nrow(grid)` rows: two arms, each swept over nine values
+of its own difficulty parameter, `r length(unique(grid$seed))` seeds, four target
+dimensions and `r length(unique(grid$method))` registry entries at
+$n = `r attr(grid, "provenance")$n`$.
+
+The second arm is a concession turned into a finding. `PROJECT_CONCEPT.md`
+listed crease-specificity among the book's differentiators, and
+`product_manifold()` imposes no family constraint: two isometric Swiss rolls
+give intrinsic dimension four, an exact chart and a computable floor exactly as
+two Miura sheets do. The differentiator as written is refuted, and reporting
+both arms side by side is the stronger statement. What crease-specificity rests
+on afterwards is zero reach [@federer1959curvature; @niyogi2008homology] and an
+answer key that is not smooth, not the bound.
+
+### The floor bites, and nothing goes under it
+
+```{r bench-fig-dimension, echo=FALSE, fig.width=8, fig.height=4.2, fig.cap="Achieved error against target dimension, by what each method consumes, with the irreducible-loss bound as the heavy line and the region below it shaded. Both arms have a four-dimensional chart, so the bound reaches zero at target dimension four. The shaded region is unreachable by any configuration whatsoever.", fig.alt="Two panels sharing a vertical axis of normalised Procrustes error from zero to one. In each, a heavy grey line falls with target dimension one to four and the area beneath it is shaded. In the left panel, labelled crease product, three curves for ambient, geodesic and neighbourhood methods run just above the shaded region at dimensions one and two and separate from it at three and four. In the right panel, labelled roll product, the same three curves run flat near 0.95 across all four dimensions, far above a bound that falls quickly to near zero."}
+ok  <- grid[grid$ran, ]
+arm <- c(crease = "crease product: two Miura sheets",
+         roll   = "roll product: two Swiss rolls")
+by_d <- aggregate(rmse ~ consumes + d + family, ok, mean)
+by_d$arm <- arm[by_d$family]
+fl_d <- aggregate(floor ~ d + family, ok, mean)
+fl_d$arm <- arm[fl_d$family]
+ggplot2::ggplot(by_d, ggplot2::aes(d, rmse, colour = consumes,
+                                   linetype = consumes, shape = consumes)) +
+  ggplot2::geom_ribbon(data = fl_d,
+                       ggplot2::aes(x = d, ymin = 0, ymax = floor),
+                       inherit.aes = FALSE, fill = "grey86") +
+  ggplot2::geom_line(data = fl_d, ggplot2::aes(d, floor), inherit.aes = FALSE,
+                     linewidth = 1, colour = "grey25") +
+  ggplot2::geom_line(linewidth = 0.7) + ggplot2::geom_point(size = 2) +
+  ggplot2::facet_wrap(~ arm) +
+  viridis::scale_colour_viridis(discrete = TRUE, option = BOOK_VIRIDIS_OPTION,
+                                end = 0.75) +
+  ggplot2::labs(x = "target dimension d", y = "normalised Procrustes error") +
+  theme_fold()
+```
+
+```{r bench-unbeaten, echo=TRUE}
+fits <- nrow(ok)
+under <- sum(ok$excess < -1e-9)
+crease2 <- ok[ok$d == 2L & ok$family == "crease", ]
+roll2   <- ok[ok$d == 2L & ok$family == "roll", ]
+by_con <- aggregate(excess ~ consumes, crease2, mean)
+```
+
+Across all `r fits` fits in the suite, the number that went under the floor is
+`r under`. That is a regression check and not evidence, and the distinction
+matters: the bound is
+*proved*, so a method that beat it would mean the implementation is wrong, not
+that the claim is. It is the assertion the producer exits non-zero on, and it
+should be read the way a failing test is read, not the way a corroborated
+conjecture is.
+
+Figure \@ref(fig:bench-fig-dimension) is what the bound buys. At target
+dimension two the crease arm's floor is
+`r signif(mean(crease2$floor), 3)`: the best configuration that exists still
+leaves a residual half the size of the chart's own spread, before any method is
+chosen. Isomap's raw error there averages
+`r signif(mean(crease2$rmse[crease2$method == "isomap"]), 3)`, which against
+zero reads as failure and against the floor is an excess of
+`r signif(mean(crease2$excess[crease2$method == "isomap"]), 3)` — it gives away
+`r signif(100 * mean(crease2$gave_away[crease2$method == "isomap"]), 2)` per
+cent of the range actually available to it. **That contrast is this book's
+thesis in one sentence.** Read the first way the table says everything failed;
+read the second it says the loss belongs to the data.
+
+Excess sorts by what a method consumes. On the crease arm at target dimension
+two the mean is `r signif(by_con$excess[by_con$consumes == "geodesic"], 3)` for
+the one geodesic method,
+`r signif(by_con$excess[by_con$consumes == "ambient"], 3)` for the ambient ones
+and `r signif(by_con$excess[by_con$consumes == "neighbourhood"], 3)` for the
+neighbourhood ones. Isomap consumes exactly what a crease pattern supplies
+exactly [@tenenbaum2000isomap], and it is the method closest to the bound. That
+ordering is measured over the whole sweep and all `r length(unique(grid$seed))`
+seeds. The provisional version of it came from two values of $\theta$ in a
+quick run that was never saved and put the ambient methods first — which is
+exactly the reading standing rule 2 exists to prevent.
+
+### Excess as a curve
+
+```{r bench-fig-excess, echo=FALSE, fig.width=8, fig.height=4.2, fig.cap="Mean excess over the floor at target dimension two, against each family's own difficulty parameter — the folding parameter on the left, the number of turns on the right. The vertical scales differ between panels and the two arms are matched on nothing, so this is a statement about the construction and not about which family is harder.", fig.alt="Two panels with independent axes. The left panel, crease product, plots excess over the floor against the folding parameter: three nearly flat curves for ambient, geodesic and neighbourhood methods sit between 0.01 and 0.10 until the folding parameter passes 0.8, where the ambient curve turns sharply upward and the geodesic one bends up more gently. The right panel, roll product, plots excess against the number of turns: three curves rise steadily together from about 0.72 to about 0.92 and stay within a hair of each other throughout."}
+p2 <- ok[ok$d == 2L, ]
+cur <- aggregate(excess ~ consumes + par + family, p2, mean)
+cur$arm <- arm[cur$family]
+ggplot2::ggplot(cur, ggplot2::aes(par, excess, colour = consumes,
+                                  linetype = consumes, shape = consumes)) +
+  ggplot2::geom_line(linewidth = 0.7) + ggplot2::geom_point(size = 1.9) +
+  ggplot2::facet_wrap(~ arm, scales = "free") +
+  viridis::scale_colour_viridis(discrete = TRUE, option = BOOK_VIRIDIS_OPTION,
+                                end = 0.75) +
+  ggplot2::labs(x = "the family's own difficulty parameter",
+                y = "mean excess over the floor") +
+  theme_fold()
+```
+
+Figure \@ref(fig:bench-fig-excess) is the whole sweep.
+
+```{r bench-curve, echo=TRUE}
+crease_curve <- aggregate(cbind(excess, floor) ~ par, crease2, mean)
+roll_curve   <- aggregate(cbind(excess, floor) ~ par, roll2, mean)
+```
+
+Two things read off it. On the crease arm the floor is
+`r signif(crease_curve$floor[1], 3)` at every one of the nine folding
+parameters — spread across the sweep exactly
+`r diff(range(crease_curve$floor))` — while the excess climbs from
+`r signif(min(crease_curve$excess), 3)` to
+`r signif(max(crease_curve$excess), 3)`, almost all of it in the last two cells.
+The bound is a property of the answer key and folding does not touch it; the
+difficulty is entirely in the recovery. On the roll arm the floor *does* move,
+from `r signif(max(roll_curve$floor), 3)` down to
+`r signif(min(roll_curve$floor), 3)`, because winding more turns lengthens the
+roll's arc-length coordinate and elongates its chart. Two arms, two different
+relationships between difficulty and the bound, and neither is a defect.
+
+### Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark
+
+Everything above is unavailable on the book's main grid, and the reason is one
+line of arithmetic. That grid's chart is two-dimensional and its target is
+two-dimensional, so the `floor` column in it is identically zero — as
+`irreducible_loss(sa, 2L)` returned above, for the same reason, in closed form.
+
+That is not a defect in the grid and it is worth one sentence rather than a
+footnote: **on the main grid every error is loss the method is responsible
+for.** It is the cleanest possible reading, and it is available precisely
+because the construction has no headroom in it.
+
+But a benchmark that *only* ever has no headroom cannot ask the question this
+chapter opened with. It cannot distinguish a method that discarded structure
+from one that ran out of room, because there is never any room to run out of. It
+cannot show what Figure \@ref(fig:bench-fig-dimension) shows — the crease arm's
+methods hugging the bound at target dimensions one and two and pulling away from
+it at three and four, which says where each method's loss comes from rather than
+how large it is. And it cannot report a result as a ratio, because a ratio needs
+both ends fixed and one end is nailed to zero.
+
+The classical benchmarks are all in this position. A Swiss roll, an S-curve, a
+severed sphere: two-dimensional charts, two-dimensional targets, floor zero
+everywhere [@lee2007nonlinear]. Raising intrinsic dimension is the one move that
+makes the bound bite, and doing it while keeping the answer key exact is what
+`product_manifold()` is for. The product suite, not the main grid, carries the
+argument.
+
+## Diagnostics {#bench-diagnostics}
+
+**Do not read the two arms as a difficulty comparison.** The crease arm is swept
+over the folding parameter and the roll arm over turns; the two are matched on
+nothing, and their floors differ by a factor of about
+`r round(mean(crease2$floor) / mean(roll2$floor))` for reasons about how each
+chart is parameterised rather than about how hard each object is. What the pair
+supports is that the floor exists, is computable, is attained and is not beaten,
+in both families. A claim that one family is harder needs matched difficulty and
+does not live here.
+
+**Rows that did not run are results.** Of the `r nrow(grid)` rows,
+`r sum(grid$status == "unavailable")` are the autoencoder declaring itself
+unavailable and `r sum(grid$status == "error")` are t-SNE refusing target
+dimension four — the Barnes–Hut implementation accepts one, two or three, and
+the `reason` column says so. Both are recorded rather than dropped, because a
+missing row and a refused row look identical in an aggregate and mean opposite
+things.
+
+**The bound has no opinion about rank metrics.** `metric_floor()` bounds the
+normalised Procrustes error and nothing else. Trustworthiness, continuity and
+$Q_{NX}$ read rank order rather than distance, and an embedding sitting on this
+floor may score better or worse on any of them than one well above it. That is
+Chapter \@ref(evaluation)'s subject, not a defect here.
+
+**One stale message.** `waterbomb()`'s error text still says the book ships two
+families plus one negative result; it predates the Yoshimura's withdrawal and
+was never revised. The count in this chapter is the correct one — one family,
+two negative results — and the discrepancy is left visible rather than quietly
+patched, because it is exactly the kind of stale count a registry keyed by
+family name is supposed to catch and did not.
+
+## Where it fails {#bench-limits}
+
+**A product is not a curved four-manifold.** `product_manifold()` gives
+intrinsic dimension four with an exact chart, and it gives it in the easiest
+possible way: the factors are independent, their metrics do not interact, and
+the chart's four coordinates come in two decoupled pairs. Nothing here models a
+manifold whose curvature entangles its directions. The construction is for the
+bound, and the bound needs only a chart of dimension greater than the target.
+
+**The lift is linear.** What makes it a clean axis is also its limit. A random
+orthonormal lift adds no correlated nuisance structure, no heteroscedastic noise
+and no nearly redundant coordinates — none of the pathologies that make real
+high-dimensional data hard [@chari2023specious; @lause2024elephant]. A method
+that survives `lift()` has been shown insensitive to ambient dimension alone.
+
+**The chart must be Euclidean.** The bound is an Eckart–Young residual and
+needs the doubly-centred squared-distance matrix to be positive semi-definite.
+It is here, by construction. A distance matrix handed in from elsewhere may not
+be, and `chart_spectrum()` refuses that case rather than reporting a tail sum
+that bounds nothing.
+
+**The answer key is the chart only inside the paper.** Chart distance equals
+geodesic distance only while the straight segment between two chart points stays
+on the sheet, and a Miura's outline is not convex. The producer asserts a
+chart-exit fraction of zero on every cell rather than trusting the sampling
+default; where that assertion fails the answer key is wrong in the direction
+that flatters every method.
+
+**One family.** A benchmark built on a single pattern family cannot support
+claims about pattern variety, and this book makes none. It can support claims
+about a construction, and the suite's two arms are the evidence that the
+construction is what the claims are about.
+
+## Reproduce this {#bench-reproduce}
+
+To add a family, write the constructor in `R/patterns.R` and the folding map in
+`R/folding.R`, and let `tests/testthat/test-folding.R` decide whether it
+qualifies: within-facet pairwise distances preserved to
+`r format(TOL$isometry, scientific = TRUE)` across the sweep, flatness at
+$\theta = 0$, an independent identity that was not built into the derivation,
+and a mountain/valley assignment derived from the folded geometry rather than
+asserted. A family that leaves a crease family flat fails the last of those,
+which is how the Yoshimura was caught.
+
+To build a product of your own, hand `product_manifold()` two `manifold_sample`
+objects of equal size — they need not come from the same family, or from a
+crease pattern at all — and score against `irreducible_loss()` rather than
+against zero. `against_floor()` returns error, floor, excess and ratio together,
+which is the form every result in Part III is reported in.
+
+The suite itself is `scripts/run-product-grid.R`, which is run neither in CI nor
+at render time: run it locally, commit the `.rds`, and let `read_run()` refuse
+any chapter whose prose was written against a different one.
+
+## Further reading {#bench-reading}
+
+Miura's report [@miura1985method] introduces the one family this benchmark
+folds, and Schenk and Guest [@schenk2013geometry] give the mechanics of folded
+shells. Hull [@hull2020origametry] is the reference for what Kawasaki's and
+Maekawa's conditions do and do not guarantee, Demaine and O'Rourke
+[@demaine2007folding] for rigid foldability as a computational question, and
+Lang [@lang2011origami] for the design side this chapter does not need.
+
+On the measurement side, Eckart and Young [@eckart1936approximation] is the
+approximation theorem the bound instantiates, Schönemann
+[@schonemann1966procrustes] and Gower [@gower1975procrustes] fix the alignment
+group it is stated over, and Torgerson [@torgerson1952mds] is where the chart
+spectrum comes from. Balasubramanian and Schwartz [@balasubramanian2002isomap]
+state the failure mode the folding parameter drives, and Lee and Verleysen
+[@lee2007nonlinear] is the textbook treatment of the methods being measured.
+Espadoto and colleagues [@espadoto2021survey] survey the benchmarking practice
+this chapter argues with, and Machado and colleagues [@machado2025necessary]
+make the case for evaluating the evaluators, which Chapter \@ref(evaluation)
+takes up.

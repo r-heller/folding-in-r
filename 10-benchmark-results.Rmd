@@ -1,14 +1,533 @@
 # Benchmark results {#results}
 
-*Which method survives?*
+*Which method survives — and can the benchmark tell?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+## What this chapter answers {#results-question}
 
-- The full method $\times$ $\theta$ $\times$ noise grid, at least 20 seeds per cell.
-  There is no pattern axis: one family folds, so a pattern factor with a single
-  level is not a factor. Crease count varies instead, which is the knob E1's
-  arm B swept and the one that carries the question.
-- Distributions, not means.
-- State explicitly how much between-method variation falls inside within-method seed variance.
-- Where Isomap wins, where it breaks, and the crossover.
-- Grid is precomputed by `scripts/run-benchmark-grid.R` and committed; the script is the provenance record.
+Part II fitted each method to a folded sheet one configuration at a time. This
+chapter fits all of them to the whole sweep at once — every method against every
+fold angle under every noise model, twenty seeds deep — and reads the table.
+
+It asks two questions, in a fixed order, and the order is the argument. The
+first is whether the benchmark can tell the methods apart at all: whether the
+spread *across* methods exceeds the spread across repeated runs *within* one
+method. Only if it does is the second question — which method wins — about
+methods rather than about seeds. A benchmark that answers the second without
+checking the first publishes a ranking of its own noise.
+
+The short answer to the first is yes, everywhere on this grid, by a margin that
+narrows sharply where the sheet is most folded. The answer to the second is that
+it depends on $\theta$ and on the noise model, so that "method X is best" is not
+a well-formed sentence here unless both are stated. The rest is those two
+answers with their conditions attached, and a rule — fixed in code before the
+grid existed — for turning them into a decision.
+
+## Setup {#results-setup}
+
+```{r results-setup-chunk, echo=TRUE}
+grid <- read_run("data/processed/benchmark-grid.rds", "2483a468d82d4d64")
+prov <- attr(grid, "provenance")
+ok   <- grid[grid$ran, ]
+```
+
+The grid is committed, not computed at render time. `read_run()` refuses any
+file whose contents differ from the run these numbers were read off, so a
+regenerated artefact is a build failure rather than a silently changed sentence.
+Producing it took `r round(prov$elapsed / 3600, 1)` hours of wall clock across
+`r prov$workers` forked workers — `r round(prov$elapsed * prov$workers / 3600, 1)`
+core-hours for `r format(sum(grid$ran), big.mark = ",")` fits, or about
+`r round(prov$elapsed * prov$workers / nrow(unique(grid[, c("theta", "noise", "seed")])))`
+core-seconds per sampled cell, metrics included.
+
+`grid` keeps every row the producer wrote, including the ones with no metrics;
+`ok` is the subset that fitted. Both are used below, and which one a number came
+from is stated, because the difference between them is itself a result.
+
+## What the grid holds {#results-background}
+
+```{r results-design, echo=TRUE}
+step <- unique(round(diff(sort(unique(grid$theta))), 10))
+design <- data.frame(
+  Factor = c("pattern", "$\\theta$", "noise", "method", "seed", "cells", "rows"),
+  Levels = c(length(unique(grid$pattern)), length(unique(grid$theta)),
+             length(unique(grid$noise)), length(unique(grid$method)),
+             length(unique(grid$seed)),
+             nrow(unique(grid[, c("pattern", "theta", "noise", "seed")])),
+             nrow(grid)),
+  Value  = c(paste(unique(grid$pattern), collapse = ", "),
+             sprintf("%s to %s in steps of %s", min(grid$theta), max(grid$theta), step),
+             paste(sort(unique(grid$noise)), collapse = ", "),
+             paste(sort(unique(grid$method)), collapse = ", "),
+             sprintf("%d to %d", min(grid$seed), max(grid$seed)),
+             "pattern $\\times$ $\\theta$ $\\times$ noise $\\times$ seed",
+             "one per method per cell"))
+knitr::kable(design, align = "lrl", caption = "The benchmark grid, read off the artefact rather than asserted.")
+```
+
+There is no pattern axis. One family folds (Chapter \@ref(benchmarks)), and a
+factor with a single level is not a factor. The three noise conditions are a
+clean sheet, isotropic ambient jitter, and a sparse outlier contamination; the
+$\theta$ sweep stops short of the flat-folded state, where the sheet has no
+extent in one direction and every method is embedding a degenerate object.
+
+```{r results-status, echo=TRUE}
+n_unavail  <- sum(grid$status == "unavailable")
+n_declined <- sum(grid$status == "declined")
+run_rate   <- tapply(grid$ran, grid$method, mean)
+fate <- factor(ifelse(!grid$ran,
+                      ifelse(grid$status == "unavailable", "declared unavailable",
+                             "declined the cell"),
+                      ifelse(is.na(grid$tuning), "ran as asked", "ran after retuning")),
+               levels = c("ran as asked", "ran after retuning",
+                          "declined the cell", "declared unavailable"))
+max_floor <- max(grid$floor)
+```
+
+Of `r format(nrow(grid), big.mark = ",")` rows, `r format(sum(grid$ran), big.mark = ",")`
+carry metrics. The remaining `r format(n_unavail + n_declined, big.mark = ",")`
+are results, not gaps: `r format(n_unavail, big.mark = ",")` autoencoder rows
+declared unavailable by the registry until Chapter \@ref(autoencoders), and
+`r n_declined` rows where a method was offered a cell and returned nothing.
+`report_failures()` prints the same accounting from the producer.
+
+The `floor` column is `r max_floor` in every row. The irreducible loss of a
+$p$-dimensional chart embedded in $d$ dimensions is the tail of the chart's
+spectrum, and here the chart is two-dimensional and $d$ is `r EMBED_DIM`, so
+there is no tail. Every error reported below is therefore loss the method is
+responsible for, and "scored against what was achievable" and "scored in
+absolute terms" coincide on this grid. They do not coincide on the product
+construction of Chapter \@ref(benchmarks), which is the artefact built to make
+the floor positive.
+
+```{r results-fig-status, echo=FALSE, fig.width=8.5, fig.height=4, fig.cap="What happened to every fit, by method and noise condition. Counts are printed on each segment that is not a clean run, so nothing here is carried by colour alone.", fig.alt="Three panels, one per noise condition, each a horizontal bar per method showing 400 fits. Under no noise and under ambient noise every method except the autoencoder ran as asked, and the autoencoder bar is entirely 'declared unavailable'. Under outlier noise the Laplacian eigenmaps bar is entirely 'declined the cell', the diffusion map bar is almost entirely 'ran after retuning' with a single declined fit, and the rest ran as asked."}
+fd <- as.data.frame(table(method = grid$method, noise = grid$noise, fate = fate))
+ggplot2::ggplot(fd, ggplot2::aes(Freq, method, fill = fate)) +
+  ggplot2::geom_col(width = 0.7) +
+  ggplot2::geom_text(ggplot2::aes(label = ifelse(Freq > 0 & fate != "ran as asked",
+                                                 Freq, "")),
+                     position = ggplot2::position_stack(vjust = 0.5),
+                     size = 2.5, colour = "grey15") +
+  ggplot2::facet_wrap(~ noise, nrow = 1) +
+  ggplot2::scale_fill_viridis_d(option = BOOK_VIRIDIS_OPTION, name = NULL,
+                                begin = 0.15, end = 0.92) +
+  ggplot2::labs(x = "fits", y = NULL) +
+  theme_fold()
+```
+
+Figure \@ref(fig:results-fig-status) shows where the losses sit, and they are
+structured rather than scattered. Laplacian eigenmaps declined every outlier
+cell; the diffusion map ran under outliers only after widening its own kernel
+bandwidth, which the `tuning` column records.
+
+## Where the benchmark has resolving power {#results-core}
+
+A ranking is worth reading only if the differences it orders are larger than the
+noise it was measured through. `R/selection.R` names that quantity and fixes it
+in code:
+
+$$R \;=\; \frac{\text{spread across methods}}{\text{spread within a method, across seeds}},$$
+
+with both spreads taken of the same quantity — excess over the irreducible floor
+— so that $R$ is dimensionless. The numerator is the standard deviation of the
+per-method means in a regime; the denominator is the median, over cells, of the
+seed-wise standard deviation inside one cell. Above one, the methods differ by
+more than a rerun of the same method does. At or below one, any ordering read
+off the grid is seed noise with a rank imposed on it.
+
+
+```{r results-resolving, echo=TRUE}
+rp <- do.call(rbind, lapply(sort(unique(grid$noise)), function(nz)
+  do.call(rbind, lapply(THETA_GRID, function(t) {
+    s <- select_method(grid, theta = t, noise = nz)$resolving
+    data.frame(noise = nz, theta = t, R = s$R, between = s$between, within = s$within)
+  }))))
+worst     <- rp[which.min(rp$R), ]
+pooled_sd <- tapply(ok$rmse, interaction(ok$method, ok$theta, ok$noise, drop = TRUE),
+                    stats::sd)
+ends <- function(nz) round(rp$R[rp$noise == nz][c(1L, length(THETA_GRID))], 1)
+```
+
+Three details of that definition earn their keep. The denominator is *within a
+cell*, not within a method across the regime, because a method's variation from
+one fold angle to the next is difficulty and belongs in the numerator. It is a
+**median** rather than a mean, because one wildly unstable method would
+otherwise set the noise level for all eight — the pooled within-cell spread on
+this grid has a median of `r signif(median(pooled_sd), 2)` and a maximum of
+`r signif(max(pooled_sd), 2)`, and the gap between those two is t-SNE. And it
+is computed on excess over the floor rather than on raw error, which on this
+grid changes nothing because the floor is `r max_floor`, and on Chapter
+\@ref(benchmarks)'s product suite changes a great deal.
+
+```{r results-fig-resolving, echo=FALSE, fig.width=7, fig.height=4, fig.cap="Resolving power against the folding parameter, one line per noise condition, on a logarithmic scale. The dotted line is the pre-registered floor below which the selection rule declines to rank anything.", fig.alt="A line chart with the folding parameter on the horizontal axis and resolving power on a logarithmic vertical axis. Three lines, distinguished by colour, line style and point shape. The outlier line sits highest, near fifteen, falling gently to about nine at the right. The clean and ambient-noise lines run between three and seven across most of the range and fall towards the right-hand end, the ambient line reaching about one and a third at the largest fold angle. A dotted horizontal line marks one; no line touches it."}
+ggplot2::ggplot(rp, ggplot2::aes(theta, R, colour = noise, linetype = noise,
+                                 shape = noise)) +
+  ggplot2::geom_hline(yintercept = MIN_RESOLVING, linetype = "dotted",
+                      colour = "grey40") +
+  ggplot2::geom_line(linewidth = 0.7) +
+  ggplot2::geom_point(size = 1.8) +
+  ggplot2::scale_y_log10() +
+  ggplot2::scale_colour_viridis_d(option = BOOK_VIRIDIS_OPTION, name = NULL,
+                                  begin = 0.1, end = 0.82) +
+  ggplot2::scale_linetype_manual(name = NULL, values = c("solid", "42", "22")) +
+  ggplot2::scale_shape_manual(name = NULL, values = c(16, 17, 15)) +
+  ggplot2::labs(x = expression(theta), y = expression(R)) +
+  theme_fold()
+```
+
+$R$ is above the floor of `r MIN_RESOLVING` in all
+`r nrow(rp)` regimes of Figure \@ref(fig:results-fig-resolving). The chapter was
+specified to report $R < 1$ wherever it held, and on this grid it holds nowhere;
+that is the finding, and it is a more comfortable one than the specification
+expected. The weakest cell is ambient noise at $\theta = `r worst$theta`$, where
+$R = `r round(worst$R, 2)`$ — the between-method spread of
+`r signif(worst$between, 2)` against a within-method spread of
+`r signif(worst$within, 2)`. Two ticks of $\theta$ earlier the same condition
+resolves twice as well. The outlier condition resolves best of the three, by an
+order of magnitude, and that is not a compliment to the benchmark: it separates
+the methods there because one of them fails completely, which is a wide gap
+rather than an informative one.
+
+The trend across the sweep is the part worth carrying forward. Every condition
+loses resolution as the sheet closes — from `r ends("none")[1]` to
+`r ends("none")[2]` on the clean sheet, `r ends("ambient")[1]` to
+`r ends("ambient")[2]` under ambient noise, `r ends("outlier")[1]` to
+`r ends("outlier")[2]` under outliers — so the benchmark is least able to
+discriminate exactly where its geometry is most distinctive. That is not a
+paradox: at large $\theta$ every method is failing, and methods that are all
+failing look alike. It does mean that a regime chosen for being difficult is a
+regime chosen for weak resolving power, and Chapter \@ref(application) has to
+pick one knowing that.
+
+The number to resist is the seed count. $R$ is a ratio of two spreads and
+neither is a standard error, so running forty seeds instead of twenty estimates
+both more precisely and moves the ratio nowhere; `tests/testthat/test-selection.R`
+demonstrates exactly that. Raising the seed budget until something separates
+would be the same abuse as raising it until a $p$-value falls, with the
+advantage of looking like diligence. The budget was fixed in advance and is
+reported in the design table above.
+
+Two things this section does **not** establish. It does not show that a crease
+pattern discriminates better than a classical benchmark: Chapter
+\@ref(comparison) measures that directly and finds the opposite, which is why
+this book's spine is the irreducible-loss bound and not the claim that folded
+sheets are a harder test. And $R$ is a property of a regime, not of the
+generator — it is computed here at fixed $n$, fixed $k$ and one pattern size,
+and each of those moves it.
+
+## Results {#results-results}
+
+```{r results-fig-headline, echo=FALSE, fig.width=9, fig.height=4.4, fig.cap="Normalised Procrustes reconstruction error against the folding parameter on the clean sheet, grouped by what each method consumes. The line is the mean over twenty seeds; the band is the full seed range. PCA and classical MDS coincide exactly and plot on top of each other.", fig.alt="Three panels labelled linear, geodesic and neighbour, each plotting reconstruction error against the folding parameter from zero to nearly one. In the linear panel a single visible curve rises smoothly from zero to about a fifth, with a very narrow band. In the geodesic panel Isomap runs almost flat near zero until roughly two-thirds of the way along and then rises, while the diffusion map sits near a fifth throughout. In the neighbour panel LLE rises from below a tenth to above four tenths, Laplacian eigenmaps and UMAP run flat near a quarter, and t-SNE sits highest with a very wide seed band."}
+fam <- factor(vapply(ok$method, function(m) METHOD_REGISTRY[[m]]$family, character(1)),
+              levels = c("linear", "geodesic", "neighbour"))
+lab <- vapply(ok$method, function(m) METHOD_REGISTRY[[m]]$label, character(1))
+h <- data.frame(ok, family = fam, label = lab)[ok$noise == "none", ]
+agg <- do.call(data.frame, aggregate(rmse ~ label + family + theta, h,
+                                     function(v) c(m = mean(v), lo = min(v), hi = max(v))))
+names(agg) <- c("label", "family", "theta", "m", "lo", "hi")
+LT <- c("solid", "42", "22", "4212", "solid", "22", "42", "4212")
+SH <- c(16, 17, 15, 18, 1, 2, 0, 5)
+ggplot2::ggplot(agg, ggplot2::aes(theta, m, colour = label, fill = label,
+                                  linetype = label, shape = label)) +
+  ggplot2::geom_ribbon(ggplot2::aes(ymin = lo, ymax = hi), alpha = 0.16,
+                       colour = NA) +
+  ggplot2::geom_line(linewidth = 0.7) +
+  ggplot2::geom_point(size = 1.4) +
+  ggplot2::facet_wrap(~ family, nrow = 1) +
+  ggplot2::scale_colour_viridis_d(option = BOOK_VIRIDIS_OPTION, name = NULL,
+                                  begin = 0.05, end = 0.85) +
+  ggplot2::scale_fill_viridis_d(option = BOOK_VIRIDIS_OPTION, name = NULL,
+                                begin = 0.05, end = 0.85) +
+  ggplot2::scale_linetype_manual(name = NULL, values = LT) +
+  ggplot2::scale_shape_manual(name = NULL, values = SH) +
+  ggplot2::labs(x = expression(theta), y = "normalised Procrustes RMSE") +
+  theme_fold()
+```
+
+```{r results-order, echo=TRUE}
+mm <- aggregate(rmse ~ method + theta + noise, ok, mean)
+mm$rank  <- ave(mm$rmse, mm$theta, mm$noise, FUN = rank)
+mm$label <- vapply(mm$method, function(m) METHOD_REGISTRY[[m]]$label, character(1))
+lead <- do.call(rbind, lapply(split(mm, list(mm$theta, mm$noise)), function(s)
+  data.frame(theta = s$theta[1], noise = s$noise[1], best = s$method[which.min(s$rmse)])))
+cross <- min(lead$theta[lead$noise == "none" & lead$best == "isomap"])
+at <- function(m, i, nz = "none") {
+  mm$rmse[mm$method == m & mm$noise == nz & mm$theta == THETA_GRID[i]]
+}
+iso_rank <- mm$rank[mm$method == "isomap" & mm$noise == "outlier" &
+                    mm$theta %in% THETA_GRID[c(1L, length(THETA_GRID))]]
+qq <- aggregate(qnx ~ method + theta, ok[ok$noise == "none", ], mean)
+qq <- qq[order(qq$theta), ]
+q_cross <- min(qq$theta[qq$method == "isomap"][
+  qq$qnx[qq$method == "isomap"] > qq$qnx[qq$method == "pca"]])
+sd_by <- function(m) {
+  s <- ok[ok$method == m, ]
+  median(tapply(s$rmse, interaction(s$theta, s$noise, drop = TRUE), stats::sd))
+}
+```
+
+Figure \@ref(fig:results-fig-headline) is the headline on the clean sheet.
+At $\theta = `r min(THETA_GRID)`$ the sheet *is* the chart, and the linear pair
+recovers it to `r format(at("pca", 1), scientific = TRUE, digits = 2)` while Isomap — which consumes
+geodesics it must first estimate — pays `r round(at("isomap", 1), 3)` for the
+estimation [@tenenbaum2000isomap; @torgerson1952mds]. The linear error then
+climbs monotonically with the fold, because folding is a strict ambient
+contraction and a linear map cannot undo one, while Isomap's stays nearly flat:
+its assumption is satisfied exactly on a rigid folding, and the geodesics it
+estimates do not change as the sheet closes.
+
+The two curves cross. Isomap takes the lead at $\theta = `r cross`$ —
+`r round(at("isomap", 8), 3)` against `r round(at("pca", 8), 3)` one step
+earlier, `r round(at("isomap", 9), 3)` against `r round(at("pca", 9), 3)` at the
+crossing — and holds it to the end of the sweep, finishing at
+`r round(at("isomap", 20), 3)` against `r round(at("pca", 20), 3)`. Averaging
+over $\theta$ would name the linear pair, because
+`r sum(lead$noise == "none" & lead$best != "isomap")` of the
+`r length(THETA_GRID)` fold angles fall on the flat side of the crossing and the
+errors there are small. That average is a statement about the grid's design, not
+about the methods.
+
+**The crossing moves when the metric does.** This book reports two headline
+numbers per cell, deliberately: Procrustes RMSE asks whether the embedding *is*
+the chart, and chart-referenced $Q_{NX}$ asks only whether it has the chart's
+neighbourhoods, which any diffeomorphism of the plane preserves. Read against
+$Q_{NX}$, Isomap does not pass the linear pair until $\theta = `r q_cross`$ —
+`r sprintf("%.3f", qq$qnx[qq$method == "isomap" & qq$theta == q_cross])` against
+`r sprintf("%.3f", qq$qnx[qq$method == "pca" & qq$theta == q_cross])` — four steps of
+the sweep later than under RMSE. The gap between the two crossings is the
+distance between "the linear projection is still the better *map*" and "it is
+still the better *neighbour list*", and naming a winner without naming the
+metric hides it.
+
+The other five methods break rather than cross. LLE [@roweis2000lle] starts
+respectably at `r round(at("lle", 1), 3)` and ends at
+`r round(at("lle", 20), 3)`, worse than anything else on the clean sheet at the
+deepest fold: its local weights are fitted to neighbourhoods that folding has
+brought into contact across facets. The diffusion map and Laplacian eigenmaps
+are flat and mediocre throughout, averaging
+`r round(mean(ok$rmse[ok$noise == "none" & ok$method == "diffusion"]), 3)` and
+`r round(mean(ok$rmse[ok$noise == "none" & ok$method == "laplacian"]), 3)`,
+which is roughly what a method that recovers the chart up to an unknown
+nonlinear warping scores against a metric permitting only similarity. And t-SNE
+averages `r round(mean(ok$rmse[ok$noise == "none" & ok$method == "tsne"]), 3)`
+and is last at every fold angle — not a finding about t-SNE, which was never
+built to reproduce distances, but the clearest case on this grid of a method
+scored against a target it does not consume.
+
+```{r results-fig-order, echo=FALSE, fig.width=9, fig.height=4.6, fig.cap="Rank by mean reconstruction error against the folding parameter, one panel per noise condition. Rank one is at the top. The leader changes with the fold angle under two conditions and is a different method entirely under the third.", fig.alt="Three panels, one per noise condition, with the folding parameter on the horizontal axis and rank from one at the top to eight at the bottom; the outlier panel has seven ranks because Laplacian eigenmaps produced no embedding there. Under no noise and under ambient noise PCA and classical MDS alternate between ranks one and two at small fold angles and Isomap takes rank one from roughly two-fifths of the way along. Under outlier noise UMAP holds rank one across the whole sweep, the diffusion map is last throughout, and Isomap climbs only from fourth place to third at large fold angles."}
+ggplot2::ggplot(mm, ggplot2::aes(theta, rank, colour = label, linetype = label,
+                                 shape = label)) +
+  ggplot2::geom_line(linewidth = 0.6) +
+  ggplot2::geom_point(size = 1.6) +
+  ggplot2::facet_wrap(~ noise, nrow = 1) +
+  ggplot2::scale_y_reverse(breaks = seq_along(unique(mm$method))) +
+  ggplot2::scale_colour_viridis_d(option = BOOK_VIRIDIS_OPTION, name = NULL,
+                                  begin = 0.05, end = 0.85) +
+  ggplot2::scale_linetype_manual(name = NULL, values = LT) +
+  ggplot2::scale_shape_manual(name = NULL, values = SH) +
+  ggplot2::labs(x = expression(theta), y = "rank by mean RMSE") +
+  theme_fold()
+```
+
+Figure \@ref(fig:results-fig-order) puts the three noise conditions side by side,
+and the third one breaks the story the first two tell. Under sparse outliers
+UMAP [@mcinnes2018umap] leads at every fold angle, at
+`r round(mean(ok$rmse[ok$noise == "outlier" & ok$method == "umap"]), 3)` against
+`r round(mean(ok$rmse[ok$noise == "outlier" & ok$method == "pca"]), 3)` for the
+linear pair, while the diffusion map [@coifman2006diffusion] sits at
+`r round(mean(ok$rmse[ok$noise == "outlier" & ok$method == "diffusion"]), 3)` —
+which is the score of an embedding that explains none of the chart's variance —
+and Laplacian eigenmaps [@belkin2003laplacian] does not produce one at all.
+Isomap's advantage at large $\theta$ survives as a climb from
+`r iso_rank[1]`th place to `r iso_rank[2]`rd, but UMAP leads at all
+`r sum(lead$noise == "outlier" & lead$best == "umap")` fold angles and Isomap
+never reaches the top under this contamination.
+
+So the ordering is not a property of the methods. It is a property of
+(method, $\theta$, noise), and any of the three sentences "the linear methods
+win", "Isomap wins" and "UMAP wins" can be read off this one grid.
+
+## Diagnostics {#results-diagnostics}
+
+```{r results-fig-metrics, echo=FALSE, fig.width=7.5, fig.height=4.2, fig.cap="How far apart the metrics place the eight methods, on the clean sheet: the range of the per-method means at each fold angle, on a logarithmic scale.", fig.alt="A line chart with the folding parameter on the horizontal axis and the spread across methods on a logarithmic vertical axis. Procrustes RMSE, chart-referenced Q-NX and kNN preservation all run between about two-tenths and four-tenths across the whole range. Trustworthiness and continuity run two orders of magnitude lower, near three thousandths, and trustworthiness rises steeply only beyond about two-thirds of the way along."}
+sep <- do.call(rbind, lapply(c("rmse", "qnx", "knn", "trust", "cont"), function(v) {
+  s <- ok[ok$noise == "none", ]
+  a <- aggregate(s[[v]], list(theta = s$theta, method = s$method), mean)
+  r <- tapply(a$x, a$theta, function(z) diff(range(z)))
+  data.frame(metric = v, theta = as.numeric(names(r)), range = as.numeric(r))
+}))
+sep$metric <- factor(sep$metric, levels = c("rmse", "qnx", "knn", "trust", "cont"),
+                     labels = c("Procrustes RMSE", "Q_NX (chart)",
+                                "kNN preservation", "trustworthiness", "continuity"))
+ggplot2::ggplot(sep, ggplot2::aes(theta, range, colour = metric, linetype = metric,
+                                  shape = metric)) +
+  ggplot2::geom_line(linewidth = 0.7) +
+  ggplot2::geom_point(size = 1.6) +
+  ggplot2::scale_y_log10() +
+  ggplot2::scale_colour_viridis_d(option = BOOK_VIRIDIS_OPTION, name = NULL,
+                                  begin = 0.05, end = 0.85) +
+  ggplot2::scale_linetype_manual(name = NULL,
+                                 values = c("solid", "42", "22", "4212", "1343")) +
+  ggplot2::scale_shape_manual(name = NULL, values = c(16, 17, 15, 18, 4)) +
+  ggplot2::labs(x = expression(theta), y = "spread across the eight methods") +
+  theme_fold()
+```
+
+Four things in the table are worth naming before anyone reads a ranking off it.
+
+**PCA and classical MDS are the same map here.** Their reconstruction errors
+differ by at most `r format(max(abs(ok$rmse[ok$method == "pca"] - ok$rmse[ok$method == "mds"])), scientific = TRUE, digits = 2)`
+across the grid and their $Q_{NX}$ scores are bit-identical, because classical
+MDS of a Euclidean distance matrix *is* the principal-component projection
+[@torgerson1952mds]. Their alternation between ranks one and two in Figure
+\@ref(fig:results-fig-order) is floating-point tie-breaking, not a result.
+
+**Two of the five metrics cannot separate anything.** Figure
+\@ref(fig:results-fig-metrics) is the spread across methods, metric by metric.
+Trustworthiness and continuity, scored at $k = `r K_DEFAULT`$ against *ambient*
+distance [@kaski2003trustworthiness], place the eight methods within a median
+range of `r signif(median(sep$range[sep$metric == "trustworthiness"]), 2)`, while
+Procrustes RMSE spreads them over
+`r signif(median(sep$range[sep$metric == "Procrustes RMSE"]), 2)`. Chart-referenced
+$Q_{NX}$ at $K = `r K_QNX`$ [@lee2009quality] sits between the two. This is the
+optimism Chapter \@ref(evaluation) quantifies; here it is enough to note that
+trustworthiness only begins to move at all beyond about two-thirds of the sweep.
+
+**t-SNE's seed spread swallows most of the field.** Its median within-cell
+standard deviation across seeds is `r signif(sd_by("tsne"), 2)`, against
+`r signif(sd_by("pca"), 2)` for the linear pair and
+`r signif(sd_by("isomap"), 2)` for Isomap — a single t-SNE run on this grid is
+an anecdote
+[@vandermaaten2008tsne], and the band in Figure \@ref(fig:results-fig-headline)
+is why the book reports twenty.
+
+**Isomap never needed graph repair.** `k_effective` equals the requested
+$k = `r K_DEFAULT`$ in all `r sum(grid$method == "isomap")` fits, so the
+neighbourhood graph was connected everywhere in the sweep. That is not the same
+as saying no short circuit occurred [@balasubramanian2002isomap]: a shortcut edge
+between facets connects the graph rather than breaking it, and it is the rise in
+Isomap's error past $\theta = `r cross`$ that would carry it.
+
+## Where it fails {#results-limits}
+
+```{r results-armb, echo=TRUE}
+armB <- read_run("data/processed/e1-armB.rds", "cbf9ce13782a556d")
+cc   <- aggregate(rmse ~ creases + method, armB, mean)
+iso_range <- diff(range(cc$rmse[cc$method == "isomap"]))
+```
+
+The grid varies four things and holds a great many fixed, and the fixed ones
+bound every sentence above.
+
+**One pattern, at one size.** A single Miura at
+`r PATTERN_GRID$miura[["nx"]]` by `r PATTERN_GRID$miura[["ny"]]` cells. Crease count is not
+an axis here; it was swept separately by Chapter \@ref(comparison)'s second arm,
+which found Isomap ahead of the linear pair at all
+`r length(unique(cc$creases))` crease counts tested at matched branch
+separation, with Isomap's own error moving by `r signif(iso_range, 2)` across a
+sixteen-fold change in creases. That is a reason for holding it fixed, not a
+licence to generalise from one size.
+
+**One sample size, one neighbourhood, one target dimension.** Every fit used
+$n = `r prov$n`$, $k = `r K_DEFAULT`$ and $d = `r EMBED_DIM`$. Chapter
+\@ref(evaluation) sweeps $k$; nothing here does, and a $k$-sensitive method
+[@roweis2000lle] is being reported at one setting of it.
+
+**No autoencoder.** `r format(n_unavail, big.mark = ",")` rows of the grid are a
+declaration rather than a measurement, and every comparison above is over eight
+methods, not nine.
+
+**Two noise models, both synthetic.** Isotropic ambient jitter and sparse
+outliers are the two failure modes easiest to write down, not the two most
+common in data. Neither is structured, correlated with position on the sheet, or
+heteroscedastic, and the outlier result — a complete reordering of the field —
+is a warning that the noise model may matter more than the geometry does.
+
+**A floor of `r max_floor`.** Reporting against what was achievable is
+informative only when something was unachievable, and on a two-dimensional chart
+in two dimensions nothing is.
+
+**Only one pattern family folds at all**, which is Chapter
+\@ref(benchmarks)'s subject. This grid cannot support any claim about variety
+across families, and none is made.
+
+## The pre-registered selection rule {#results-rule}
+
+Chapter \@ref(application) has to pick a method with this grid. The value of that
+choice rests entirely on the rule having been fixed before the answer was known,
+so it is committed as code — `select_method()` in `R/selection.R`, a total
+function of the grid's columns, registered before the grid it reads had ever
+been generated. Prose can be read generously afterwards; a function cannot.
+
+Three thresholds, and nowhere else: a run-rate floor of `r MIN_RUN_RATE`, below
+which a method is not a candidate however well it scores; a reportable
+difference of `r MIN_REPORTABLE` normalised RMSE, below which a lead is a tie;
+and a resolving-power floor of `r MIN_RESOLVING`, below which the rule declines
+and the chapter reports a null result.
+
+```{r results-rule-chunk, echo=TRUE}
+window <- THETA_GRID[THETA_GRID >= THETA_GRID[13]]
+r_none <- select_method(grid, theta = window, noise = "none")
+r_amb  <- select_method(grid, theta = window, noise = "ambient")
+r_all  <- select_method(grid, theta = THETA_GRID, noise = unique(grid$noise))
+class_excess <- sort(tapply(ok$rmse - ok$floor, ok$consumes, mean))
+```
+
+The rule does not choose the regime; that is Chapter \@ref(application)'s
+argument to make from its data, before it fits anything. Applied here to a
+deep-fold window as an illustration, it selects **`r r_none$method`** on the
+clean sheet, by `r signif(diff(sort(r_none$resolving$means))[1], 2)` at
+$R = `r round(r_none$resolving$R, 2)`$. Under ambient noise, in the same window,
+the leading margin falls to
+`r signif(diff(sort(r_amb$resolving$means))[1], 2)` — inside the reportable
+threshold — so the rule declares a tie of `r length(r_amb$tied)` methods and
+breaks it on failures, then on assuming least, and returns
+**`r r_amb$method`** instead. Pooled over the whole grid it excludes
+`r paste(r_all$excluded, collapse = " and ")` on the run-rate floor and returns
+**`r r_all$method`** again. Three regimes, three defensible answers, one rule:
+which is the point, and the reason the regime must be argued for in the open.
+
+One clause needs a caveat. Ties break toward the method that *assumes least* —
+ambient, then geodesic, then neighbourhood — which is an argument about
+assumptions, not a prediction about scores. The grid ranks the classes the other
+way: mean excess over the floor is `r sprintf("%.2f", class_excess[[1]])`
+for the `r names(class_excess)[1]` class,
+`r sprintf("%.2f", class_excess[[2]])` for `r names(class_excess)[2]` and
+`r sprintf("%.2f", class_excess[[3]])` for `r names(class_excess)[3]`,
+in that order and in every noise condition
+separately, and Chapter \@ref(benchmarks) measures the same ordering on the
+product suite. The tie-break stands, because it applies only where the benchmark
+*cannot separate* — but it is not this book's estimate of which class does
+better.
+
+The declining branch did not fire anywhere on this grid. It was written to fire
+and is tested to fire, and a rule that could not have declined would have
+established nothing by not declining.
+
+## Reproduce this {#results-reproduce}
+
+The grid is regenerated with
+`Rscript scripts/run-benchmark-grid.R --cores 4` from the repository root, and
+`--shard i/n` followed by `--merge` spreads it over machines. That script is the
+provenance record for `data/processed/benchmark-grid.rds` and the only thing
+that writes it; it refuses to merge shards built from different versions of
+`R/`, and `--quick` writes to a different filename so a smoke test can never be
+mistaken for the book's evidence. The cell itself is `grid_cell()` in
+`R/grid.R`, shared with the Part II sweeps and the classical grid so that three
+producers cannot drift apart. `tests/testthat/test-selection.R` asserts that
+each of the three thresholds changes the decision, and that raising the seed
+count does not.
+
+## Further reading {#results-reading}
+
+Espadoto and colleagues [@espadoto2021survey] survey the projection-quality
+literature this chapter's metrics come from, and Lee and Verleysen
+[@lee2009quality] give the co-ranking framework behind $Q_{NX}$; Kaski and
+colleagues [@kaski2003trustworthiness] are the source of trustworthiness and
+continuity, including the scaling constant. For the methods themselves, the
+original papers remain the clearest statements of what each one consumes
+[@tenenbaum2000isomap; @roweis2000lle; @belkin2003laplacian;
+@coifman2006diffusion; @vandermaaten2008tsne; @mcinnes2018umap], which is the
+property that predicts the regime changes above better than any of the scores
+does. What none of them supplies is a scale against which a score can be called
+good; that is Chapter \@ref(benchmarks)'s subject, and it is why this chapter's
+floor column is a placeholder rather than a measurement.
