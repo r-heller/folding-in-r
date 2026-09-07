@@ -193,8 +193,8 @@ waterbomb <- function(nx = 6L, ny = 6L, ...) {
   stop("waterbomb() is not implemented: whether this tessellation admits a ",
        "one-parameter rigid folding is an open question in this project, not a ",
        "coding task. See PLAN.md E2 and scratch-waterbomb/. Until it is ",
-       "resolved the book ships two pattern families plus a documented ",
-       "negative result, which is the pre-drafted outcome.",
+       "resolved the book ships one verified family plus two documented ",
+       "negative results, which is the pre-drafted outcome.",
        call. = FALSE)
 }
 
