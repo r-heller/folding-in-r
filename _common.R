@@ -66,9 +66,29 @@ local({
 # One viridis option per volume, so figures stay visually separable when
 # chapters from different books sit side by side.
 #   strategy-in-r = "D"   scientometrics-in-r = "A"   folding-in-r = "C" (plasma)
-scale_fill_book  <- function(...) viridis::scale_fill_viridis_d(option = "C", ...)
-scale_color_book <- function(...) viridis::scale_color_viridis_d(option = "C", ...)
-scale_colour_book <- scale_color_book
+#
+# These are the DISCRETE scales; R/plotting.R carries the continuous pair as
+# scale_colour_book_c() / scale_fill_book_c(). Both call the same viridis
+# entry points, because viridis exports scale_colour_viridis(discrete = ) and
+# nothing suffixed -- the scale_*_viridis_c and _d forms belong to ggplot2, not
+# to viridis. These three read scale_*_viridis_d() until it was caught, which
+# fails at render with "'scale_color_viridis_d' is not an exported object from
+# 'namespace:viridis'". Every figure using them died, and because eval = TRUE
+# only became the default recently, nothing had run them.
+#
+# Option is read from BOOK_VIRIDIS_OPTION rather than the literal "C" so that
+# this file and R/constants.R cannot disagree about which ramp the book uses.
+scale_colour_book <- function(...) {
+  viridis::scale_colour_viridis(discrete = TRUE,
+                                option = BOOK_VIRIDIS_OPTION, ...)
+}
+
+scale_color_book <- scale_colour_book
+
+scale_fill_book <- function(...) {
+  viridis::scale_fill_viridis(discrete = TRUE,
+                              option = BOOK_VIRIDIS_OPTION, ...)
+}
 
 # Every stochastic result in this book is reported across seeds, never from a
 # single run — t-SNE and UMAP are seed-dependent and one run is an anecdote.
