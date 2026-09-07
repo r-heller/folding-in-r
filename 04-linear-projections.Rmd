@@ -18,7 +18,10 @@ committed artefact together with the digest it was written against — that is
 
 **The baseline.** PCA's reconstruction-error curve over $\theta$ is the reference
 every later method is judged against. It is not a straw man: PCA is exact on the
-flat sheet and, on this grid, second only to Isomap everywhere above it.
+flat sheet, and on this grid it is the best method of all until the fold is deep
+enough for Isomap to overtake it --- which happens later than the ordering in
+Chapter \@ref(results) might suggest, and later still on $Q_{NX}$ than on
+reconstruction error. Chapter \@ref(geodesic) locates both crossings.
 
 **The coincidence.** PCA and classical MDS are not two methods. The registry
 keeps both because showing that they coincide is worth a figure, and Chapter
