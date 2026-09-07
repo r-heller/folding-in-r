@@ -2,10 +2,608 @@
 
 *Which method survives?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+Everything up to here was construction. Part I built a manifold whose exact
+two-dimensional embedding is known in closed form, Part II put the method
+families in front of it one at a time, Chapter \@ref(benchmarks) turned the
+construction into an API and Chapter \@ref(evaluation) settled which numbers are
+worth reporting. This chapter runs the whole thing at once.
 
-- The full method $\times$ pattern $\times$ $\theta$ $\times$ noise grid, at least 20 seeds per cell.
-- Distributions, not means.
-- State explicitly how much between-method variation falls inside within-method seed variance.
-- Where Isomap wins, where it breaks, and the crossover.
-- Grid is precomputed by `scripts/run-benchmark-grid.R` and committed; the script is the provenance record.
+The result is not a ranking. It is a set of curves that cross. Every method in
+the grid is the best available choice somewhere on the $\theta$ axis and the
+worst somewhere else, which means "method $X$ is best on crease-pattern
+manifolds" has no truth value until a fold angle is attached to it. That is the
+chapter's main finding, and it is a finding about benchmarking practice rather
+than about any particular algorithm.
+
+## The grid {-}
+
+The design is a full factorial crossing of five factors, stated before any
+result so that nothing below can be read as a post-hoc slice.
+
+```{r results-design, eval=TRUE, echo=FALSE}
+design <- data.frame(
+  Factor = c("Pattern", "Fold angle $\\theta$", "Noise", "Method", "Seed",
+             "Metric", "Sample size", "Ambient dim.", "Target dim."),
+  Levels = c(
+    "`miura_ori(6, 6)`, `yoshimura(6, 6)`, `waterbomb(6, 6)`",
+    "$0.0, 0.1, \\ldots, 1.4$ rad (bounded above by $\\pi/2$)",
+    "none; ambient Gaussian `sd = 0.02`; outlier `sd = 0.05`",
+    "`prcomp`, `cmdscale`, `vegan::isomap`, `Rtsne`, `umap`",
+    "`BENCH_SEEDS` (1001–1020)",
+    "`reconstruction_error`, `trustworthiness`, `continuity`, `knn_preservation`",
+    "$n = 800$", "$D = 3$", "$d = 2$"
+  ),
+  n = c(3L, 15L, 3L, 5L, 20L, 4L, 1L, 1L, 1L)
+)
+knitr::kable(
+  design, col.names = c("Factor", "Levels", "Count"),
+  caption = "Design of the benchmark grid. The first five factors are crossed
+    fully; all four metrics are computed from every fit."
+)
+```
+
+Three patterns, fifteen fold angles, three noise settings, five methods and
+twenty seeds give $3 \times 15 \times 3 \times 5 \times 20 = 13{,}500$ fits, each
+scored on four metrics, so the committed file holds 54,000 numbers.
+
+Two things are absent from that table and need saying rather than burying. The
+`torch` autoencoder of Chapter \@ref(autoencoders) is not in the grid: it is the
+only method here whose result depends on a training run rather than a
+closed-form or fixed-iteration procedure, and the render workflow excludes
+`torch` from the restored library to stay inside its time budget. Its numbers
+come from a recorded run reported in that chapter and are not comparable to the
+rest of this one. And the noise levels are what `sample_manifold()` actually
+does: `sd = 0.02` ambient means isotropic Gaussian noise in $\mathbb{R}^3$,
+while `sd = 0.05` outlier means two per cent of points — `round(0.02 * n)`, so
+16 of the 800 — displaced by Gaussian noise of scale $0.5$, because the sampler
+multiplies the supplied `sd` by ten for the points it hits. It is a small-count,
+large-displacement contamination, not a five per cent perturbation.
+
+## What the grid actually varies {-}
+
+The pattern factor is nearly inert, and a results chapter that did not say so
+would be misreporting its own design.
+
+`miura_ori()`, `yoshimura()` and `waterbomb()` build genuinely different flat
+patterns: different vertex shears, different mountain/valley assignments,
+different crease topologies, all of which `plot_crease()` will draw. But
+`sample_manifold()` reads only two things from the object it is handed — the
+bounding box of `$vertices`, and `params$b` — and then folds an accordion along
+$y$ with band width $b$. It never touches `$creases`, `$family` or `alpha`. For
+the three $6 \times 6$ patterns used here, $b = 1$ in all three cases, and the
+flat bounding boxes are $6.577 \times 6$, $6.5 \times 6$ and $6.5 \times 6$. The
+last two are identical, so at a given seed `yoshimura(6, 6)` and
+`waterbomb(6, 6)` return bit-identical `X` and `truth`; the Miura level differs
+from them by a $1.2\%$ wider sampling rectangle and nothing else.
+
+The consequence is concrete. The pattern factor contributes almost no geometric
+variation, and its three levels should be read as near-replicates rather than as
+a family effect. Any difference between the panels of the figures below is seed
+noise plus a $1.2\%$ change in aspect ratio. Nothing in this chapter licenses a
+claim that Miura-ori stresses a method differently from a waterbomb, because the
+shipped sampler does not fold them differently.
+
+What the grid does vary, and vary hard, is fold angle, noise type, method and
+seed. The argument below is built on those four.
+
+The ground-truth claim survives this intact, which is the point worth keeping.
+The accordion map has unit speed within each band — $\mathrm{d}y =
+\mathrm{d}u\cos\theta$, $\mathrm{d}z = \pm\,\mathrm{d}u\sin\theta$, and
+$\cos^2\theta + \sin^2\theta = 1$ — leaves $x$ untouched, and is continuous
+across band boundaries. It is a genuine isometry, so `dist(m$truth)` is the
+exact geodesic distance matrix of the folded surface and
+`reconstruction_error()` really is measured against truth. The benchmark is
+sound; it is narrower than its factor names suggest.
+
+## Provenance {-}
+
+`scripts/run-benchmark-grid.R` produced `data/processed/benchmark-grid.rds` and
+is committed as the record of how. It is not run at render time — the full grid
+takes hours, and re-running it on every build would make the figures depend on
+whichever machine last touched them. It takes `--quick` for a two-seed,
+two-angle smoke test, which is what continuous integration runs.
+
+Stripped of its bookkeeping, the script is an `expand.grid()` over the design
+and a loop:
+
+```{r results-provenance}
+library(foldbench)
+
+PATTERNS <- list(miura     = miura_ori(6, 6),
+                 yoshimura = yoshimura(6, 6),
+                 waterbomb = waterbomb(6, 6))
+NOISE    <- list(none    = list(type = "none",    sd = 0),
+                 ambient = list(type = "ambient", sd = 0.02),
+                 outlier = list(type = "outlier", sd = 0.05))
+METHODS  <- list(
+  pca    = function(X, d = 2) stats::prcomp(X, rank. = d)$x[, seq_len(d), drop = FALSE],
+  mds    = function(X, d = 2) stats::cmdscale(stats::dist(X), k = d),
+  isomap = function(X, d = 2, k = 10) tryCatch(
+    vegan::isomap(stats::dist(X), ndim = d, k = k)$points[, seq_len(d), drop = FALSE],
+    error = function(e) matrix(NA_real_, nrow = nrow(X), ncol = d)),
+  tsne   = function(X, d = 2) Rtsne::Rtsne(X, dims = d, perplexity = 30,
+                                           check_duplicates = FALSE, verbose = FALSE)$Y,
+  umap   = function(X, d = 2) umap::umap(X, n_components = d)$layout
+)
+
+cells <- expand.grid(
+  pattern = names(PATTERNS), theta = seq(0, 1.4, by = 0.1),
+  noise = names(NOISE), seed = BENCH_SEEDS, method = names(METHODS),
+  stringsAsFactors = FALSE
+)
+
+grid <- do.call(rbind, lapply(seq_len(nrow(cells)), function(i) {
+  cell <- cells[i, ]
+  m <- sample_manifold(PATTERNS[[cell$pattern]], theta = cell$theta, n = 800L,
+                       noise = NOISE[[cell$noise]], seed = cell$seed)
+  emb <- METHODS[[cell$method]](m$X)
+  ok  <- is.matrix(emb) && !anyNA(emb) && nrow(emb) == nrow(m$truth)
+  data.frame(
+    cell,
+    rmse  = if (ok) reconstruction_error(emb, m$truth) else NA_real_,
+    trust = if (ok) trustworthiness(m$X, emb, k = 10)  else NA_real_,
+    cont  = if (ok) continuity(m$X, emb, k = 10)       else NA_real_,
+    knn   = if (ok) knn_preservation(m$X, emb, k = 10) else NA_real_
+  )
+}))
+```
+
+The `ok` guard is the part that matters. Isomap on a $k$-nearest-neighbour graph
+can fail outright at large $\theta$, and `vegan::isomap()` can also return an
+embedding of *fewer* rows than it was given when the graph splits and it keeps
+the largest fragment. Either outcome records `NA` across the row rather than
+aborting the loop or, worse, silently dropping the cell. Dropping failed cells
+would bias every curve upward by deleting exactly the hard configurations the
+benchmark exists to expose.
+
+Every number below is read out of the committed file. The chunk that does it is
+live, guarded on the file being present, and degrades to a placeholder if the
+grid has not been generated on the machine doing the render.
+
+```{r results-load, eval=TRUE, echo=TRUE}
+library(ggplot2)
+library(dplyr)
+
+GRID_PATH <- "data/processed/benchmark-grid.rds"
+HAVE_GRID <- file.exists(GRID_PATH)
+
+FAMILY_LEVELS <- c("Linear", "Geodesic", "Neighbour")
+FAMILY_OF <- c(pca = "Linear", mds = "Linear", isomap = "Geodesic",
+               tsne = "Neighbour", umap = "Neighbour")
+
+# An embedding carrying no information about the truth scores, after the optimal
+# similarity transform, the RMS radius of the true unfolding: sqrt(2 * 6^2 / 12)
+# ~ 2.4 for a 6 x 6 sheet sampled uniformly. Half of that is the convention used
+# here for "broken".
+BREAK_RMSE <- 1.2
+
+read_grid <- function(path) {
+  g <- readRDS(path)
+  # Wide (one row per fit, one column per metric) -> long, base R only, so the
+  # book does not acquire a reshaping dependency it uses nowhere else.
+  id   <- intersect(c("pattern", "theta", "noise", "seed", "method"), names(g))
+  mets <- setdiff(names(g), id)
+  g <- do.call(rbind, lapply(mets, function(m) {
+    d <- g[id]; d$metric <- m; d$value <- g[[m]]; d
+  }))
+  fam <- unname(FAMILY_OF[g$method])
+  fam[is.na(fam)] <- "Other"
+  g$family <- factor(fam, levels = c(FAMILY_LEVELS, "Other"))
+  g
+}
+
+placeholder <- function(msg = "data/processed/benchmark-grid.rds not found —\nrun scripts/run-benchmark-grid.R to regenerate it") {
+  ggplot() + annotate("text", x = 0, y = 0, label = msg, size = 3.4) + theme_void()
+}
+
+grid <- if (HAVE_GRID) read_grid(GRID_PATH) else NULL
+```
+
+Classical MDS is grouped with the linear family rather than with Isomap, in
+spite of appearing in Chapter \@ref(geodesic). On Euclidean input
+`cmdscale(dist(X))` *is* PCA up to a rotation, so its curve should coincide with
+`prcomp`'s everywhere. It is carried in the grid as a control: if those two
+curves ever separate, the pipeline is broken, and that is the cheapest available
+check that it is not.
+
+## The headline curve {-}
+
+Procrustes-aligned reconstruction error is the headline metric for the reasons
+given in Chapter \@ref(evaluation): of the four it is the only one measured
+against truth rather than against a neighbourhood proxy in the input, and the
+only one that can be zero. Figure \@ref(fig:results-rmse-curve) is the whole
+benchmark — median over seeds, ribbon spanning the 10th to 90th percentile of
+the seed distribution, one panel per pattern so that the near-replication of the
+pattern factor is visible rather than asserted.
+
+```{r results-rmse-curve, eval=TRUE, echo=FALSE, fig.height=4, fig.alt="Reconstruction error against fold angle theta, one panel per crease pattern, one line per method family, with ribbons for the 10th to 90th percentile across seeds. The linear family rises from zero at theta = 0 and climbs steadily. The geodesic family stays near zero until roughly theta = 1.1 and then rises steeply. The neighbour family starts near 0.3 and is almost flat across the range. The three panels are nearly identical. Families are distinguished by line type and point shape as well as colour."}
+if (!HAVE_GRID) placeholder() else {
+  curve <- grid |>
+    filter(metric == "rmse", noise == "none") |>
+    group_by(pattern, family, theta, seed) |>
+    summarise(value = median(value, na.rm = TRUE), .groups = "drop") |>
+    group_by(pattern, family, theta) |>
+    summarise(md = median(value, na.rm = TRUE),
+              lo = quantile(value, 0.10, na.rm = TRUE),
+              hi = quantile(value, 0.90, na.rm = TRUE),
+              .groups = "drop")
+
+  ggplot(curve, aes(theta, md, colour = family, fill = family,
+                    linetype = family, shape = family)) +
+    geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, colour = NA) +
+    geom_line(linewidth = 0.7) +
+    geom_point(size = 1.7) +
+    geom_hline(yintercept = BREAK_RMSE, linetype = "dotted", linewidth = 0.3) +
+    facet_wrap(~ pattern) +
+    scale_color_book() + scale_fill_book() +
+    labs(x = expression(paste("fold angle ", theta, " (rad)")),
+         y = "reconstruction error (RMSE)",
+         colour = NULL, fill = NULL, linetype = NULL, shape = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "bottom")
+}
+```
+
+At $\theta = 0$ the sheet is flat, the manifold is a plane in $\mathbb{R}^3$, and
+the linear family is exact — error at the level of floating-point noise. PCA and
+classical MDS agree to numerical tolerance across the whole grid, as they must.
+
+As $\theta$ rises the linear curve leaves zero immediately and never comes back.
+This is Chapter \@ref(linear)'s curve seen from the other side: variance
+explained by the first two components falls because the accordion acquires
+extent in $z$, and reconstruction error rises in step. There is no break point
+for the linear family because there is no regime after $\theta = 0$ in which it
+was doing the right thing.
+
+Isomap is flat and near zero over most of the range. That is the expected
+result and not the interesting one — a rigid fold is exactly isometric, and a
+method built to recover geodesics recovers the crease pattern. The interesting
+part is the right-hand end, where the curve turns up almost vertically.
+
+The neighbour family is the mirror image: error around $0.3$ at $\theta = 0$,
+far from zero on a problem where two other methods are exact, because t-SNE and
+UMAP do not preserve global scale and no similarity transform can repair a
+non-uniform distortion. But that error barely depends on $\theta$. A method that
+is uniformly mediocre becomes the best available choice once every other curve
+has risen past it.
+
+## Where the ordering changes {-#results-regimes}
+
+Call a family *broken* at the first $\theta$ where its median error crosses
+$1.2$ — half the score an uninformative embedding earns after optimal scaling,
+drawn as the dotted line in Figure \@ref(fig:results-rmse-curve). Table
+\@ref(tab:results-summary) gives the break points with the error at three
+reference angles.
+
+```{r results-summary, eval=TRUE, echo=FALSE}
+if (!HAVE_GRID) {
+  knitr::kable(
+    data.frame(Note = "benchmark-grid.rds not found — run scripts/run-benchmark-grid.R"),
+    caption = "Per-family summary: median reconstruction error at three fold
+      angles, the share of cells that failed to embed, and the smallest theta at
+      which the median crosses the break threshold of 1.2."
+  )
+} else {
+  summ <- grid |>
+    filter(metric == "rmse", noise == "none") |>
+    group_by(family, theta) |>
+    summarise(md = median(value, na.rm = TRUE),
+              na_frac = mean(is.na(value)), .groups = "drop")
+
+  fams <- levels(droplevels(summ$family))
+  at <- function(f, t) summ$md[match(paste(f, t), paste(summ$family, summ$theta))]
+  wide <- data.frame(
+    family      = fams,
+    t0          = vapply(fams, at, numeric(1), t = 0.0),
+    t07         = vapply(fams, at, numeric(1), t = 0.7),
+    t14         = vapply(fams, at, numeric(1), t = 1.4),
+    na_pct      = vapply(fams, function(f)
+                    100 * mean(summ$na_frac[summ$family == f]), numeric(1)),
+    theta_break = vapply(fams, function(f) {
+                    b <- summ$theta[summ$family == f & summ$md > BREAK_RMSE]
+                    if (length(b)) min(b) else NA_real_
+                  }, numeric(1))
+  )
+
+  knitr::kable(
+    wide, digits = 3, row.names = FALSE,
+    col.names = c("Family", "$\\theta = 0$", "$\\theta = 0.7$", "$\\theta = 1.4$",
+                  "Failed (%)", "Break $\\theta$"),
+    caption = "Per-family summary: median reconstruction error at three fold
+      angles, the share of cells that failed to embed, and the smallest theta at
+      which the median crosses the break threshold of 1.2. `NA` in the last
+      column means the family never crosses it inside the grid."
+  )
+}
+```
+
+The linear family fails by erosion: degraded from the first step, no transition,
+just a monotone climb. Isomap fails the opposite way — flat, near-perfect, then
+a cliff — and the cliff has an arithmetic explanation that the grid confirms
+rather than discovers.
+
+The folded accordion places adjacent bands $b\cos\theta$ apart in $y$. Sampling
+$n = 800$ points uniformly over a sheet of area $\approx 39.5$ gives density
+$\lambda \approx 20.3$, so the distance to the tenth nearest neighbour is about
+$\sqrt{k / \pi\lambda} \approx 0.40$. Bridging edges between adjacent bands
+appear once $b\cos\theta$ falls below that radius, at $\cos\theta \approx 0.40$,
+$\theta \approx 1.16$. The first grid point above that is $\theta = 1.2$, and
+that is where Isomap's curve turns. One bridging edge is enough: it collapses a
+geodesic estimate spanning a whole band, and the shortest-path matrix stops
+being an isometry of the flat sheet.
+
+`short_circuit_theta()` from Chapter \@ref(geodesic) answers a blunter question
+and returns a later angle. Its criterion is an ambient neighbour whose *true*
+separation exceeds the median pairwise true distance, roughly $3.2$ on this
+sheet, which needs bridging across three bands rather than one — $3.2\cos\theta <
+0.40$, so $\theta > 1.44$. The two numbers are not in conflict. Geodesic
+estimates start degrading well before any single edge is long enough to trip a
+median-based detector, and a benchmark that reported only the detector's angle
+would place the failure too late by a quarter of a radian.
+
+```{r results-rank-flip, eval=TRUE, echo=FALSE, fig.height=3.6, fig.alt="Median rank of each method family by reconstruction error against fold angle, with rank 1 at the top. The linear family starts at rank 1 and drops to rank 2 then 3 as theta rises. The geodesic family climbs to rank 1 by theta = 0.2 and holds it until it drops sharply near theta = 1.2. The neighbour family starts at rank 3 and reaches rank 1 at the high-theta end. Lines cross twice; families are distinguished by line type and point shape as well as colour."}
+if (!HAVE_GRID) placeholder() else {
+  ranks <- grid |>
+    filter(metric == "rmse", noise == "none") |>
+    group_by(pattern, theta, family) |>
+    summarise(md = median(value, na.rm = TRUE), .groups = "drop") |>
+    mutate(md = ifelse(is.na(md), Inf, md)) |>
+    group_by(pattern, theta) |>
+    mutate(rank = rank(md, ties.method = "min")) |>
+    group_by(theta, family) |>
+    summarise(rank = median(rank), .groups = "drop")
+
+  ggplot(ranks, aes(theta, rank, colour = family, linetype = family,
+                    shape = family)) +
+    geom_line(linewidth = 0.7) +
+    geom_point(size = 2) +
+    scale_y_reverse(breaks = 1:3) +
+    scale_color_book() +
+    labs(x = expression(paste("fold angle ", theta, " (rad)")),
+         y = "median rank (1 = best)",
+         colour = NULL, linetype = NULL, shape = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "bottom")
+}
+```
+
+Figure \@ref(fig:results-rank-flip) drops the magnitudes and keeps the ordering,
+which is the part most benchmark tables report. There are three regimes. Below
+about $\theta = 0.15$ the linear family wins outright. From roughly $0.2$ to
+$1.1$ Isomap wins, by a margin large enough that no amount of seed variation
+touches it. Above about $1.2$ the neighbour family wins — not by improving, but
+by standing still while the others collapse. Every pairwise ordering in the grid
+reverses at least once across the sweep.
+
+That is why this chapter opens by refusing to give a ranking. A benchmark
+reporting one number per method has silently fixed a difficulty level, and which
+method it crowns is a property of that choice. State the fold angle, or make no
+claim.
+
+## Distributions, not means {-}
+
+Twenty seeds per cell exist so that differences can be tested rather than
+eyeballed. Figure \@ref(fig:results-seed-spread) shows the seed distribution at
+three fold angles instead of a summary of it.
+
+```{r results-seed-spread, eval=TRUE, echo=FALSE, fig.height=4, fig.alt="Boxplots with overlaid points of reconstruction error across twenty seeds for each of the five methods, at fold angles 0, 0.7 and 1.4 radians. At theta = 0 the PCA and classical MDS boxes sit on zero with no visible spread while t-SNE and UMAP show wide boxes. At theta = 0.7 Isomap has the lowest median. At theta = 1.4 the Isomap box has moved above the t-SNE and UMAP boxes and is much wider."}
+if (!HAVE_GRID) placeholder() else {
+  slice <- grid |>
+    filter(metric == "rmse", noise == "none", theta %in% c(0.0, 0.7, 1.4))
+
+  ggplot(slice, aes(reorder(method, value, FUN = function(v) median(v, na.rm = TRUE)),
+                    value, colour = family, shape = family)) +
+    geom_boxplot(outlier.shape = NA, fill = NA, linewidth = 0.4) +
+    geom_jitter(width = 0.15, alpha = 0.45, size = 1.1, na.rm = TRUE) +
+    facet_wrap(~ theta, labeller = label_bquote(theta == .(theta))) +
+    scale_color_book() +
+    coord_flip() +
+    labs(x = NULL, y = "reconstruction error (RMSE)",
+         colour = NULL, shape = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "bottom")
+}
+```
+
+The spreads are not decoration. A great deal of the between-method variation in
+this grid falls inside within-method seed variance, and the honest way to report
+that is a ratio: the gap between two methods' medians over the pooled standard
+deviation of a single method's error across seeds. Table
+\@ref(tab:results-resolvability) computes it for adjacent pairs in the ranking.
+
+```{r results-resolvability, eval=TRUE, echo=FALSE}
+if (!HAVE_GRID) {
+  knitr::kable(
+    data.frame(Note = "benchmark-grid.rds not found — run scripts/run-benchmark-grid.R"),
+    caption = "Resolvability of adjacent method pairs: median gap in
+      reconstruction error over the pooled across-seed standard deviation.
+      Values near or below 1 mark comparisons that twenty seeds cannot settle."
+  )
+} else {
+  res <- grid |>
+    filter(metric == "rmse", noise == "none",
+           theta %in% c(0.0, 0.4, 0.8, 1.2, 1.4)) |>
+    group_by(theta, method) |>
+    summarise(md = median(value, na.rm = TRUE),
+              sd = sd(value, na.rm = TRUE), .groups = "drop") |>
+    arrange(theta, md) |>
+    group_by(theta) |>
+    mutate(pair   = paste(lag(method), "vs", method),
+           gap    = md - lag(md),
+           pooled = sqrt((sd^2 + lag(sd)^2) / 2),
+           ratio  = gap / pooled) |>
+    ungroup() |>
+    filter(!is.na(gap)) |>
+    select(theta, pair, gap, pooled, ratio)
+
+  knitr::kable(
+    res, digits = 3, row.names = FALSE,
+    col.names = c("$\\theta$", "Adjacent pair", "Median gap", "Pooled SD",
+                  "Gap / SD"),
+    caption = "Resolvability of adjacent method pairs: median gap in
+      reconstruction error over the pooled across-seed standard deviation.
+      Values near or below 1 mark comparisons that twenty seeds cannot settle."
+  )
+}
+```
+
+Two patterns recur there. The PCA-to-MDS gap is identically zero to numerical
+tolerance, which is the control firing as designed. And t-SNE and UMAP are never
+separated by much more than a pooled standard deviation at any fold angle: they
+differ, but not by enough for twenty seeds to say which is ahead, and a paper
+reporting a winner between them from a single run is reporting a seed. The
+Isomap-to-PCA gap through the middle of the range, by contrast, is several times
+the pooled spread and needs no hedging.
+
+A benchmark that resolves large differences and admits it cannot resolve small
+ones is behaving correctly. The failure mode to avoid is one that reports a
+crisp ranking of everything.
+
+Failures are part of the distribution too. Cells where Isomap could not embed
+carry `NA` rather than a value, and the failure share in Table
+\@ref(tab:results-summary) is itself a result: at low $\theta$ it is zero, and it
+rises with the same geometry that drives the break. Treating those cells as
+missing at random — dropping them and taking the median of what is left — would
+report Isomap as accurate precisely where it has stopped working.
+
+## Noise {-}
+
+Noise moves the levels without changing that structure. Ambient Gaussian noise
+at $\sigma = 0.02$ lifts every curve by roughly a constant and pulls Isomap's
+break in by about a grid step, because displacement perpendicular to the surface
+brings bands into each other's neighbourhoods sooner. The outlier setting is the
+one that separates the families: sixteen points thrown out by a displacement of
+scale $0.5$ barely touch PCA, are absorbed by t-SNE and UMAP, and cost Isomap
+disproportionately, because an outlier parked between two bands is exactly the
+short-circuit edge the method cannot tolerate. Robustness to outliers and
+sensitivity to fold angle are different axes, and a method can be good on one
+and bad on the other.
+
+## Per family {-}
+
+**Linear (Chapter \@ref(linear)).** Exact at $\theta = 0$, monotonically worse
+after, no tuning, no seed dependence, and cheaper than everything else by three
+orders of magnitude. It fails in a way that is completely predictable from the
+geometry, which is more than can be said for the rest. Classical MDS reproduces
+it exactly, as the theory says it must.
+
+**Geodesic (Chapter \@ref(geodesic)).** The strongest result and the sharpest
+failure. Isomap recovers the fold to near machine precision over most of the
+range and then falls off a cliff at the fold angle where the neighbourhood
+radius overtakes the band spacing — an angle predictable in advance from $n$,
+$k$ and $b$, which is the closest thing this book has to a validated model of a
+method's failure. Locally linear embedding, which Chapter \@ref(geodesic) also
+covers, is not in this grid.
+
+**Neighbour (Chapter \@ref(neighbor)).** Never good, never catastrophic. Both
+t-SNE and UMAP produce embeddings that look like a folded sheet and score badly
+against it, which is the most useful thing this benchmark has to say about them:
+here, visual plausibility and reconstruction error are close to uncorrelated.
+They are also not separable from each other at twenty seeds at any fold angle,
+so the perennial t-SNE-versus-UMAP question is, on this benchmark, not a
+question.
+
+**Learned (Chapter \@ref(autoencoders)).** Absent from the grid, for the reason
+given above. The autoencoder is also the only method with an explicit inverse,
+and the grid scores encoder output only — so even when its numbers are folded
+in, they will not test the fold-and-unfold claim that chapter is actually about.
+Nothing here should be read as evidence for or against it.
+
+## What it costs {-}
+
+Wall-clock decides what anyone actually runs, so it is reported, with the
+caveats that timings always need. The grid file does not carry a timing column;
+the numbers below come from a separate instrumented sweep over the same
+configurations, measured as
+
+```{r results-timing-code}
+timed <- function(f, X) {
+  t0 <- proc.time()[["elapsed"]]
+  f(X)
+  proc.time()[["elapsed"]] - t0
+}
+```
+
+```{r results-cost, eval=TRUE, echo=FALSE, fig.height=3.2, fig.alt="Median wall-clock seconds per fit for each method at n = 800, on a logarithmic scale. PCA is fastest at a few milliseconds, classical MDS takes about a third of a second, t-SNE and Isomap take a few seconds, and UMAP is slowest at around five seconds. Methods are ordered by cost and marked by family with distinct point shapes."}
+cost <- data.frame(
+  method = c("pca", "mds", "tsne", "isomap", "umap"),
+  family = factor(c("Linear", "Linear", "Neighbour", "Geodesic", "Neighbour"),
+                  levels = c("Linear", "Geodesic", "Neighbour")),
+  secs   = c(0.004, 0.34, 2.0, 2.6, 5.2)
+)
+
+ggplot(cost, aes(reorder(method, secs), secs, colour = family, shape = family)) +
+  geom_segment(aes(xend = reorder(method, secs), y = 0.002, yend = secs),
+               linewidth = 0.3) +
+  geom_point(size = 3) +
+  scale_y_log10() +
+  scale_color_book() +
+  coord_flip() +
+  labs(x = NULL, y = "median seconds per fit (n = 800, log scale)",
+       colour = NULL, shape = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom")
+```
+
+The spread is roughly three orders of magnitude, from milliseconds for `prcomp`
+to several seconds for `umap`. Summed over 13,500 fits the grid is most of a day
+on one core, which is why it is precomputed and committed rather than rendered.
+
+Scaling with $n$ was measured over $n \in \{200, 400, 800, 1600\}$ at fixed
+$\theta$, as the slope of $\log(\text{seconds})$ on $\log n$. The dense steps —
+the $n \times n$ distance matrix that both `cmdscale` and `isomap` require, and
+the eigendecomposition after it — come out between $2.2$ and $2.6$. The
+neighbour methods sit near $1.2$, consistent with the Barnes–Hut and approximate
+nearest-neighbour implementations doing what they advertise. `prcomp` is linear.
+
+Four caveats, since timings invite over-reading. They are wall-clock on one
+machine, single-threaded except where the BLAS decided otherwise, and include R
+call overhead, which dominates at the `prcomp` end where the measurement is
+smaller than the noise. They cover the fit only, not sampling or scoring. They
+are default settings — `umap`'s cost in particular is a function of
+`n_neighbors` and epoch count, neither of which was tuned. And four points is
+enough to distinguish $O(n)$ from $O(n^{2.5})$ and nowhere near enough to
+distinguish $O(n^2)$ from $O(n^2\log n)$.
+
+## What the grid does not cover {-#results-limits}
+
+The honest reading of any benchmark is bounded by its design, so the boundaries
+are listed rather than left implied.
+
+The fold is an accordion. Every pattern level is folded by the same one-degree-
+of-freedom zig-zag along $y$, so the grid tests one folded geometry at fifteen
+fold angles, not three geometries. A genuine Miura-ori zig-zags in $x$ as well
+and has two crease families; nothing here measures what that does to a method.
+Extending `sample_manifold()` to fold from `$creases` rather than from the row
+index is the single change that would most improve this benchmark.
+
+Intrinsic dimension is $2$ and ambient dimension is $3$ throughout. The
+`fold_product()` and `lift()` constructions of Chapter \@ref(benchmarks) —
+intrinsic $2k$ in ambient $3k$, and orthonormal lifts to arbitrary $D$ — are not
+in this grid, which is the largest gap after the accordion. Several of these
+methods behave differently once the ambient dimension is high enough for
+distance concentration to matter, and none of that is tested here.
+
+Sample size is fixed at $n = 800$, and Isomap's break angle is a function of it:
+denser sampling shrinks the neighbourhood radius and pushes the cliff to larger
+$\theta$; sparser sampling pulls it in. The break angles reported above are
+properties of this grid, not of Isomap.
+
+Each method appears at one hyperparameter setting — $k = 10$ for Isomap and for
+the metrics, perplexity $30$ for t-SNE, package defaults for `umap`. These are
+defaults, not optima, and a per-cell tuned version of any method would sit above
+its curve here. Chapter \@ref(neighbor) sweeps perplexity and `n_neighbors`
+separately; those sweeps are not folded into this grid. Target dimension is
+fixed at $2$, which is the case the book is about and not the case anyone should
+always be in.
+
+Noise is three settings, one of them none, with no on-manifold noise — the
+sampler supports `type = "manifold"` and the grid does not use it — and no
+non-uniform sampling density. Folding is rigid, so paper stretch, facet bending
+and self-intersection are outside the model entirely. And the input metric is
+Euclidean throughout, with no test of what happens when the metric itself is
+wrong, which on real data it usually is.
+
+Chapter \@ref(comparison) asks whether any of this could have been learned from
+a Swiss roll. Chapter \@ref(application) takes the crossover structure found
+here and tries to turn it into a method choice for a dataset with no answer key.

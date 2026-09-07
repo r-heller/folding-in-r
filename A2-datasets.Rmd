@@ -1,6 +1,9 @@
 # Datasets and codebook {#datasets}
 
-<!-- TODO: complete once the Chapter 12 single-cell dataset is fixed. -->
+Three kinds of data enter this book: crease-pattern manifolds generated on
+demand, one precomputed result table, and one external dataset used once, in
+Chapter \@ref(application). Symbols referred to below are defined in Appendix
+\@ref(notation).
 
 ## Generated data {-}
 
@@ -8,12 +11,289 @@ All crease-pattern manifolds are generated, not collected. Every dataset in
 Parts I–III is reproducible from a pattern specification, a fold angle, a
 sample size, a noise specification, and a seed.
 
+### Specification schema {-}
+
+Those five things are the whole record. Nothing else about a generated dataset
+is free to vary, and nothing else needs to be stored: the specification *is* the
+data.
+
+| Field | Type | Domain | Grid value | Meaning |
+|---|---|---|---|---|
+| `pattern` | character | `"miura"`, `"yoshimura"`, `"waterbomb"` | all three | Pattern family; selects the constructor |
+| `n_rows`, `n_cols` | integer | $\ge 1$ | `6`, `6` | Unit cells per axis. All three constructors take these |
+| `a`, `b` | double | $> 0$ | `1`, `1` | Unit-cell edge lengths. All three constructors take these |
+| `alpha` | double | $(0, \pi/2)$ rad | `pi/3` | Miura-ori unit-cell acute angle. `miura_ori()` only; sets the row shear $b/\tan\alpha$ of the *flat* pattern |
+| `theta` | double | $[0, \pi/2)$ rad | `seq(0, 1.4, by = 0.1)` | Fold angle. The difficulty parameter |
+| `n` | integer | $\ge 100$ | `800` | Sample size |
+| `noise$type` | character | `"none"`, `"ambient"`, `"manifold"`, `"outlier"` | `none`, `ambient`, `outlier` | Which channel the noise perturbs |
+| `noise$sd` | double | $\ge 0$ | `0`, `0.02`, `0.05` | Noise scale $\sigma$. One magnitude; the type decides what it moves. Under `"outlier"` a fixed 2% of rows are displaced by $10\sigma$ |
+| `seed` | integer | any | `BENCH_SEEDS` $= 1001\ldots1020$ | RNG seed for the replicate |
+| `D` | integer | $\ge 3$ | `3` (unlifted) | Ambient dimension after `lift()` |
+
+The fold angle is bounded above by $\pi/2$, exclusive, and that bound is the
+same for every pattern — there is no per-family maximum and no `theta_max()`.
+Fold angles are therefore reported on one absolute scale, in radians, with no
+normalisation step and nothing to rescale between families.
+
+### Implementation note {-}
+
+The `pattern` field selects a *flat crease pattern*. In the `foldbench` version
+shipped alongside this book the three constructors build genuinely different
+flat patterns — different vertices, different crease sets, different
+mountain/valley assignments — but `fold()` and `sample_manifold()` drive all of
+them along the same one-parameter accordion path, so the sampled manifolds
+differ only in their bounding boxes. `alpha` likewise shapes the flat unit cell
+and not the folded geometry. The accordion is a genuine isometry and the ground
+truth is exact, so nothing in Parts I–III is invalidated; but a reader analysing
+the committed grid should not read the `pattern` factor as three distinct folded
+geometries. Differentiating the fold by family is open work, recorded here
+rather than in a chapter because it is a property of the data, not of an
+argument.
+
+### Return value {-}
+
+`sample_manifold()` returns a list with four elements. This is the unit of
+analysis everywhere in Parts I–III.
+
+| Element | Type | Shape | Meaning |
+|---|---|---|---|
+| `X` | double matrix | $n \times 3$, or $n \times D$ after `lift()` | Ambient sample. The only thing a method under test is allowed to see |
+| `U` | double matrix | $n \times 2$ | True unfolding of the same $n$ points. The answer key |
+| `facet` | integer vector | length $n$ | Facet index of each point; a categorical covariate, never an input to a method |
+| `theta` | double | scalar | The fold angle used, carried for provenance |
+
+`X` and `U` are row-aligned: row $i$ of `U` is the flat-sheet coordinate of the
+point in row $i$ of `X`. That alignment is what makes $\mathrm{RMSE}_{\mathrm{P}}$
+computable and is the single reason this benchmark exists.
+
+```{r datasets-spec-example}
+spec <- list(
+  pattern = "miura", n_rows = 6L, n_cols = 6L, a = 1, b = 1, alpha = pi / 3,
+  theta   = 0.8,
+  n       = 800L,
+  noise   = list(type = "ambient", sd = 0.02),
+  seed    = 1001L
+)
+
+pat <- miura_ori(spec$n_rows, spec$n_cols, a = spec$a, b = spec$b,
+                 alpha = spec$alpha)
+
+# sample_manifold() takes the pattern and the angle, not a pre-folded object.
+mfd <- sample_manifold(pat, theta = spec$theta, n = spec$n,
+                       noise = spec$noise, seed = spec$seed)
+
+str(mfd)          # list of two: X (n x 3 ambient) and truth (n x 2 answer key)
+```
+
+### Determinism {-}
+
+A specification reproduces a dataset bit for bit given the same `foldbench`
+version and the same R RNG. R changed its default sampling algorithm in 3.6.0;
+the book assumes `RNGkind(sample.kind = "Rejection")`, the post-3.6.0 default,
+and results generated under the older `"Rounding"` rule will not match. No
+generated dataset is committed to the repository. Reproducing a figure means
+re-running its specification, not downloading a file.
+
 ## Precomputed results {-}
 
 `data/processed/benchmark-grid.rds` — the Chapter \@ref(results) grid.
 Provenance: `scripts/run-benchmark-grid.R`.
 
+The grid is the one exception to the rule above: it takes hours to compute, so
+it is generated once, committed, and read at render time. The script is kept as
+the provenance record rather than run during the build.
+
+### Columns {-}
+
+`scripts/run-benchmark-grid.R` writes one row per
+(pattern, fold angle, noise, seed, method), with **one column per metric**. The
+layout is wide, not long: the script builds each row from a single
+`sample_manifold()` draw and scores all four metrics against that same draw, so
+the metrics share a row by construction. Chapter \@ref(evaluation), which faces
+the metrics against each other, reshapes to long itself rather than the file
+being stored that way.
+
+| Column | Type | Levels or range | Meaning |
+|---|---|---|---|
+| `pattern` | character, 3 levels | `miura`, `yoshimura`, `waterbomb` | Pattern family |
+| `theta` | double | $[0, 1.4]$ rad on the committed grid | Fold angle |
+| `noise` | character, 3 levels | `none`, `ambient`, `outlier` | Noise condition; see the specification table above |
+| `seed` | integer | `1001`–`1020` | Replicate identifier; equals the seed passed to `sample_manifold()` |
+| `method` | character, 5 levels | `pca`, `mds`, `isomap`, `tsne`, `umap` | Embedding method, at the hyperparameters fixed in its own chapter |
+| `rmse` | double | $[0, \infty)$, lower better, `NA` permitted | `reconstruction_error(Y, truth)` — Procrustes-aligned RMSE against the answer key |
+| `trust` | double | $[0, 1]$, higher better, `NA` permitted | `trustworthiness(X, Y, k = 10)` |
+| `cont` | double | $[0, 1]$, higher better, `NA` permitted | `continuity(X, Y, k = 10)` |
+| `knn` | double | $[0, 1]$, higher better, `NA` permitted | `knn_preservation(X, Y, k = 10)` |
+
+`rmse` is the only column compared against the truth; `trust`, `cont` and `knn`
+are all computed against the ambient sample `X`. That asymmetry is the subject of
+Chapter \@ref(evaluation).
+
+`NA` in a metric column is a result, not a gap. A method that could not embed a
+configuration at all — Isomap on a k-NN graph that has fallen into
+disconnected components, most often — records `NA` across all four metric
+columns rather than being dropped. Dropping it would silently bias every curve upward by removing
+exactly the hard configurations the benchmark exists to expose. Count the `NA`s
+before averaging over anything.
+
+The Chapter \@ref(autoencoders) autoencoder is absent from the committed grid.
+It is the one method whose result depends on a training run rather than a
+closed-form or fixed-iteration procedure, and the render workflow excludes
+`torch` from the restored library; its figures come from a recorded run
+documented in that chapter instead of from this file.
+
+Kruskal stress is not in the committed grid. `foldbench` does not export it; it
+is defined where it is used, in Chapter \@ref(evaluation), and computed there
+from the stored embeddings rather than carried as a column here.
+
+The full cell key is therefore (`pattern`, `theta`, `noise`, `seed`, `method`).
+Note that `pattern` carries far less information than its three levels suggest:
+the folding stage does not read the crease pattern, so the three families differ
+in their flat geometry but fold alike. Chapter \@ref(benchmarks) states the
+consequence. Treat differences across `pattern` as near-replicates, not as a
+family effect.
+
+The committed grid carries the first four. `kruskal_stress` is computed on
+demand in Chapter \@ref(evaluation), where the question is how the metrics
+relate to each other rather than how the methods rank.
+
+The last column is the point of the table. Exactly one of the five metrics knows
+the answer. The other four are the metrics the field actually uses.
+
+```{r datasets-read-grid}
+grid <- readRDS("data/processed/benchmark-grid.rds")
+str(grid)
+table(grid$method, grid$metric)
+```
+
+Neighbourhood size is fixed at $k = 10$ across the committed grid, so `k` is not
+a column. Chapter \@ref(evaluation) varies it separately and reports the
+sensitivity; the grid deliberately does not, because a metric that changes its
+verdict with $k$ is a finding about the metric, not a factor to average over.
+
 ## External data {-}
 
-<!-- TODO: single-cell dataset for Chapter 12 — source, version, licence,
-     accession, and preprocessing steps. -->
+One external dataset is used, once, in Chapter \@ref(application). It is not
+part of the benchmark. Its role is to answer whether a benchmark-guided method
+choice survives contact with data that has no answer key.
+
+### Selection criteria {-}
+
+The dataset was chosen against five requirements, stated here because they
+matter more than the particular choice:
+
+1. **Openly licensed and redistributable.** No controlled access, no data-use
+   agreement, no registration wall. A reader must be able to re-run the chapter
+   from a clean clone.
+2. **Version-pinned.** A fixed processed release with a stable file name and a
+   recorded checksum, not a moving "latest" endpoint.
+3. **Small.** Processable on a laptop in minutes, so the chapter is checkable
+   rather than merely readable.
+4. **An unambiguous field default.** The chapter compares a benchmark-guided
+   choice against the field-default choice, which requires that the field
+   default be published and uncontested for this dataset rather than invented
+   for the comparison.
+5. **Recognisable.** The reader should already have seen the standard embedding
+   of these data, so that a difference is legible as a difference.
+
+### Primary dataset {-}
+
+**3k PBMCs from a Healthy Donor**, 10x Genomics.
+
+| Field | Value |
+|---|---|
+| Source | 10x Genomics public datasets, <https://www.10xgenomics.com/datasets/3-k-pbm-cs-from-a-healthy-donor-1-standard-1-1-0> |
+| Version | Cell Ranger 1.1.0 processed release; transcriptome reference `hg19` |
+| Assay | Chromium Single Cell 3′, Illumina NextSeq 500 |
+| Accession | None. The dataset is distributed by 10x Genomics directly and has no INSDC or GEO accession. It is identified by the dataset page above plus the file name and checksum below |
+| File | `pbmc3k_filtered_gene_bc_matrices.tar.gz`, from <https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz> |
+| Contents | Filtered gene–barcode matrix, 32,738 genes $\times$ 2,700 barcodes, Matrix Market triplet format |
+| Licence | Creative Commons Attribution 4.0 International (CC BY 4.0) |
+
+The absence of an accession is worth stating plainly rather than papering over
+with a plausible-looking identifier. Vendor-hosted datasets are pinned by URL,
+file name and checksum; that is the whole provenance chain, and it is weaker
+than a repository accession. Record the SHA-256 of the downloaded archive in
+`GENERATION_LOG.md` on first use and check it on every subsequent run.
+
+### Preprocessing {-}
+
+The pipeline below is the published Seurat guided-clustering workflow for this
+dataset, unmodified. It is used unmodified on purpose: it is the field default
+that Chapter \@ref(application) measures against, so changing it would remove
+the comparison.
+
+1. Download the archive into `data/raw/pbmc3k/` and untar. Raw data is not
+   committed; the download is scripted and checksummed.
+2. Read `filtered_gene_bc_matrices/hg19/` with `Seurat::Read10X()`, giving a
+   32,738 $\times$ 2,700 sparse count matrix.
+3. Gene filter: retain genes detected in at least 3 cells. 13,714 genes remain.
+4. Cell QC: retain cells with between 200 and 2,500 detected genes and under
+   5% of UMIs from mitochondrial genes (symbols matching `^MT-`). 2,638 cells
+   remain.
+5. Normalise: scale each cell to 10,000 UMI, then $\log(1 + x)$.
+6. Feature selection: the 2,000 most variable genes under the
+   variance-stabilising transform.
+7. Centre each retained gene and scale to unit variance, clipping at 10
+   standard deviations.
+8. PCA on the scaled matrix; retain the first 50 components.
+
+Step 8 produces a 2,638 $\times$ 50 matrix. That matrix is $X$ for Chapter
+\@ref(application) — the ambient sample every method is given, exactly
+analogous to a crease-pattern sample lifted to $D = 50$.
+
+```{r datasets-pbmc-preprocess}
+counts <- Seurat::Read10X("data/raw/pbmc3k/filtered_gene_bc_matrices/hg19")
+
+pbmc <- Seurat::CreateSeuratObject(counts, min.cells = 3, min.features = 200)
+pbmc[["percent.mt"]] <- Seurat::PercentageFeatureSet(pbmc, pattern = "^MT-")
+pbmc <- subset(pbmc, subset = nFeature_RNA < 2500 & percent.mt < 5)
+
+pbmc <- Seurat::NormalizeData(pbmc)
+pbmc <- Seurat::FindVariableFeatures(pbmc, selection.method = "vst",
+                                     nfeatures = 2000)
+pbmc <- Seurat::ScaleData(pbmc, features = Seurat::VariableFeatures(pbmc))
+pbmc <- Seurat::RunPCA(pbmc, npcs = 50)
+
+X <- Seurat::Embeddings(pbmc, "pca")   # 2638 x 50 — the ambient sample
+```
+
+### Labels {-}
+
+The nine populations conventionally reported for these cells — naive CD4 T,
+memory CD4 T, CD14+ monocytes, B, CD8 T, FCGR3A+ monocytes, NK, dendritic
+cells, platelets — are marker-based annotations assigned after clustering.
+They are a useful reference and they are not ground truth. Nothing in Chapter
+\@ref(application) treats them as $U$.
+
+### What this dataset can and cannot show {-}
+
+No $U$ exists for real data, so $\mathrm{RMSE}_{\mathrm{P}}$ is undefined here.
+Only the relative metrics — $T_k$, $C_k$, $P_k$, $\sigma_1$ — can be computed,
+and Chapter \@ref(evaluation) has already established how optimistic each of
+them is and in which direction. The benchmark's job in Chapter
+\@ref(application) is therefore to *supply* the method and its hyperparameters,
+not to score the outcome. A benchmark that could score the outcome would not
+need the benchmark.
+
+The geometry is also a mismatch worth naming. PBMCs form well-separated discrete
+populations; a crease pattern is a connected continuum. A differentiation
+trajectory would be the closer analogue of a folded sheet, and the trade against
+criterion 4 above — an uncontested field default — went the other way.
+
+### Alternates considered {-}
+
+Two datasets meet criteria 1–3 and 5, have continuous rather than clustered
+geometry, and were set aside only on criterion 4:
+
+- **Mouse myeloid progenitors**, Paul and colleagues (2015), GEO accession
+  `GSE72857`. Roughly 2,730 cells after the authors' filtering, spanning a
+  continuous differentiation topology with seven fates. The closest published
+  analogue to a folded sheet in this list.
+- **Mouse cortex and hippocampus**, GEO accession `GSE60361`, 3,005 cells
+  [@zeisel2015cortex]. Discrete cell types, but a long enough analysis history
+  that a field default is arguable.
+
+Both are hosted on GEO, which is openly downloadable but does not attach an
+explicit reuse licence to deposits; terms follow the depositing publication.
+The 10x release carries CC BY 4.0 in writing, which is why it is the primary.

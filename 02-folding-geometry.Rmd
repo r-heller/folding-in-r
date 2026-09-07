@@ -2,11 +2,491 @@
 
 *What makes a crease pattern a valid manifold?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+Chapter \@ref(intro) claimed that the flat crease pattern *is* the exact
+two-dimensional embedding of the folded sheet. That is a geometric claim, and
+it carries three obligations. The fold map has to be an isometry. The isometry
+has to hold at every intermediate fold angle, not merely at the flat and fully
+folded ends. And the pattern has to fold at all — a set of lines drawn on paper
+is not automatically the crease pattern of anything.
 
-- Developability and why a folded sheet has zero Gaussian curvature on facets.
-- Rigid vs. non-rigid folding; why only rigid folding preserves the isometry we rely on.
-- Maekawa's theorem: $|M - V| = 2$ at every interior vertex of a flat-foldable pattern.
-- Kawasaki's theorem: alternating angle sums at an interior vertex are equal.
-- Boxed aside, one page, labelled background: the Huzita–Hatori axioms.
-- Piecewise-flat surfaces sit *outside* the smoothness assumptions of manifold-learning theory. Stated as realism, not as a caveat — real data manifolds have creases too.
+This chapter discharges the three obligations in that order, and then states
+plainly the one standard assumption that the resulting object breaks.
+
+## Developability {#geom-developable}
+
+A surface is **developable** if every point has a neighbourhood isometric to a
+subset of the plane. For a smooth surface this is equivalent to vanishing
+Gaussian curvature, $K \equiv 0$, and the equivalence is the useful direction
+here: Gauss's *Theorema Egregium* says $K$ is determined by the first
+fundamental form alone, so it is invariant under any isometry, however violent
+the ambient bending. A flat sheet has $K \equiv 0$. Anything isometric to it
+does too.
+
+A folded sheet is not smooth, so "$K \equiv 0$ everywhere" needs to be said
+carefully. Split the folded surface into its three strata.
+
+**Facets.** A facet is planar. Both principal curvatures are zero, so
+$K = 0$ and $H = 0$. Nothing to argue about.
+
+**Creases.** Along a crease the surface bends about a single line. Replace the
+crease by a cylindrical fillet of radius $\varepsilon$ and the fillet is a
+piece of a cylinder: one principal curvature is $1/\varepsilon$, the other is
+exactly $0$ along the ruling, and the product is $0$ for every $\varepsilon$.
+The intrinsic geometry never notices the limit $\varepsilon \to 0$. This is the
+familiar fact that rolling paper into a tube changes no distance measured *on*
+the paper. Mean curvature, by contrast, blows up: $H$ becomes a measure
+concentrated on the crease.
+
+**Vertices.** All the Gaussian curvature a piecewise-flat surface is capable of
+carrying sits at its vertices, and it is not a pointwise density but an atom.
+By Gauss–Bonnet applied to a small disc around a vertex $v$ with incident
+sector angles $\alpha_1, \dots, \alpha_n$, the total curvature of that disc is
+the **angle defect**
+
+$$
+K_v \;=\; 2\pi - \sum_{i=1}^{n} \alpha_i .
+$$
+
+A cone has $K_v > 0$, a saddle-shaped vertex $K_v < 0$. An interior vertex of a
+*flat sheet* has sector angles that already sum to $2\pi$, so $K_v = 0$; and
+because folding is an isometry it does not touch the sector angles, so the
+defect is still $0$ after folding, at every fold angle.
+
+Put the three strata together and the folded surface has zero Gaussian
+curvature in the only sense available to it: identically zero on facets,
+identically zero across creases, and zero as an atom at every vertex. A simply
+connected surface that is intrinsically flat and free of cone points develops
+onto the plane, and the developing map is exactly the unfolding
+$\phi : \mathcal{M} \to \mathcal{U}$. That is the whole content of the
+ground-truth claim. $\mathcal{U}$ is not recovered, estimated, or converged to;
+it is read off.
+
+Note what stays curved. Extrinsically the folded sheet is emphatically not
+flat: the mean curvature is a sum of atoms on the creases, and it is precisely
+that ambient structure a dimension-reduction method has to see through. The
+truth is a statement about $K$; the data are a statement about $H$. The gap
+between them is the benchmark.
+
+The lattice below is the Miura-ori vertex grid, built in base R so that the
+check runs without the companion package. Alternate rows are sheared along $x$
+by $b / \tan\alpha$, which is what makes the vertical creases zigzag; this is
+the same construction `foldbench::miura_ori()` uses.
+
+```{r geom-lattice, eval = TRUE}
+miura_grid <- function(n_rows, n_cols, a = 1, b = 1, alpha = pi / 3) {
+  g <- expand.grid(row = 0:n_rows, col = 0:n_cols)
+  cbind(g,
+        x = g$col * a + (g$row %% 2) * b / tan(alpha),
+        y = g$row * b)
+}
+
+# The sector angles at an interior vertex, anticlockwise from the x-axis.
+sectors <- function(V, row, col) {
+  at <- function(r, c) unlist(V[V$row == r & V$col == c, c("x", "y")])
+  p  <- at(row, col)
+  nb <- rbind(at(row, col - 1), at(row, col + 1),
+              at(row - 1, col), at(row + 1, col))
+  ang <- sort(atan2(nb[, "y"] - p["y"], nb[, "x"] - p["x"]) %% (2 * pi))
+  diff(c(ang, ang[1] + 2 * pi))
+}
+
+V <- miura_grid(n_rows = 3, n_cols = 4, alpha = pi / 3)
+
+round(sectors(V, row = 2, col = 1), 4)      # alpha, pi - alpha, pi - alpha, alpha
+2 * pi - sum(sectors(V, row = 2, col = 1))  # angle defect: exactly zero
+```
+
+## Rigid folding and the isometry {#geom-rigid}
+
+Developability is a property of the folded *state*. What the benchmark needs is
+a property of the *motion*, because every result in this book is a curve over
+the fold angle $\theta$ and the isometry has to survive the whole sweep.
+
+A folding is **rigid** if the facets stay planar and undeformed throughout and
+all the motion is taken up by rotation about the creases. The facets are rigid
+plates; the creases are hinges. The configuration is then a vector of dihedral
+fold angles $\rho_i \in (-\pi, \pi)$, one per crease, signed by convention so
+that mountains and valleys take opposite signs. Not every such vector
+corresponds to a folded sheet. Walking once around an interior vertex of degree
+$n$ has to return you to where you started, which gives the closure condition
+
+$$
+\prod_{i=1}^{n} R_z(\alpha_i)\, R_x(\rho_i) \;=\; I_3 ,
+$$
+
+where $R_z(\alpha_i)$ turns through the sector angle between consecutive
+creases and $R_x(\rho_i)$ folds through crease $i$ [@hull2020origametry]. The
+solution set of this system, over all interior vertices simultaneously, is the
+configuration space of the pattern. The flat state $\rho = 0$ always solves it.
+A rigid folding motion is a continuous path in that variety starting from
+$\rho = 0$.
+
+The dimension of the path matters. A developable degree-4 vertex has a
+one-dimensional configuration space: fix one fold angle and the other three
+follow, with two branches meeting at the flat state. A Miura tessellation is
+built entirely from congruent degree-4 vertices, and the closure conditions
+couple them so tightly that the whole sheet retains a single degree of freedom
+[@demaine2007folding]. That is why $\theta$ can be a scalar difficulty dial at
+all rather than a high-dimensional configuration nobody could sweep.
+
+Non-rigid folding is the alternative, and it is not exotic. Flat-foldability is
+a property of a *state*; rigid foldability is a property of a *motion*, and the
+two come apart. The square twist folds flat but has no rigid motion reaching
+that state: its facets must bend on the way and spring back at the end.
+Curved-crease models keep developability but give up planar facets outright.
+A crumpled sheet is developable almost everywhere yet concentrates curvature at
+d-cones and genuinely stretches along the ridges between them, at which point
+it is no longer isometric to the flat sheet at all.
+
+Any of these would cost us the answer key. If a facet bends, the flat pattern
+is a good approximation to the correct embedding with an error nobody has
+measured, which is exactly the epistemic position this book exists to escape.
+Rigidity is not an aesthetic preference; it is what makes $\mathcal{U}$ exact
+rather than merely plausible. A third requirement comes with it: the folded
+state must be self-avoiding, or the ambient point cloud is not a sample from an
+embedded surface. This is why the fold angle stops strictly short of the
+flat-folded limit, $\theta \in [0, \pi/2)$, and why the hardest configurations
+in Chapter \@ref(results) are approached but never reached.
+
+The fold `foldbench` implements is the simplest map with these properties: a
+rigid accordion pleat, in which bands of the sheet rotate alternately out of
+plane about parallel creases. A step of $b$ across a band becomes
+$b\cos\theta$ in $y$ and $b\sin\theta$ in $z$, so the map is unit-speed along
+the sheet and arc length is preserved exactly. It is a genuine isometry, and it
+is all the ground-truth argument needs — but it is a one-directional pleat, not
+the two-directional Miura fold whose flat pattern the constructors build.
+Chapter \@ref(generative) states the consequences for the generative model.
+
+```{r geom-isometry}
+library(foldbench)
+
+p <- miura_ori(n_rows = 4, n_cols = 6)
+
+flat <- sample_manifold(p, theta = 0,        n = 400, seed = BENCH_SEEDS[1])
+bent <- sample_manifold(p, theta = pi / 2.5, n = 400, seed = BENCH_SEEDS[1])
+
+# Same seed, same points on the sheet. The flat chart does not move.
+max(abs(dist(flat$truth) - dist(bent$truth)))   # 0
+
+# Ambient distances do move, and they contract.
+max(abs(dist(flat$X) - dist(bent$X)))           # large
+```
+
+The first quantity is zero by construction, not to within tolerance. The second
+is the difficulty the fold creates. No geodesic estimator is needed anywhere in
+that comparison: because the fold is an isometry, `dist(flat$truth)` already
+*is* the matrix of exact along-surface distances, which is the property Chapter
+\@ref(geodesic) exploits to grade shortest-path methods against a truth they
+cannot themselves compute.
+
+## Maekawa's theorem {#geom-maekawa}
+
+A crease pattern is a plane graph together with an assignment of each crease to
+$\mathrm{M}$ (mountain) or $\mathrm{V}$ (valley). Two classical theorems
+constrain which patterns can fold flat, and both are local: they are conditions
+at a single interior vertex.
+
+**Theorem (Maekawa).** *Let $v$ be an interior vertex of a crease pattern that
+folds flat, with $M$ mountain creases and $V$ valley creases meeting at $v$.
+Then*
+$$
+|M - V| = 2 .
+$$
+
+The proof is a turning argument. Intersect the flat-folded state with a small
+circle centred at $v$. The image of that circle is a closed path that runs back
+and forth along a line in the plane of the fold, reversing direction at each
+crease: a mountain turns the path through $+\pi$, a valley through $-\pi$. The
+path closes, so the total turning is $\pm 2\pi$, and $\pi(M - V) = \pm 2\pi$
+[@hull2020origametry].
+
+Two corollaries follow immediately. The degree $M + V$ of every interior vertex
+is even, since $M - V$ is even. And the faces of a flat-foldable pattern are
+two-colourable: the fold reverses orientation across every crease, so
+"face up" and "face down" is a proper two-colouring of the faces.
+
+Maekawa's theorem is necessary, not sufficient. It constrains parity and
+nothing else; a pattern can satisfy it at every vertex and still fold flat
+nowhere.
+
+At a Miura vertex the degree is four, so the theorem forces a three-to-one
+split: three creases of one type and one of the other. The assignment that
+achieves this across the whole tessellation is the one drawn in Figure
+\@ref(fig:geom-crease-pattern). Each zigzag column carries a single type and
+the types alternate between columns; along each horizontal fold line the type
+alternates from segment to segment. Every interior vertex then meets two
+creases of its column's type and exactly one of each type from the horizontal
+line, giving $|M - V| = 2$ everywhere.
+
+```{r geom-assignment, eval = TRUE}
+mv_zigzag <- function(col)      ifelse(col %% 2 == 0, "M", "V")
+mv_horiz  <- function(row, col) ifelse((row + col) %% 2 == 1, "M", "V")
+
+horiz <- expand.grid(row = 0:3, col = 0:3)
+horiz <- transform(horiz, row_end = row, col_end = col + 1,
+                   assignment = mv_horiz(row, col))
+
+zig <- expand.grid(row = 0:2, col = 0:4)
+zig <- transform(zig, row_end = row + 1, col_end = col,
+                 assignment = mv_zigzag(col))
+
+creases <- rbind(horiz, zig)
+table(creases$assignment)
+```
+
+```{r geom-crease-pattern, fig.cap = "A Miura-ori crease pattern with a flat-foldable assignment. Every interior vertex has three creases of one type and one of the other.", fig.alt = "A flat Miura-ori crease pattern of four rows by four columns. Horizontal fold lines run left to right and zigzag lines run bottom to top, meeting at degree-four interior vertices. Mountain creases are drawn as dark solid lines and valley creases as lighter dashed lines, so the two types differ in both colour and line style. At every interior vertex three of the four incident creases share a type and the fourth differs."}
+library(ggplot2)
+
+xy  <- function(row, col) V[match(paste(row, col), paste(V$row, V$col)),
+                            c("x", "y")]
+seg <- cbind(creases,
+             xy(creases$row, creases$col),
+             setNames(xy(creases$row_end, creases$col_end),
+                      c("xend", "yend")))
+
+ggplot(seg, aes(x, y, xend = xend, yend = yend,
+                colour = assignment, linetype = assignment)) +
+  geom_segment(linewidth = 0.6) +
+  scale_colour_book(end = 0.7, name = "Crease") +
+  scale_linetype_manual(values = c(M = "solid", V = "22"), name = "Crease") +
+  coord_equal() +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 9)
+```
+
+The theorem is worth stating as a *test*, not only as a fact, because it is
+cheap to check and it catches errors. Applied to the assignment shipped in
+`foldbench::miura_ori()`, which types every horizontal crease by its row index
+and every zigzag crease by its column index, it fails: at each interior vertex
+both horizontal creases inherit the same row and both zigzag creases the same
+column, so the counts come out $2$–$2$ or $4$–$0$ and $|M - V|$ is $0$ or $4$,
+never $2$. The vertex lattice is correct; the labelling of it is not
+flat-foldable. Since the sampler never reads `$creases`, nothing downstream of
+this book's ground-truth claim depends on the labels — but a figure drawn from
+them is drawing a pattern that does not fold.
+
+```{r geom-maekawa-package}
+p  <- miura_ori(n_rows = 3, n_cols = 4)
+mv <- p$creases$assignment[p$creases$from == 6 | p$creases$to == 6]
+table(mv)          # 2-2 at an interior vertex: |M - V| = 0, not 2
+```
+
+## Kawasaki's theorem {#geom-kawasaki}
+
+Maekawa constrains the labels. The companion theorem constrains the angles, and
+it is the one the geometry of this book actually leans on.
+
+**Theorem (Kawasaki).** *Let $v$ be an interior vertex of degree $2n$ with
+consecutive sector angles $\alpha_1, \dots, \alpha_{2n}$ measured around $v$.
+The vertex folds flat if and only if*
+$$
+\alpha_1 - \alpha_2 + \alpha_3 - \cdots - \alpha_{2n} \;=\; 0 .
+$$
+
+*Equivalently, since the sector angles of an interior vertex sum to $2\pi$, the
+two alternating sums are equal and each is $\pi$:*
+$$
+\sum_{i \ \mathrm{odd}} \alpha_i \;=\; \sum_{i \ \mathrm{even}} \alpha_i
+\;=\; \pi .
+$$
+
+The proof runs on reflections. In the flat-folded image every sector is laid
+down on the plane of the fold, and crossing a sector reflects the direction of
+travel, so the image of crease $i+1$ sits at angle
+$\beta_{i+1} = \beta_i + (-1)^{i} \alpha_i$. Going once around the vertex must
+return the last crease image to the first, and that closure condition is
+precisely the vanishing of the alternating sum [@hull2020origametry;
+@demaine2007folding]. Odd degree is impossible, which recovers Maekawa's parity
+corollary from the angles alone.
+
+Two boundaries are worth marking. First, Kawasaki is a *local* condition.
+Satisfying it at every interior vertex is necessary for a global flat folding
+but not sufficient: the layers must also be stacked without the paper passing
+through itself, and deciding whether a general crease pattern folds flat is
+NP-hard [@bern1996complexity; @demaine2007folding]. Second, Kawasaki is about
+flat-foldability, not rigid foldability. For developable degree-4 vertices the
+two properties coincide and the flat-foldable vertex is exactly the rigidly
+foldable one with a single degree of freedom; above degree 4 they separate, and
+this book stays at degree 4 for that reason.
+
+The Miura vertex, drawn in Figure \@ref(fig:geom-vertex), has sector angles
+$(\alpha, \pi - \alpha, \pi - \alpha, \alpha)$ in cyclic order. The alternating
+sums are $\alpha + (\pi - \alpha) = \pi$ and $(\pi - \alpha) + \alpha = \pi$
+for *every* $\alpha \in (0, \pi/2)$, which is why the acute angle of the
+parallelogram is a free parameter of the pattern rather than a constraint to be
+solved for.
+
+```{r geom-vertex, fig.cap = "One interior Miura vertex. The alternating sector sums are each $\\pi$ (Kawasaki) and the mountain-valley split is three to one (Maekawa).", fig.alt = "A single degree-four vertex at the centre of the panel with four creases radiating outward: one to the right, one to the left, and two on the right-hand side angled up and down at sixty degrees to the horizontal. Three creases are drawn as lighter dashed lines and the fourth, pointing right, as a dark solid line, so the odd crease out differs in both colour and line style. The four sectors between creases are labelled alpha, pi minus alpha, pi minus alpha and alpha going anticlockwise."}
+alpha <- pi / 3
+spoke <- data.frame(
+  angle      = c(0, alpha, pi, -alpha),
+  assignment = c("M", "V", "V", "V")
+)
+
+ggplot(spoke) +
+  geom_segment(aes(x = 0, y = 0,
+                   xend = cos(angle), yend = sin(angle),
+                   colour = assignment, linetype = assignment),
+               linewidth = 0.7) +
+  annotate("text", size = 3,
+           x = 0.45 * cos(c(alpha / 2, (alpha + pi) / 2,
+                            (pi + 2 * pi - alpha) / 2, -alpha / 2)),
+           y = 0.45 * sin(c(alpha / 2, (alpha + pi) / 2,
+                            (pi + 2 * pi - alpha) / 2, -alpha / 2)),
+           label = c("alpha", "pi - alpha", "pi - alpha", "alpha"),
+           parse = TRUE) +
+  scale_colour_book(end = 0.7, name = "Crease") +
+  scale_linetype_manual(values = c(M = "solid", V = "22"), name = "Crease") +
+  coord_equal() +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 9)
+```
+
+Both theorems are now checkable on the lattice built earlier. The following
+runs over every interior vertex of a $3 \times 4$ Miura pattern and reports
+four things: that the angle defect vanishes, that the Kawasaki alternating sum
+vanishes, that each alternating half-sum is $\pi$, and that Maekawa's count
+holds under the assignment above.
+
+```{r geom-check, eval = TRUE}
+check_vertex <- function(row, col) {
+  s  <- sectors(V, row, col)
+  mv <- c(mv_zigzag(col), mv_zigzag(col),          # the two zigzag creases
+          mv_horiz(row, col - 1), mv_horiz(row, col))  # the two horizontals
+  data.frame(
+    row      = row,
+    col      = col,
+    defect   = 2 * pi - sum(s),               # Gaussian curvature at v
+    kawasaki = sum(s * c(1, -1, 1, -1)),      # alternating sum
+    half_sum = sum(s[c(1, 3)]),               # should be pi
+    maekawa  = sum(mv == "M") - sum(mv == "V")
+  )
+}
+
+interior <- expand.grid(row = 1:2, col = 1:3)
+chk <- do.call(rbind, Map(check_vertex, interior$row, interior$col))
+
+c(zero_curvature = max(abs(chk$defect))         < 1e-12,
+  kawasaki       = max(abs(chk$kawasaki))       < 1e-12,
+  half_turn      = all(abs(chk$half_sum - pi)   < 1e-12),
+  maekawa        = all(abs(chk$maekawa)        == 2))
+```
+
+::: {.rmdnote}
+**Background — the Huzita–Hatori axioms.** Nothing in this book depends on what
+follows. It is here because a reader who meets "origami" and "mathematics" in
+the same sentence will expect it, and because it marks a real boundary that is
+easy to confuse with the one this chapter is actually drawing.
+
+Folding can be treated as a construction system, in the way straightedge and
+compass are. Given a set of points and lines already on the paper, a single
+fold is defined by an alignment condition; Humiaki Huzita catalogued six such
+operations in 1989, and Koshiro Hatori later added a seventh. Jacques Justin
+had listed all seven in the same year, and the list has since been shown to be
+exhaustive for operations defined by a single fold. Given distinct points
+$p_1, p_2$ and distinct lines $\ell_1, \ell_2$:
+
+1. There is a unique fold through $p_1$ and $p_2$.
+2. There is a unique fold placing $p_1$ onto $p_2$ (their perpendicular
+   bisector).
+3. There is a fold placing $\ell_1$ onto $\ell_2$ (an angle bisector; two
+   solutions in general).
+4. There is a unique fold through $p_1$ perpendicular to $\ell_1$.
+5. There is a fold placing $p_1$ onto $\ell_1$ and passing through $p_2$ —
+   a tangent from $p_2$ to the parabola with focus $p_1$ and directrix
+   $\ell_1$, so zero, one or two solutions.
+6. There is a fold placing $p_1$ onto $\ell_1$ *and* $p_2$ onto $\ell_2$ — a
+   common tangent to two parabolas, so up to three solutions.
+7. There is a fold placing $p_1$ onto $\ell_1$ and perpendicular to $\ell_2$.
+
+Axioms 1–5 and 7 reach exactly the constructible numbers of straightedge and
+compass: the field closed under square roots. Axiom 6 is the one that adds
+power. Solving for a common tangent to two parabolas is solving a general
+cubic, so origami trisects an arbitrary angle and doubles the cube — both
+provably impossible with straightedge and compass
+[@hull2020origametry; @lang2011origami].
+
+That is a theorem about fields, not about manifolds. It concerns which points
+you can *construct* by folding, whereas everything else in this chapter
+concerns the geometry of a sheet that is *already* creased. The crease patterns
+used here arrive in closed form from a parameterisation and are never
+constructed by folding, so the axioms play no role downstream. They are worth
+knowing, and worth setting aside.
+:::
+
+## Creases and the smoothness assumption {#geom-smoothness}
+
+A piecewise-flat surface is not the object manifold-learning theory is written
+about, and it is important to be exact about how the mismatch works.
+
+The guarantees in the literature are stated for a compact $C^2$ submanifold,
+usually with bounded curvature, sampled from a density bounded away from zero.
+Isomap's convergence of graph shortest paths to geodesics needs curvature
+bounds and a minimum separation between sheets [@tenenbaum2000isomap]. Locally
+linear embedding needs each neighbourhood to be well approximated by its
+tangent space, which is where its reconstruction weights come from
+[@roweis2000lle]. UMAP's derivation assumes a Riemannian manifold with a
+locally constant metric and a locally connected, roughly uniform sample
+[@mcinnes2018umap]. Results that recover topology from a finite sample need the
+manifold to have **positive reach** — a radius within which every ambient point
+has a unique nearest point on the surface [@niyogi2008finding].
+
+A folded sheet fails these in a specific and instructive way. The tangent plane
+exists on the facets, which is a set of full measure, and fails only on the
+creases, which is a set of measure zero. That sounds harmless and is not,
+because the failure does not shrink with the neighbourhood. A $k$-nearest
+neighbour ball that straddles a crease is non-linear at *every* scale: the
+dihedral angle is scale-invariant, so halving the radius halves the ball but
+not the kink inside it. And the reach is not merely small, it is zero. At any
+crease with dihedral angle less than $\pi$ the medial axis of the surface
+touches the crease itself, so no positive radius has the unique-nearest-point
+property, and the entire positive-reach family of guarantees is inapplicable
+rather than merely loose.
+
+The affected fraction of the sample is easy to bound. With $n$ points on a
+sheet of area $A$ and a neighbourhood radius $r \propto \sqrt{k/n}$, the
+proportion of points lying within $r$ of a crease of total length $L$ is
+approximately $2Lr/A \propto L\sqrt{k/n}$. It vanishes only in the limit of
+fixed $k$ and $n \to \infty$, which is not where anyone works; and it grows
+with $L$, so refining the tessellation at fixed $n$ makes creased neighbourhoods
+more common rather than less. The fold angle $\theta$ then controls how badly
+each of those neighbourhoods is bent. Every failure mode in this book is
+governed by that pair of knobs.
+
+This is realism, not a caveat. The smooth-manifold benchmark is the unusual
+case. The Swiss roll is real-analytic; so is the S-curve; so is the severed
+sphere. Data are not. A measurement that saturates at a detector limit, an
+assay censored at a limit of quantification, a regulatory switch with a
+threshold, a cell fate decision, a policy that changes regime, a price with a
+floor — each of these produces a support that is locally flat and creased where
+the mechanism changes, which is a crease in exactly the sense used here.
+Curvature in real data is more often concentrated than spread, and the
+concentration sits where the interesting mechanism is. A benchmark built
+entirely from $C^\infty$ surfaces systematically flatters the methods whose
+guarantees need smoothness, and gives no way to find out how much.
+
+The claim is not that these methods are invalid. It is that a crease is where
+their assumptions bite, that a crease is common, and that here — uniquely — the
+size of the bite can be measured rather than argued about, because the exact
+answer is available at every $\theta$. That measurement is what Chapters
+\@ref(neighbor) and \@ref(evaluation) report, and it is the reason the
+comparison with the Swiss roll in Chapter \@ref(comparison) is worth running at
+all. It also sharpens the Chari and Pachter objection [@chari2023specious]: if a
+two-dimensional embedding distorts, we would like to know whether the distortion
+is intrinsic to the projection or an artefact of assuming a smoothness the data
+never had.
+
+## What the geometry buys {#geom-summary}
+
+Three properties, each earned above. The fold is an isometry, so the flat
+pattern is the exact embedding and geodesic distances need no estimator. The
+fold is rigid, so that exactness holds along the whole path from flat sheet to
+compressed sheet, making $\theta$ a continuous difficulty parameter rather than
+a choice of dataset. And the pattern is legal — Maekawa and Kawasaki hold at
+every interior vertex — so the object being sampled is a surface that genuinely
+folds, not a drawing of one.
+
+Chapter \@ref(generative) turns these into a generator: how to sample the
+folded surface without biasing the density, what noise means on a manifold
+whose truth is exact, and what $\theta$ does to the $k$-nearest-neighbour graph
+that most of these methods are built on.

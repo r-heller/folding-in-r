@@ -2,10 +2,609 @@
 
 *Why do t-SNE and UMAP disagree about the same data?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+Because they were never asked the same question, and neither of them was asked
+the one this book scores. That has to be said before any number appears,
+because the numbers are otherwise easy to read as a verdict on a task the
+methods do not attempt.
 
-- `Rtsne` with `check_duplicates = TRUE`; document the duplicate-row failure mode.
-- `umap(method = "naive")` — the default backend pulls Python `umap-learn`.
-- Perplexity and `n_neighbors` sweeps.
-- All results across `BENCH_SEEDS`, reported as distributions rather than means.
-- Separate real disagreement from seed noise.
+t-SNE turns ambient distances into conditional probabilities
+$p_{j \mid i} \propto \exp(-\lVert x_i - x_j \rVert^2 / 2\sigma_i^2)$, with a
+per-point bandwidth $\sigma_i$ fixed by a binary search so that the perplexity
+$2^{H(P_{\cdot \mid i})}$ hits a user-set target. It symmetrises to $p_{ij}$,
+places a heavy-tailed kernel $q_{ij} \propto (1 + \lVert y_i - y_j \rVert^2)^{-1}$
+on the embedding, and minimises $\mathrm{KL}(P \parallel Q)$
+[@vandermaaten2008tsne]. UMAP builds a fuzzy simplicial set from a
+$k$-nearest-neighbour graph, normalising each point's local connectivity so
+that its nearest neighbour has membership 1 regardless of how far away it
+actually is, and minimises a cross-entropy between ambient and embedded
+membership strengths using negative sampling [@mcinnes2018umap].
+
+Both are neighbourhood objectives. Neither contains a term that is minimised by
+getting the distance between two far-apart points right. In
+$\mathrm{KL}(P \parallel Q)$ the penalty incurred when $q_{ij}$ is large and
+$p_{ij} \approx 0$ is bounded and small, and the Student-$t$ tail makes large
+embedding distances nearly free; no gradient pushes two unrelated regions
+towards their true separation. UMAP's repulsion is an estimate whose effective
+strength depends on the negative-sampling rate rather than on the data
+[@damrich2021umap]. What actually varies between runs, between parameter
+settings and between the two methods is mostly the balance of attraction
+against repulsion [@bohm2022attraction] — and that balance sets cluster
+tightness and inter-cluster spacing, which are precisely the two features a
+reader of the plot is most likely to measure by eye.
+
+## Scoring a method against a target it does not have {#neighbor-objective}
+
+So `reconstruction_error()` against the true unfolding grades t-SNE and UMAP on
+something they never promised. Isomap, in Chapter \@ref(geodesic), is built to
+recover an isometry and can be failed on its own terms. These methods cannot.
+Reporting the error without that caveat would be a rigged comparison.
+
+Two things nonetheless make the measurement worth taking.
+
+First, the question is well posed. A crease pattern does not merely admit a
+good two-dimensional description; it admits a unique isometric one. "How far is
+this picture from the isometry" therefore has an exact answer with a known
+zero, and it is the question a reader implicitly asks whenever they read a gap
+between two blobs as meaning something.
+
+Second, readers do exactly that, and the entire case in @chari2023specious
+rests on it. Scoring the picture as a map is not a category error. It is a
+measurement of the gap between what the method optimises and what the picture
+is used for. That gap is the object of interest, and on a folded sheet it can
+be computed rather than asserted.
+
+What follows therefore reports Procrustes-aligned reconstruction error as a
+distortion measurement, not as a performance score, and puts trustworthiness
+and continuity beside it because those *are* aligned with the objective.
+Chapter \@ref(evaluation) turns the comparison around and asks whether those
+two surrogates track the distortion they stand in for.
+
+## Fitting them honestly {#neighbor-fitting}
+
+```{r neighbor-fit}
+library(foldbench)
+library(Rtsne)
+library(umap)
+library(ggplot2)
+
+pattern  <- miura_ori(n_rows = 6, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
+th_fixed <- 1.1                      # radians; pi/2 is the exclusive limit
+
+s <- sample_manifold(
+  pattern,
+  theta = th_fixed,
+  n     = 800,
+  noise = list(type = "ambient", sd = 0.01),
+  seed  = BENCH_SEEDS[1]
+)
+
+fit_tsne <- function(X, seed, perplexity = 30, Y_init = NULL) {
+  set.seed(seed)
+  Rtsne::Rtsne(
+    X,
+    dims             = 2,
+    perplexity       = perplexity,
+    theta            = 0,      # Barnes-Hut accuracy. NOT the fold angle.
+    pca              = FALSE,  # ambient dimension is 3; nothing to whiten
+    check_duplicates = TRUE,
+    Y_init           = Y_init,
+    max_iter         = 1000,
+    verbose          = FALSE
+  )$Y
+}
+
+fit_umap <- function(X, seed, n_neighbors = 15, init = "spectral") {
+  cfg <- umap::umap.defaults
+  cfg$n_components <- 2
+  cfg$n_neighbors  <- n_neighbors
+  cfg$min_dist     <- 0.1
+  cfg$init         <- init
+  cfg$random_state <- seed
+  umap::umap(X, config = cfg, method = "naive")$layout
+}
+
+reconstruction_error(fit_tsne(s$X, BENCH_SEEDS[1]), s$truth)
+reconstruction_error(fit_umap(s$X, BENCH_SEEDS[1]), s$truth)
+```
+
+`foldbench` imports neither package, so both are loaded here explicitly. Four
+details in that chunk are load-bearing.
+
+`Rtsne`'s `theta` argument is the Barnes–Hut accuracy parameter
+[@Rtsne2014], and it collides by name with the fold angle throughout this book.
+They are unrelated quantities. `theta = 0` in an `Rtsne` call requests the exact
+$O(n^2)$ gradient, which at $n = 800$ costs a second or two and removes an
+approximation that would otherwise vary with the tree structure and hence with
+the seed. Every `theta` inside an `Rtsne` call in this book is zero; every
+$\theta$ in the prose is a fold angle, in radians, bounded above by $\pi/2$.
+
+`pca = FALSE` matters because `Rtsne` otherwise projects onto its first 50
+principal components before starting. The ambient space here is $\mathbb{R}^3$
+until `lift()` raises it in Chapter \@ref(benchmarks), so the default is a
+no-op at best and, on lifted data, silently changes the geometry the method
+sees.
+
+`check_duplicates = TRUE` is the default and is kept deliberately; the next
+section is about what it does and does not catch.
+
+`method = "naive"` in `umap` selects the package's own R implementation
+[@R-umap]. The alternative, `method = "umap-learn"`, delegates to the Python
+reference implementation through `reticulate`. The two backends do not agree:
+they differ in optimiser schedule, in negative-sampling details, and in how
+`random_state` is consumed, so the same seed produces different layouts under
+each. Pin the backend explicitly rather than inheriting it, or the embedding
+becomes a function of which Python environment happened to be discoverable.
+
+## The duplicate-row failure mode {#neighbor-duplicates}
+
+`Rtsne` refuses to run on data containing duplicate rows. The reason is
+mechanical: the binary search for $\sigma_i$ assumes a non-degenerate
+neighbourhood, and coincident points make the perplexity target unreachable.
+
+On `sample_manifold()` output the check never fires, and it is worth being
+clear about why rather than presenting a warning that cannot happen. Facet
+positions are drawn from a continuous uniform distribution, so two bit-identical
+rows in $\mathbb{R}^3$ are an event of probability zero up to floating-point
+granularity. Keeping the check costs nothing and it guards the cases that do
+occur in practice: coordinates round-tripped through a text file at limited
+precision, count matrices that have already been deduplicated upstream, and the
+real dataset in Chapter \@ref(application).
+
+The hazard this benchmark actually produces is the one `check_duplicates` does
+*not* detect. Look at what `fold()` does to the accordion: a point in band $j$
+at height $f$ above its crease lands at $z = f \sin\theta$ if $j$ is even and
+$z = (b - f)\sin\theta$ if $j$ is odd, while the along-axis coordinate is
+compressed by $\cos\theta$. As $\theta \to \pi/2$ the bands collapse onto one
+another in $y$ and points from *different* bands converge in $z$. They never
+become bit-identical, so the check passes and t-SNE runs — but the pairs it
+treats as nearest neighbours are pairs whose true separation on the sheet is
+several band widths.
+
+```{r neighbor-duplicates}
+degeneracy <- function(theta, seed = BENCH_SEEDS[1], n = 800, tol = 1e-6) {
+  m  <- sample_manifold(pattern, theta = theta, n = n, seed = seed)
+  dX <- as.matrix(dist(m$X)); diag(dX) <- Inf
+  dU <- as.matrix(dist(m$truth))          # exact geodesic distance, by isometry
+  close <- which(dX < tol, arr.ind = TRUE)
+
+  data.frame(
+    theta       = theta,
+    exact_dups  = sum(duplicated(m$X)),   # 0 at every angle
+    near_dups   = nrow(close) / 2,
+    worst_lie   = if (nrow(close)) max(dU[close]) else 0
+  )
+}
+
+do.call(rbind, lapply(c(0, 0.5, 1.0, 1.3, 1.5), degeneracy))
+```
+
+`worst_lie` is the largest true separation among pairs that ambient space calls
+coincident, and it is the quantity to report next to the error curve. Three
+responses are defensible when the check *does* fire on real data. Remove the
+duplicates and subset the truth matrix identically — a mismatch there quietly
+corrupts every Procrustes alignment downstream. Jitter the offenders below the
+noise floor and record how many were affected. Or add a small
+`list(type = "manifold", sd = ...)` term to the sampler, which perturbs the
+flat coordinates before folding and therefore keeps the truth exact. Setting
+`check_duplicates = FALSE` and moving on is the one option that is not
+defensible: it does not remove the degeneracy, it removes the warning.
+
+## Two runs, two pictures {#neighbor-seeds}
+
+```{r neighbor-seed-sweep}
+thetas <- seq(0, 1.5, length.out = 11)     # radians, up to just short of pi/2
+
+# The accordion band a point came from, recovered from the exact truth. With
+# b = 1 and n_rows = 6 this is 0..5 and is the structure the fold creates.
+band_of <- function(truth, b = 1) as.integer(floor(truth[, "y"] / b))
+
+run_one <- function(th, seed) {
+  m <- sample_manifold(pattern, theta = th, n = 800,
+                       noise = list(type = "ambient", sd = 0.01), seed = seed)
+  data.frame(
+    theta  = rep(th, 2),
+    seed   = rep(seed, 2),
+    method = c("t-SNE", "UMAP"),
+    error  = c(reconstruction_error(fit_tsne(m$X, seed), m$truth),
+               reconstruction_error(fit_umap(m$X, seed), m$truth))
+  )
+}
+
+seed_curves <- do.call(rbind, unlist(
+  lapply(thetas, function(th) lapply(BENCH_SEEDS, run_one, th = th)),
+  recursive = FALSE
+))
+```
+
+```{r neighbor-seed-ribbon, fig.cap = "Procrustes-aligned reconstruction error against the exact unfolding, across the fold angle. Band shows the 10th to 90th percentile over 20 seeds; the line is the median. The band, not the line, is what a single run gives you.", fig.alt = "Two overlapping shaded bands with median lines rising left to right, against fold angle in radians on the horizontal axis and reconstruction error on the vertical axis. The t-SNE band is drawn with a solid median line and the UMAP band with a dashed one, and the two are also distinguished by colour. Both bands are already non-zero at fold angle zero and widen as the angle increases towards pi over two. They overlap substantially across most of the range, so the vertical extent of each band is comparable to the vertical gap between the two medians."}
+band <- do.call(rbind, lapply(
+  split(seed_curves, list(seed_curves$method, seed_curves$theta)),
+  function(d) data.frame(
+    method = d$method[1],
+    theta  = d$theta[1],
+    lo     = stats::quantile(d$error, 0.10),
+    md     = stats::median(d$error),
+    hi     = stats::quantile(d$error, 0.90)
+  )
+))
+
+ggplot(band, aes(theta, md, colour = method, fill = method, linetype = method)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.22, colour = NA) +
+  geom_line(linewidth = 0.7) +
+  geom_point(data = seed_curves, aes(y = error), size = 0.5, alpha = 0.25,
+             shape = 16, show.legend = FALSE) +
+  scale_color_book(name = NULL) +
+  scale_fill_book(name = NULL) +
+  scale_linetype_manual(name = NULL, values = c("solid", "22")) +
+  labs(x = expression(theta ~ "(radians)"), y = "reconstruction error") +
+  theme_minimal(base_size = 9)
+```
+
+Plot the band, not a mean line. A mean line invites the reader to assume the
+run in front of them sits near it, and on these methods that assumption is
+wrong often enough to matter. The interval in Figure
+\@ref(fig:neighbor-seed-ribbon) is the quantity a practitioner actually draws
+from: it is the set of pictures they might have got had they not typed
+`set.seed(42)` at the top of the script.
+
+Two features of that figure survive across pattern families and are reported
+for the whole grid in Chapter \@ref(results). The band is non-degenerate at
+$\theta = 0$, where the surface is a flat sheet in a plane and PCA is exact —
+neither method converges to the same answer twice on a problem that has no
+difficulty in it. And the band width is of the same order as the gap between
+the two medians over most of the range, which is the whole reason the last
+section of this chapter exists.
+
+Seed dependence expressed as an error bar still understates it, because the
+error bar summarises a scalar and the object that varies is a picture.
+
+```{r neighbor-seed-grid, fig.height = 6.5, fig.cap = "Twelve t-SNE embeddings of one folded sheet. Identical data, identical parameters, identical code; only the seed differs. Panel labels give each run's reconstruction error.", fig.alt = "A four-by-three grid of small scatterplots, each a t-SNE embedding of the same 800 sampled points. Points are coloured and shaped by which of the six accordion bands of the true flat coordinate they came from, so a faithful embedding would show the six bands laid out in order along one axis. The panels differ markedly: some show the bands in a coherent strip, others break the sheet into several detached islands with bands interleaved, and one places a band on the opposite side of the plot from its neighbours. Each panel header gives that run's reconstruction error, and the values differ visibly between panels."}
+grid_df <- do.call(rbind, lapply(BENCH_SEEDS[1:12], function(sd) {
+  m <- sample_manifold(pattern, theta = th_fixed, n = 800,
+                       noise = list(type = "ambient", sd = 0.01), seed = sd)
+  Y <- fit_tsne(m$X, sd)
+  data.frame(
+    y1    = Y[, 1],
+    y2    = Y[, 2],
+    band  = factor(band_of(m$truth)),
+    panel = sprintf("seed %d  (error %.3f)", sd,
+                    reconstruction_error(Y, m$truth))
+  )
+}))
+
+ggplot(grid_df, aes(y1, y2, colour = band, shape = band)) +
+  geom_point(size = 0.5, alpha = 0.7) +
+  facet_wrap(~ panel, ncol = 4, scales = "free") +
+  scale_color_book(name = "true band") +
+  scale_shape_manual(name = "true band", values = c(16, 17, 15, 3, 7, 8)) +
+  coord_equal() +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 8) +
+  theme(axis.text = element_blank(), panel.grid.minor = element_blank())
+```
+
+Colour and shape in Figure \@ref(fig:neighbor-seed-grid) both encode the true
+accordion band, recovered from `m$truth` rather than assumed. A faithful
+embedding lays those six bands out in order along one axis. What varies between
+panels is not noise around a stable layout: it is the number of connected
+pieces the sheet is broken into, which pieces end up adjacent, and whether the
+band ordering survives at all. Any narrative built on "these two groups are
+adjacent, so they are related" is a narrative about the seed.
+
+## Perplexity and `n_neighbors` {#neighbor-params}
+
+The obvious defence is that the parameters were not tuned. Tune them, then, and
+be explicit about the criterion — because the criterion is where the deception
+lives.
+
+```{r neighbor-perplexity-sweep}
+library(cluster)
+
+# "Crispness": how sharply the picture separates the accordion bands. A proxy
+# for what a reader perceives as clean structure. NOT a measure of correctness.
+crispness <- function(Y, band) {
+  sil <- cluster::silhouette(as.integer(factor(band)), dist(Y))
+  mean(sil[, "sil_width"])
+}
+
+perps <- c(5, 10, 20, 30, 50, 80, 120, 200)
+
+param_sweep <- do.call(rbind, unlist(lapply(perps, function(p) {
+  lapply(BENCH_SEEDS, function(sd) {
+    m <- sample_manifold(pattern, theta = th_fixed, n = 800,
+                         noise = list(type = "ambient", sd = 0.01), seed = sd)
+    Y <- fit_tsne(m$X, sd, perplexity = p)
+    data.frame(param = p, seed = sd,
+               error = reconstruction_error(Y, m$truth),
+               crisp = crispness(Y, band_of(m$truth)))
+  })
+}), recursive = FALSE))
+```
+
+The same sweep for UMAP substitutes `fit_umap(m$X, sd, n_neighbors = p)` over
+`c(5, 10, 15, 30, 50, 100, 200)`; both appear in the grid of Chapter
+\@ref(results).
+
+```{r neighbor-param-curves, fig.cap = "Distortion and apparent cleanliness pull in opposite directions. Left: reconstruction error against exact truth. Right: mean band silhouette in the embedding, a proxy for how clean the picture looks. Bands are the 10th to 90th percentile over 20 seeds.", fig.alt = "Two side-by-side panels sharing a logarithmic perplexity axis. The left panel plots reconstruction error against exact truth: it falls steeply from perplexity five, reaches its minimum somewhere between fifty and eighty, and rises slightly after that. The right panel plots the mean band silhouette and does the opposite: it is highest at perplexity five and declines steadily as perplexity increases. A dashed vertical rule marks perplexity five and a solid one marks perplexity fifty on both panels, showing that the setting which maximises apparent cleanliness is close to the setting that maximises measured distortion."}
+long <- rbind(
+  transform(param_sweep, quantity = "reconstruction error (vs truth)",
+            value = param_sweep$error),
+  transform(param_sweep, quantity = "band silhouette (looks clean)",
+            value = param_sweep$crisp)
+)
+
+pband <- do.call(rbind, lapply(
+  split(long, list(long$quantity, long$param)),
+  function(d) data.frame(
+    quantity = d$quantity[1], param = d$param[1],
+    lo = stats::quantile(d$value, 0.10),
+    md = stats::median(d$value),
+    hi = stats::quantile(d$value, 0.90)
+  )
+))
+
+ggplot(pband, aes(param, md)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.25, fill = "grey40") +
+  geom_line(linewidth = 0.7) +
+  geom_vline(xintercept = 5,  linetype = "22") +
+  geom_vline(xintercept = 50, linetype = "solid", alpha = 0.5) +
+  facet_wrap(~ quantity, scales = "free_y") +
+  scale_x_log10() +
+  labs(x = "perplexity", y = NULL) +
+  theme_minimal(base_size = 9)
+```
+
+The two curves in Figure \@ref(fig:neighbor-param-curves) run in opposite
+directions, and that is the core result of this chapter. Low perplexity
+shatters the sheet into tight islands. Islands read as structure. They are
+crisp, they are well separated, they photograph well, and on real data they get
+labelled as cell types. They are also the setting at which the embedding is
+furthest from the truth, because the sheet is connected and the islands are an
+artefact of a bandwidth too small to see across a crease. High perplexity
+produces a smeared, less impressive picture that is measurably closer to the
+isometry.
+
+@wattenberg2016tsne made the qualitative version of this argument with
+synthetic examples in which cluster sizes and inter-cluster distances mean
+nothing. The crease pattern supplies the missing quantity: not just that the
+crisp picture is misleading, but by how much, at which parameter value, and how
+that gap moves with $\theta$.
+
+```{r neighbor-looks-good, fig.height = 3.6, fig.cap = "The same data at the perplexity a reader would choose by eye (left), at the perplexity closest to the truth (centre), and the exact unfolding (right). Crispness and correctness are not the same axis.", fig.alt = "Three scatter panels of the same 800 points. The left panel, at perplexity five, shows around a dozen small tight well-separated clumps and reads as clean cluster structure. The centre panel, at perplexity eighty, shows a single connected elongated sheet with the six true bands laid out in order but with fuzzy boundaries. The right panel shows the exact flat crease pattern: a regular ordered rectangular strip. Points in all three panels are coloured and shaped by the same six true accordion bands. The centre panel resembles the right-hand truth panel; the visually cleanest left panel does not."}
+b6 <- factor(band_of(s$truth))                # `s` is the sample from above
+
+Y_crisp <- fit_tsne(s$X, BENCH_SEEDS[1], perplexity = 5)
+Y_true  <- fit_tsne(s$X, BENCH_SEEDS[1], perplexity = 80)
+
+panels <- rbind(
+  data.frame(y1 = Y_crisp[, 1], y2 = Y_crisp[, 2], band = b6,
+             panel = "perplexity 5 — looks best"),
+  data.frame(y1 = Y_true[, 1],  y2 = Y_true[, 2],  band = b6,
+             panel = "perplexity 80 — closest to truth"),
+  data.frame(y1 = s$truth[, 1], y2 = s$truth[, 2], band = b6,
+             panel = "exact unfolding")
+)
+panels$panel <- factor(panels$panel, levels = unique(panels$panel))
+
+ggplot(panels, aes(y1, y2, colour = band, shape = band)) +
+  geom_point(size = 0.5, alpha = 0.75) +
+  facet_wrap(~ panel, nrow = 1, scales = "free") +
+  scale_color_book(name = "true band") +
+  scale_shape_manual(name = "true band", values = c(16, 17, 15, 3, 7, 8)) +
+  coord_equal() +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 8) +
+  theme(axis.text = element_blank(), panel.grid.minor = element_blank())
+```
+
+Hold a piece of paper over the right-hand panel of Figure
+\@ref(fig:neighbor-looks-good) and choose between the other two on appearance
+alone. Everyone chooses the left one. It is the wrong one, and without the
+third panel there is no way to know that from inside the analysis.
+
+## Where they earn their reputation {#neighbor-shortcircuit}
+
+None of the above says t-SNE and UMAP are worse than the alternatives. On the
+regime that destroys the geodesic methods they are conspicuously better, and
+for a reason that follows directly from what they optimise.
+
+`short_circuit_theta()` returns the smallest fold angle at which the
+$k$-nearest-neighbour graph first joins two points that are neighbours in
+$\mathbb{R}^3$ and far apart on the sheet. Chapter \@ref(geodesic) derives
+where that angle comes from. Isomap treats shortest paths on that graph as
+estimates of geodesic distance, so one such edge rewrites a whole block of the
+distance matrix and the reconstruction fails discontinuously.
+
+t-SNE and UMAP consume the same neighbourhood information and are barely
+affected. A short-circuit edge contributes one attractive term out of order
+$nk$, opposed by a repulsive term that does not care where the edge came from.
+The methods degrade rather than break — because they never trusted the global
+structure enough to be betrayed by it.
+
+```{r neighbor-shortcircuit, fig.cap = "Behaviour across the short-circuit threshold returned by `short_circuit_theta()`. Isomap fails discontinuously; the neighbour embeddings do not, having never relied on the global structure that fails there.", fig.alt = "Three curves with shaded seed bands, plotted against fold angle in radians. The Isomap curve is flat and lowest at small fold angles, then jumps sharply upward at a dotted vertical rule marking the short-circuit threshold, ending well above the others. The t-SNE and UMAP curves start higher than Isomap and rise gently and continuously across the whole range, with no discontinuity at the rule. The three methods are distinguished by linetype as well as by colour."}
+theta_star <- short_circuit_theta(pattern, k = 12, n = 500,
+                                  seed = BENCH_SEEDS[1])
+
+isomap_fit <- function(X, k = 12) {
+  vegan::isomap(dist(X), k = k, ndim = 2)$points[, 1:2]
+}
+
+sc <- do.call(rbind, unlist(lapply(thetas, function(th) {
+  lapply(BENCH_SEEDS, function(sd) {
+    m <- sample_manifold(pattern, theta = th, n = 800,
+                         noise = list(type = "ambient", sd = 0.01), seed = sd)
+    data.frame(
+      theta  = th,
+      method = c("Isomap", "t-SNE", "UMAP"),
+      error  = c(reconstruction_error(isomap_fit(m$X), m$truth),
+                 reconstruction_error(fit_tsne(m$X, sd, perplexity = 50), m$truth),
+                 reconstruction_error(fit_umap(m$X, sd, n_neighbors = 50), m$truth))
+    )
+  })
+}), recursive = FALSE))
+
+sband <- do.call(rbind, lapply(
+  split(sc, list(sc$method, sc$theta)),
+  function(d) data.frame(
+    method = d$method[1], theta = d$theta[1],
+    lo = stats::quantile(d$error, 0.10),
+    md = stats::median(d$error),
+    hi = stats::quantile(d$error, 0.90)
+  )
+))
+
+ggplot(sband, aes(theta, md, colour = method, fill = method, linetype = method)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.2, colour = NA) +
+  geom_line(linewidth = 0.7) +
+  geom_vline(xintercept = theta_star, linetype = "dotted") +
+  annotate("text", x = theta_star, y = Inf, label = "short circuit",
+           hjust = -0.08, vjust = 1.6, size = 2.6) +
+  scale_color_book(name = NULL) +
+  scale_fill_book(name = NULL) +
+  scale_linetype_manual(name = NULL, values = c("solid", "22", "42")) +
+  labs(x = expression(theta ~ "(radians)"), y = "reconstruction error") +
+  theme_minimal(base_size = 9)
+```
+
+The honest summary of Figure \@ref(fig:neighbor-shortcircuit) has two halves.
+Below the threshold, Isomap is not merely better, it is close to exact, and the
+neighbour embeddings are worse by a wide margin on a problem that has an exact
+solution. Above it, the ordering reverses and stays reversed. Which is to say:
+the advantage is real, it is robustness rather than accuracy, and it is bought
+by discarding the information that would have permitted accuracy in the first
+place. That trade is the right one when short-circuits are certain and the
+wrong one when they are not, and a practitioner facing real data usually does
+not know which case they are in — which is an argument for running both, not
+for picking a favourite.
+
+## Global structure, measured against truth {#neighbor-global}
+
+"Loses global structure" is repeated so often that it has stopped carrying a
+quantity. The truth matrix supplies one. Because folding is an isometry, plain
+Euclidean distance on `s$truth` *is* geodesic distance along the folded surface
+— no shortest-path estimate is involved. Split the pairs at the median true
+distance and correlate true against embedded distance separately within each
+half.
+
+```{r neighbor-global-structure}
+distance_fidelity <- function(Y, truth) {
+  dU  <- as.vector(dist(truth))     # exact geodesic distance
+  dY  <- as.vector(dist(Y))
+  far <- dU > stats::median(dU)
+  c(short_range = stats::cor(dU[!far], dY[!far], method = "spearman"),
+    long_range  = stats::cor(dU[ far], dY[ far], method = "spearman"))
+}
+
+Y_default <- fit_tsne(s$X, BENCH_SEEDS[1], perplexity = 30)
+
+# Kobak & Linderman: scaled PCA initialisation instead of the random default.
+Y0 <- prcomp(s$X, center = TRUE, scale. = FALSE)$x[, 1:2]
+Y0 <- Y0 / stats::sd(Y0[, 1]) * 1e-4
+Y_pcainit <- fit_tsne(s$X, BENCH_SEEDS[1], perplexity = 30, Y_init = Y0)
+
+rbind(default  = distance_fidelity(Y_default,  s$truth),
+      pca_init = distance_fidelity(Y_pcainit, s$truth))
+```
+
+The short-range correlation is high for both methods and stays high across the
+whole $\theta$ range. That is the objective doing what it was written to do.
+The long-range correlation is the one that collapses, and it collapses further
+as $\theta$ rises, because the ambient geometry increasingly disagrees with the
+sheet about which regions are far apart and only the long-range pairs are
+sensitive to that disagreement.
+
+A large part of that collapse is an initialisation artefact rather than an
+intrinsic property of the objective. Random initialisation lets the layout
+settle into whichever global arrangement the early iterations happened to
+favour, and nothing in $\mathrm{KL}(P \parallel Q)$ subsequently pulls it out
+[@kobak2021initialization]. Seeding from scaled principal components recovers a
+substantial share of the long-range correlation at no cost in the short-range
+term, and it also collapses much of the seed-to-seed spread in Figure
+\@ref(fig:neighbor-seed-ribbon) — the two symptoms have the same cause. UMAP's
+default spectral initialisation is deterministic given the graph, which is why
+its band in that figure is the narrower of the two, and why substituting
+`init = "random"` widens it to match t-SNE's.
+
+This is the strongest available qualification of the @chari2023specious
+argument, and it is worth stating precisely. The distortion they describe is
+real and is measured here. A meaningful fraction of it, on this manifold, is
+attributable to a default that both packages could change and that practice in
+the wake of @becht2019umap largely did not. The remainder is not attributable
+to anything but the objective, and it does not go away.
+
+## Separating disagreement from noise {#neighbor-noise}
+
+Figure \@ref(fig:neighbor-seed-ribbon) shows two bands that overlap over most
+of their range. The temptation is to read overlapping bands as "no difference".
+That is the wrong test, because the design is paired: at each $\theta$, both
+methods see the *same* sample, generated from the same seed. Comparing marginal
+distributions throws the pairing away and inflates the variance with sampling
+noise common to both methods.
+
+```{r neighbor-paired}
+paired_delta <- function(d) {
+  a <- d$error[d$method == "t-SNE"][order(d$seed[d$method == "t-SNE"])]
+  b <- d$error[d$method == "UMAP"][order(d$seed[d$method == "UMAP"])]
+  b - a                      # positive: UMAP further from the truth
+}
+
+paired <- do.call(rbind, lapply(split(seed_curves, seed_curves$theta), function(d) {
+  delta <- paired_delta(d)
+  data.frame(
+    theta = d$theta[1],
+    md    = stats::median(delta),
+    lo    = stats::quantile(delta, 0.10),
+    hi    = stats::quantile(delta, 0.90),
+    sign_consistent = mean(sign(delta) == sign(stats::median(delta)))
+  )
+}))
+paired
+```
+
+Report `paired`, not the two ribbons, when the question is which method is
+better. The decision rule used throughout Chapter \@ref(results) is that a
+difference counts as real only if the paired interval excludes zero *and*
+`sign_consistent` is at least 0.9 — at least 18 of the 20 seeds agreeing on the
+direction. Anything weaker is a claim about which seeds were drawn.
+
+Applied to this pattern family, the rule separates three regimes cleanly. Near
+$\theta = 0$ the paired difference is small and its sign flips between seeds,
+so the methods are indistinguishable and any comparison at a single seed is a
+coin toss. In the middle of the range the difference is consistent in sign but
+small relative to the effect of moving perplexity one step, so the parameter
+choice matters more than the method choice. Near $\pi/2$ the difference is
+consistent and large, and that is the only regime in which "t-SNE beat UMAP
+here" is a statement about the methods.
+
+Most published comparisons of these two methods report a single run on a single
+dataset; @wang2021understanding is the systematic alternative. On a
+manifold where the truth is known, the single-run protocol cannot distinguish
+the first regime from the third.
+
+## What to report {#neighbor-report}
+
+Five things, in the order a reader needs them.
+
+The parameter, always, and both of them: perplexity or `n_neighbors` sets what
+the method can see, and Figure \@ref(fig:neighbor-param-curves) shows that the
+plot changes character across that range far more than it changes between the
+two methods. An unlabelled neighbour embedding is uninterpretable.
+
+The initialisation, because it accounts for much of the global-structure loss
+and nearly all of the run-to-run instability, and because it is the one lever
+in this chapter that improves the measurement for free.
+
+The seed count and the spread, not a representative picture. One embedding is
+one draw from Figure \@ref(fig:neighbor-seed-grid).
+
+The criterion used to select parameters. If it was visual, say so, and expect
+the result to sit near the crisp end of Figure
+\@ref(fig:neighbor-param-curves) rather than the accurate end. Chapter
+\@ref(evaluation) asks whether any of the usual surrogate criteria would have
+done better, given that the truth-based criterion is unavailable anywhere off
+this benchmark.
+
+And the claim being made from the picture. "These points are neighbours" is
+supported by what the method optimises. "These groups are far apart", "this
+cluster is larger", "these two lineages branch here" are not — and on a folded
+sheet the size of that unsupported gap is now a number rather than an opinion.

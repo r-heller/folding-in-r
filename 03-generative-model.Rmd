@@ -2,10 +2,429 @@
 
 *How do you turn one pattern into a family of test problems?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+A crease pattern on its own is a static object. What makes it a benchmark is the
+fold map: a one-parameter family of isometric embeddings of the same flat sheet
+into $\mathbb{R}^3$, indexed by a fold angle $\theta$. The sheet never stretches,
+so the flat coordinates stay exact at every $\theta$, and the difficulty of
+recovering them rises smoothly from trivial to impossible. This chapter states
+the map in closed form, shows that it is an exact isometry, and traces what
+$\theta$ does to the $k$-nearest-neighbour graph that most manifold-learning
+methods are built on.
 
-- The Miura-ori parameterisation $(a, b, \alpha, \theta)$.
-- Uniform sampling on facets, and why naive vertex sampling biases the density.
-- Noise models: ambient Gaussian, on-manifold, and outliers.
-- What $\theta$ does to the $k$-nearest-neighbour graph, and where short-circuits appear.
-- Why every result downstream is a curve over $\theta$ rather than a single number.
+Everything below describes `foldbench` as it is implemented, not as it might
+ideally be. Where the implementation is narrower than the geometry it is named
+after, the narrowing is stated rather than glossed.
+
+## The flat pattern, and where $\alpha$ actually lives {#gen-flat}
+
+`miura_ori()` builds the flat vertex lattice. Index vertices by row
+$r = 1, \dots, n_{\text{rows}}+1$ and column $c = 1, \dots, n_{\text{cols}}+1$, and
+write $\epsilon_r = \tfrac{1}{2}\bigl(1 + (-1)^r\bigr)$, which is $1$ on even
+rows and $0$ on odd rows. Then
+
+$$
+\mathbf{u}_{r,c} \;=\; \Bigl(\, (c-1)\,a \;+\; \epsilon_r\, b \cot\alpha, \;\;\; (r-1)\,b \,\Bigr) .
+$$
+
+The three parameters do three separate things. $a$ is the spacing of the creases
+that run across the sheet; $b$ is the spacing of the creases that run along it;
+and $\alpha$ enters only through the shear $b\cot\alpha$, which slides every even
+row sideways. That shear is the whole of the Miura-ori's in-plane signature: it
+is what makes the crease lines zigzag, what forces the mountain/valley
+assignment to alternate, and what distinguishes the pattern from a plain
+accordion pleat [@schenk2013geometry]. The mountain/valley bookkeeping and the
+vertex-degree conditions behind it are Chapter \@ref(folding-geometry)'s subject.
+
+```{r gen-setup}
+library(foldbench)
+library(ggplot2)
+
+p <- miura_ori(n_rows = 4, n_cols = 4, a = 1, b = 1, alpha = pi / 3)
+p
+#> <crease_pattern> miura
+#>   vertices: 25
+#>   creases:  40 (M: 20, V: 20)
+
+head(unfold(p), 3)
+#>           x y
+#> [1,] 0.0000 0
+#> [2,] 0.5774 1
+#> [3,] 0.0000 2
+```
+
+With $a = b = 1$ and $\alpha = \pi/3$ the shear is $\cot(\pi/3) = 0.5774$, so the
+flat sheet occupies $[0,\,4.5774] \times [0,\,4]$ rather than a clean $4\times4$
+square. That rectangle is the ground-truth domain $\mathcal{U}$, and its width is
+the only quantity $\alpha$ controls downstream.
+
+```{r gen-crease-pattern, fig.alt="Flat Miura-ori crease pattern from miura_ori(4, 4, alpha = pi/3). A five-by-five vertex lattice in which every second row is sheared 0.577 units to the right, producing zigzag creases running down the sheet and straight creases running across it. Mountain creases are drawn as solid dark blue lines and valley creases as dashed magenta lines, so the assignment is readable without colour."}
+plot_crease(p)
+```
+
+`plot_crease()` encodes the assignment by linetype and colour together, so the
+figure survives greyscale printing and colour vision deficiency. Every figure in
+this book follows that rule.
+
+## The fold map {#gen-fold}
+
+Folding rotates alternate row bands out of the plane. Let $m = \lfloor u_2 / b
+\rfloor$ be the band index of a flat point and define the triangle wave
+
+$$
+\zeta_b(t) \;=\;
+\begin{cases}
+t - mb, & m \text{ even},\\[2pt]
+(m+1)b - t, & m \text{ odd},
+\end{cases}
+\qquad\text{equivalently}\qquad
+\zeta_b(t) \;=\; \bigl|\, t - 2b\,\operatorname{round}(t/2b) \,\bigr| .
+$$
+
+The fold at angle $\theta$ is then
+
+$$
+\Phi_\theta(u_1, u_2) \;=\; \bigl(\, u_1, \;\; u_2 \cos\theta, \;\; \zeta_b(u_2)\,\sin\theta \,\bigr),
+\qquad \theta \in [0, \pi/2).
+$$
+
+Applied to the lattice, this gives the folded vertices in closed form:
+
+$$
+\mathbf{x}_{r,c} \;=\; \Bigl(\, (c-1)\,a + \epsilon_r\, b\cot\alpha, \;\;\; (r-1)\,b\cos\theta, \;\;\; \epsilon_r\, b \sin\theta \,\Bigr).
+$$
+
+At $\theta = 0$ this is the flat sheet sitting in the plane $z = 0$; as $\theta
+\to \pi/2$ the $y$-extent collapses to zero and the sheet stands up as a closed
+fan of thickness $b$. There is no pattern-specific upper limit — $\pi/2$ is the
+bound for every pattern, which is why no `theta_max()` exists.
+
+**The map is an exact isometry.** Away from the band boundaries the differential
+is
+
+$$
+D\Phi_\theta \;=\;
+\begin{pmatrix} 1 & 0 \\ 0 & \cos\theta \\ 0 & \pm\sin\theta \end{pmatrix},
+\qquad
+D\Phi_\theta^{\!\top} D\Phi_\theta \;=\; I_2 ,
+$$
+
+because $\cos^2\theta + \sin^2\theta = 1$. The first fundamental form is the
+identity: the map is unit-speed in both directions, it preserves angles, and its
+area element is unchanged. The sign of the $z$ row flips from band to band, but
+$\zeta_b$ is continuous with slope $\pm 1$ everywhere, so the surface is
+continuous across the creases and the derivative is defined except on a measure-
+zero set of fold lines. That two-line computation is what licenses the book's
+central claim. Because the flat domain is a convex rectangle, the straight
+segment between any two flat points maps to a surface path of the same length,
+and that path is the shortest one available:
+
+$$
+\| \mathbf{u}_p - \mathbf{u}_q \|_2 \;=\; d_{\mathcal{M}}(p, q)
+\quad \text{for all } p, q .
+$$
+
+So the exact geodesic distance matrix on the folded manifold is `dist(truth)` —
+plain Euclidean distance on a two-column matrix. No geodesic solver is needed,
+and Chapter \@ref(geodesic) can therefore compare Isomap's estimated geodesics
+against the true ones rather than against another estimate.
+
+### What the implementation does not do {#gen-scope}
+
+`fold()` and `sample_manifold()` read only `pattern$grid$row` and
+`pattern$params$b`. They never touch `$creases`, `$family`, or `alpha`. The
+consequence is worth stating flatly: **the folded surface is a one-dimensional
+accordion pleat, not a Miura-ori fold.** A true Miura-ori zigzags in $x$ as well
+as $y$, has two interacting crease families, and contracts in both in-plane
+directions as it closes [@schenk2013geometry]. This one corrugates along $y$
+only, and $x$ passes through untouched.
+
+Three things follow, and no chapter should claim otherwise. First, $\alpha$ is
+not a fold parameter here; it shifts the flat bounding box and nothing else. Do
+not present it as a difficulty knob — $\theta$ is the only one. Second,
+`miura_ori()`, `yoshimura()` and `waterbomb()` yield the same folded geometry up
+to that bounding-box width, so `pattern` is very nearly a no-op as a benchmark
+factor; the families differ in their flat crease patterns, which `plot_crease()`
+genuinely draws, and not yet in what the sampler produces. Third, the
+ground-truth claim is untouched by any of this. An accordion fold is a rigid
+isometry, which is all the argument above needs. A genuinely two-dimensional
+Miura kinematics — where the $x$ spacing contracts with $\theta$ too, and the
+three families separate — is the obvious next version of the package and is
+flagged as such in Chapter \@ref(application).
+
+```{r gen-fold-sequence, fig.height=3.2, fig.alt="Five panels showing the y-z profile of the folded sheet at theta = 0, pi/8, pi/4, 3pi/8 and 1.45 radians. At theta = 0 the points lie flat along a horizontal line of length 4. As theta increases the profile becomes a zigzag whose peaks rise towards height 1 while its horizontal extent shrinks towards zero, so that by theta = 1.45 the sheet is an almost closed fan of vertical pleats."}
+thetas <- c(0, pi / 8, pi / 4, 3 * pi / 8, 1.45)
+
+profile <- do.call(rbind, lapply(thetas, function(th) {
+  s <- sample_manifold(p, theta = th, n = 600, seed = BENCH_SEEDS[1])
+  data.frame(y = s$X[, "y"], z = s$X[, "z"],
+             theta = sprintf("theta == %.2f", th))
+}))
+
+ggplot(profile, aes(y, z)) +
+  geom_point(size = 0.3, alpha = 0.5, colour = "#0d0887") +
+  facet_wrap(~ theta, nrow = 1, labeller = label_parsed) +
+  coord_equal() +
+  labs(x = "y", y = "z") +
+  theme_minimal()
+```
+
+$\theta$ is encoded by facet, not by colour, so the panel ordering carries the
+result on its own.
+
+## Sampling: uniform on the surface, and why that is not automatic {#gen-sampling}
+
+`sample_manifold()` draws $n$ points uniformly from the flat bounding box with
+`runif()`, applies $\Phi_\theta$, and returns both coordinate systems:
+
+```{r gen-sample}
+s <- sample_manifold(p, theta = 0.9, n = 2000, seed = BENCH_SEEDS[1])
+str(s)
+#> List of 2
+#>  $ X    : num [1:2000, 1:3] ...   # ambient, R^3
+#>  $ truth: num [1:2000, 1:2] ...   # exact unfolding, R^2
+```
+
+The truth is carried, not recovered. Each row of `truth` is the flat point that
+generated the corresponding row of `X`, so the correspondence is exact by
+construction rather than by nearest-neighbour lookup. That is the difference
+between this and a Swiss roll built by sampling a parametric surface and hoping
+the parameterisation is well conditioned; Chapter \@ref(comparison) makes the
+comparison directly.
+
+Uniformity of the ambient sample follows from the isometry, not from the
+sampling scheme. Since $|\det D\Phi_\theta| = 1$, the push-forward of Lebesgue
+measure on $\mathcal{U}$ is exactly the surface-area measure on $\mathcal{M}$.
+Draw uniformly on the flat sheet, fold, and the result is uniform on the folded
+surface at every $\theta$ — a fact that costs nothing to check:
+
+```{r gen-uniformity}
+chk <- sample_manifold(p, theta = 0.9, n = 40000, seed = BENCH_SEEDS[2])
+tab <- table(cut(chk$truth[, 1], 6), cut(chk$truth[, 2], 6))
+c(expected = 40000 / 36, min = min(tab), max = max(tab),
+  cv = sd(as.vector(tab)) / mean(as.vector(tab)))
+#>  expected       min       max        cv
+#> 1111.1110  1027.000  1203.000     0.035
+```
+
+A coefficient of variation of $0.035$ across 36 equal-area bins is what Poisson
+counts at $1111$ per bin would give anyway ($1/\sqrt{1111} = 0.030$). The
+density is flat.
+
+Two tempting shortcuts are not flat, and both fail in ways that are easy to miss.
+
+**Sampling vertices.** The obvious way to get points on a crease pattern is to
+use its vertices. For `miura_ori(4, 4)` there are 25 of them. Drawing $n = 500$
+points from a 25-atom lattice gives roughly twenty exact duplicates of each,
+hence hundreds of zero pairwise distances, a $k$-nearest-neighbour graph that
+resolves the lattice spacing rather than the surface, and rank-based metrics
+that silently divide by ties. Worse, vertices are precisely the points at which
+the surface is *not* a smooth manifold — they are the cone points where several
+facets meet. Sampling only there measures the one subset of $\mathcal{M}$ that
+is least representative of it. Jittering the vertices does not fix this: it
+replaces the atoms with a mixture of Gaussians on a periodic lattice, so the
+sample carries a density at exactly the spatial frequency $(a, b)$ that a
+neighbour-embedding method will happily rediscover and report as structure
+(Chapter \@ref(neighbor)).
+
+**Sampling facets uniformly, then a point inside each.** This is the right shape
+of algorithm but the wrong weights. If facet $f$ has area $A_f$ and is chosen
+with probability $1/F$, the induced density on that facet is $1/(F A_f)$ —
+inversely proportional to facet area, so small facets are over-sampled. The
+correction is area-weighted facet choice, $p_f = A_f / \sum_g A_g$, followed by a
+uniform draw inside the facet (a pair of uniforms for a parallelogram; for a
+triangle, draw $(s,t) \sim U[0,1]^2$ and reflect to $(1-s, 1-t)$ when $s + t >
+1$). For the three shipped patterns every facet has area $ab$, so the two rules
+happen to coincide and the distinction never bites. It bites the moment a
+pattern with unequal facets is added, which is why the guarantee to rely on is
+the unit Jacobian, not the coincidence.
+
+## Noise {#gen-noise}
+
+Noise is a plain list, `list(type = , sd = )`, with `type` one of `"none"`,
+`"ambient"`, `"manifold"` or `"outlier"`. The three non-trivial settings damage
+the problem in three genuinely different ways, and conflating them is how
+robustness claims go wrong.
+
+```{r gen-noise}
+clean <- sample_manifold(p, 0.9, 2000, seed = BENCH_SEEDS[1])
+amb   <- sample_manifold(p, 0.9, 2000, list(type = "ambient",  sd = 0.05), seed = BENCH_SEEDS[1])
+man   <- sample_manifold(p, 0.9, 2000, list(type = "manifold", sd = 0.05), seed = BENCH_SEEDS[1])
+out   <- sample_manifold(p, 0.9, 2000, list(type = "outlier",  sd = 0.05), seed = BENCH_SEEDS[1])
+```
+
+**Ambient.** Isotropic Gaussian noise added to `X` in $\mathbb{R}^3$ after
+folding. `truth` is untouched, so the points genuinely leave the surface: at
+`sd = 0.05` the root-mean-square off-surface displacement is $0.0855 \approx
+0.05\sqrt{3}$. The cloud now has intrinsic dimension 3, not 2, and no
+two-dimensional embedding can drive `reconstruction_error()` to zero. This is
+the only one of the three that installs a non-zero error floor, and it is the
+setting to use when the question is off-manifold robustness.
+
+**On-manifold.** The perturbation is applied to the flat coordinates *before*
+folding, and the perturbed coordinates are returned as `truth`. The points
+therefore stay exactly on the surface — the minimum ambient-to-truth distance
+ratio is still $\cos\theta$ to five decimals — and the achievable error stays
+zero. What changes is the sampling density. Convolving a uniform density with a
+Gaussian leaves the interior flat and softens the edges, and because there is no
+clipping, about 2.2% of points at `sd = 0.05` land outside the nominal
+rectangle. So on-manifold noise is a *density* perturbation, not a *position*
+error. Its use is to separate two failure modes that look identical in a summary
+statistic: a method that breaks because points left the manifold, and a method
+that breaks because the sampling stopped being uniform. t-SNE and UMAP are
+sensitive to the second in ways that are widely underappreciated
+[@kobak2019art].
+
+**Outlier.** A fixed fraction of points — `max(1, round(0.02 * n))`, so exactly
+2%, regardless of `sd` — is displaced by $N(0, (10\,\text{sd})^2)$ in each
+coordinate. Their `truth` rows are left alone, which is the informative part:
+an outlier keeps the flat coordinate it was born with and no longer sits
+anywhere near it. It is a *mislabelled* point, not an unlabelled one, so a
+method that trusts it pays for it in `reconstruction_error()` rather than being
+quietly excused. Note two footguns. The fraction is hard-coded and `sd`
+controls only the displacement magnitude, so there is no `outlier_frac`
+argument to sweep; and every noise type is gated on `sd > 0`, so
+`list(type = "outlier", sd = 0)` is silently a no-op.
+
+## What $\theta$ does to the $k$-nearest-neighbour graph {#gen-knn}
+
+The fold contracts distances, and the contraction is bounded exactly. For flat
+points $\mathbf{u}, \mathbf{u}'$ with $\Delta = \mathbf{u} - \mathbf{u}'$,
+
+$$
+\|\Phi_\theta(\mathbf{u}) - \Phi_\theta(\mathbf{u}')\|^2
+= \Delta_1^2 + \Delta_2^2\cos^2\theta + \bigl(\zeta_b(u_2) - \zeta_b(u_2')\bigr)^2 \sin^2\theta ,
+$$
+
+and since $\zeta_b$ is $1$-Lipschitz, $|\zeta_b(u_2) - \zeta_b(u_2')| \le
+|\Delta_2|$. Hence
+
+$$
+\cos\theta \cdot \|\Delta\| \;\le\; \|\Phi_\theta(\mathbf{u}) - \Phi_\theta(\mathbf{u}')\| \;\le\; \|\Delta\| ,
+$$
+
+with the lower bound attained exactly when $\Delta_1 = 0$ and $\zeta_b(u_2) =
+\zeta_b(u_2')$ — that is, for pairs sitting directly above one another at the
+same height on the corrugation. Those pairs are the short circuits. Their true
+separation can be the full height of the sheet while their ambient separation is
+$\cos\theta$ times it, and the ratio $1/\cos\theta$ diverges as $\theta \to
+\pi/2$. Sampling at $\theta = 0.9$ confirms the bound is tight: the smallest
+observed ratio of ambient to true distance is $0.62161$, and $\cos(0.9) =
+0.62161$.
+
+Contraction alone is harmless. It becomes a short circuit when a contracted pair
+enters someone's $k$-nearest-neighbour list, because from that point on every
+graph-based method is working on a graph with an edge that the true geometry does
+not contain. Isomap's shortest paths take the shortcut and its geodesic estimates
+collapse; this is the topological-instability failure identified almost
+immediately after Isomap was published [@balasubramanian2002isomap;
+@tenenbaum2000isomap]. Neighbour embeddings inherit the same corrupted graph
+(Chapter \@ref(neighbor)), and so do the graph-regularised autoencoders of
+Chapter \@ref(autoencoders). Linear methods (Chapter \@ref(linear)) are immune to
+this particular failure and fail for entirely different reasons, which is exactly
+why the curves cross.
+
+The onset can be predicted rather than merely observed. On a sheet of area $A$
+with $n$ uniform points, a $k$-nearest-neighbour ball has radius
+$\varepsilon_k \approx \sqrt{k A / (\pi n)}$. A short circuit appears once the
+contracted separation of a geodesically distant pair falls inside that radius.
+Taking `short_circuit_theta()`'s own threshold — a $k$-NN edge whose true
+separation exceeds the median pairwise true distance $d_{\text{med}}$ — the
+onset is at
+
+$$
+\cos\theta^{*} \;\approx\; \frac{\varepsilon_k}{d_{\text{med}}}
+\;=\; \frac{1}{d_{\text{med}}}\sqrt{\frac{kA}{\pi n}} .
+$$
+
+For `miura_ori(4, 4)` the flat sheet has $A = 18.31$ and $d_{\text{med}} =
+2.20$. With $k = 10$ and $n = 300$ this gives $\varepsilon_k = 0.441$,
+$\cos\theta^{*} = 0.200$ and $\theta^{*} = 1.37$ radians ($78.5^\circ$). The
+measured value is $1.394$:
+
+```{r gen-onset}
+vapply(c(5, 10, 20),
+       function(k) short_circuit_theta(p, k = k, n = 300, seed = BENCH_SEEDS[1]),
+       numeric(1))
+#> [1] 1.457 1.394 1.204
+```
+
+Larger $k$ means a wider neighbourhood ball and therefore an earlier onset:
+$83.5^\circ$, $79.9^\circ$, $69.0^\circ$ for $k = 5, 10, 20$. The neighbourhood
+size is not a free tuning knob; it sets the fold angle at which the method's
+premise stops holding.
+
+```{r gen-short-circuit, fig.alt="Mean number of short-circuit edges in the k-nearest-neighbour graph plotted against fold angle theta from 0 to 1.55 radians, for k = 5, 10 and 20, distinguished by both colour and linetype. All three curves sit flat at zero across most of the range and then turn upwards sharply near the right-hand edge, the k = 20 curve lifting first at about 1.1 radians and the k = 5 curve last at about 1.4 radians, all three rising by two orders of magnitude within the final fifth of the range."}
+grid <- seq(0, pi / 2 - 0.02, length.out = 30)
+
+count_sc <- function(theta, k, seed) {
+  m   <- sample_manifold(p, theta = theta, n = 300, seed = seed)
+  nb  <- t(apply(as.matrix(dist(m$X)) + diag(Inf, 300), 1,
+                 function(r) order(r)[seq_len(k)]))
+  dt  <- as.matrix(dist(m$truth))
+  thr <- median(dt[upper.tri(dt)])
+  sum(vapply(seq_len(300), function(i) sum(dt[i, nb[i, ]] > thr), numeric(1)))
+}
+
+sc <- expand.grid(theta = grid, k = c(5, 10, 20))
+sc$edges <- mapply(function(th, k) {
+  mean(vapply(BENCH_SEEDS, function(sd) count_sc(th, k, sd), numeric(1)))
+}, sc$theta, sc$k)
+
+ggplot(sc, aes(theta, edges, colour = factor(k), linetype = factor(k))) +
+  geom_line(linewidth = 0.7) +
+  scale_color_book() +
+  labs(x = expression(theta ~ "(radians)"),
+       y = "short-circuit edges", colour = "k", linetype = "k") +
+  theme_minimal()
+```
+
+At $k = 10$ the mean count over 20 seeds is exactly zero for every $\theta \le
+1.28$, then $1.4$ edges at $\theta = 1.34$, $7.0$ at $1.39$, $37$ at $1.44$,
+$181$ at $1.50$ and $346$ at $1.55$ — out of 3000 edges in total. The transition
+is not a slope. It is a threshold, and it sits in the last fifth of the fold
+range.
+
+## Why every downstream result is a curve {#gen-curve}
+
+That last observation is the whole argument for standing rule 2. Difficulty is
+not linear in $\theta$. Nothing at all happens to the neighbourhood graph over
+the first three quarters of the range, and then everything happens at once. A
+benchmark reported at a single fold angle is therefore not a summary of the
+method's behaviour — it is a choice about which regime to display. Evaluate at
+$\theta = 0.5$ and every graph-based method scores near-perfectly, because the
+graph is still correct. Evaluate at $\theta = 1.5$ and every one of them fails,
+because the graph is not. Neither number tells you where the boundary is, and
+the boundary is the only part that transfers to a real dataset.
+
+Three practical consequences shape the grids in Chapter \@ref(benchmarks) and the
+results in Chapter \@ref(results).
+
+*Grid design matters more than grid size.* A uniform 6-point grid on $[0,
+\pi/2)$ places its last two knots at $1.05$ and $1.31$, both below the $k = 10$
+onset, and reports a clean sweep for a method that is one knot away from
+collapsing. Resolve the transition explicitly — a uniform grid over the bulk plus
+a geometric refinement of the gap $\pi/2 - \theta$ — rather than adding points
+uniformly and hoping.
+
+*The scalar worth reporting is derived from the curve, not measured instead of
+it.* The breakdown angle $\theta^{\dagger}$ at which a method first crosses an
+error threshold is a single number, and it is comparable across methods, but it
+only exists once the curve has been computed. `short_circuit_theta()` is the same
+idea applied to the data rather than to a method: it converts a curve into a
+diagnosis.
+
+*Curve shape is itself the finding.* PCA is exact at $\theta = 0$ and degrades
+smoothly from the first radian, because the surface leaves the plane immediately
+and keeps leaving it. Graph methods are exact until the onset and then fall off a
+cliff. Neighbour embeddings can score *better* at large $\theta$ on
+neighbourhood-based metrics while producing an embedding that is qualitatively
+wrong, because the collapsed pleats read as well-separated clusters — a
+manufactured version of exactly the artefact Chari and Pachter describe in real
+data [@chari2023specious; @vandermaaten2008tsne; @mcinnes2018umap]. Three
+qualitatively different shapes cannot be ranked by three numbers, and Chapter
+\@ref(evaluation) uses that fact to test the metrics themselves.
+
+A final sanity check that costs nothing: any method that fails at $\theta = 0$ is
+broken, not challenged. At zero fold angle the ambient data is the ground truth
+embedded in the plane $z = 0$, and recovering it requires only a rigid motion.
+That point anchors the left-hand end of every curve in this book.

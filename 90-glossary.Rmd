@@ -1,26 +1,234 @@
 # Glossary {-}
 
-<!-- TODO: populate as terms are introduced. Each entry defined at first use in
-     the body text; this is the lookup table, not the definition of record. -->
+Each term is defined at first use in the body text. This is the lookup table,
+not the definition of record. Symbols are collected separately in Appendix
+\@ref(notation).
+
+**Ambient dimension**
+: The dimension $D$ of the space the data are *observed* in, as distinct from
+  the intrinsic dimension of the manifold they lie on. A folded sheet is
+  observed in $\mathbb{R}^3$ and can be lifted to any larger $D$ without its
+  intrinsic dimension changing.
+
+**Autoencoder**
+: A network trained to reconstruct its own input through a narrow bottleneck.
+  Encoder maps to the bottleneck, decoder maps back. The only method here that
+  learns an explicit inverse rather than a one-way map.
+
+**Classical multidimensional scaling (MDS)**
+: Embedding by eigendecomposition of the doubly centred matrix of squared
+  distances. Equivalent to PCA when the distances are Euclidean; the two part
+  company only once they are not.
+
+**Continuity ($C_k$)**
+: Rank-based metric penalising *missed* neighbours — points close together in
+  the ambient data that the embedding pulls apart. The complement of
+  trustworthiness.
+
+**Crease pattern**
+: The planar graph of fold lines drawn on the flat sheet, together with a
+  mountain/valley assignment. Here it doubles as the ground-truth embedding.
 
 **Developable surface**
 : A surface that can be flattened into a plane without stretching or tearing.
+
+**Diffusion map**
+: Embedding by the eigenvectors of a Markov transition matrix built on a
+  kernel-weighted neighbourhood graph. Embedded distance approximates diffusion
+  distance — how differently two starting points spread after $t$ steps.
+
+**Embedding**
+: A map from the ambient sample to lower-dimensional coordinates, and by
+  extension the $n \times q$ matrix $Y$ it produces. Whether the map is an
+  embedding in the topological sense is precisely what the benchmark tests.
+
+**Facet**
+: A flat polygonal region of a crease pattern, bounded by creases and by the
+  edge of the sheet. Rigid folding moves facets without deforming them.
+
+**Flat-foldability**
+: The property that a pattern can be folded flat — every facet parallel to one
+  plane — without the sheet passing through itself. Maekawa's and Kawasaki's
+  theorems are necessary conditions at a single vertex; satisfying them at every
+  vertex is not sufficient for the pattern as a whole.
 
 **Fold angle ($\theta$)**
 : The dihedral angle at a crease. Runs from 0 (flat sheet) to $\theta_{\max}$
   (fully compressed) and serves as the difficulty parameter throughout.
 
+**Gaussian curvature**
+: The product of the two principal curvatures. It is intrinsic, so isometries
+  preserve it. A folded sheet has zero Gaussian curvature everywhere: on facets
+  by flatness, and at each interior vertex because the sector angles around it
+  still sum to $2\pi$. Folding cannot create curvature, only hide flatness.
+
+**Geodesic distance**
+: The length of the shortest path between two points measured *along* a surface
+  rather than through the space around it. Unchanged by folding, which is the
+  premise the book rests on.
+
+**Huzita–Hatori axioms**
+: Seven operations describing what a single fold can construct by aligning given
+  points and lines. Strictly stronger than compass and straightedge — they solve
+  cubics, and so trisect an angle and double the cube. Background; nothing in
+  the benchmark depends on them.
+
+**Interior vertex**
+: A vertex of a crease pattern not lying on the boundary of the sheet.
+  Maekawa's and Kawasaki's conditions constrain interior vertices only.
+
+**Intrinsic dimension**
+: The number of coordinates needed to parameterise a manifold locally,
+  independent of the space it sits in. Written $d$; two for a single crease
+  pattern, $2k$ for a $k$-factor product.
+
+**Isomap**
+: Classical MDS applied to geodesic distances estimated as shortest paths
+  through a kNN graph. Built for exactly the isometric case constructed here,
+  which is why the informative result is where it breaks rather than where it
+  works.
+
 **Isometry**
 : A map that preserves distances measured *along* the surface. Rigid folding is
   an isometry; this is the property the whole book rests on.
+
+**Kawasaki's theorem**
+: At a flat-foldable interior vertex the alternating sum of the sector angles
+  vanishes, $\beta_1 - \beta_2 + \cdots - \beta_{2m} = 0$; equivalently the
+  odd-indexed and even-indexed angles each sum to $\pi$.
+
+**Kernel PCA**
+: PCA performed on the Gram matrix of a kernel instead of the covariance of the
+  data. Nonlinear in the input space while remaining a single eigenproblem. The
+  bridge from linear projections into the geodesic methods.
+
+**kNN graph**
+: The graph joining each point to its $k$ nearest neighbours in ambient
+  distance. Shared substrate of Isomap, LLE, Laplacian eigenmaps, UMAP and every
+  rank-based metric used here — which is why those methods and those metrics
+  tend to fail together rather than independently.
+
+**kNN preservation ($P_k$)**
+: The mean fraction of each point's $k$ ambient neighbours that survive as
+  neighbours in the embedding. The most direct of the rank-based metrics, and
+  the bluntest.
+
+**Kruskal stress**
+: A normalised sum of squared discrepancies between ambient and embedded
+  distances, written $\sigma_1$. Zero for an exact isometric embedding. Computed
+  here on raw distances, without the monotone regression step of non-metric MDS.
+
+**Laplacian eigenmaps**
+: Embedding by the eigenvectors of the graph Laplacian of a kNN graph, taken at
+  the smallest non-zero eigenvalues. Preserves local proximity and says nothing
+  about global scale.
+
+**Latent space**
+: The bottleneck coordinate system of an autoencoder — its learned analogue of
+  the true unfolding. Nothing constrains the two to agree even up to similarity;
+  checking whether they do is the point of Chapter \@ref(autoencoders).
+
+**Lift**
+: Multiplication by a matrix with orthonormal columns, carrying the ambient
+  sample isometrically into a higher-dimensional space. Changes the ambient
+  dimension and nothing else: the intrinsic geometry, and so the answer key, is
+  untouched.
+
+**Locally linear embedding (LLE)**
+: Embedding that reconstructs each point as a weighted combination of its
+  neighbours, then finds low-dimensional coordinates preserving those weights.
+  Assumes every neighbourhood is approximately a linear patch — an assumption a
+  crease violates by construction.
+
+**Maekawa's theorem**
+: At a flat-foldable interior vertex the numbers of mountain and valley creases
+  differ by exactly two, $\lvert M \rvert - \lvert V \rvert = \pm 2$. The degree
+  of such a vertex is therefore even.
+
+**Manifold hypothesis**
+: The assumption that high-dimensional data concentrate near a low-dimensional
+  manifold. Manifold-learning theory usually adds a smoothness assumption on top
+  of it. A crease pattern satisfies the hypothesis and violates the smoothness,
+  which is the situation real data are also in.
+
+**Miura-ori**
+: The tessellation of congruent parallelogram facets in a zig-zag of mountain
+  and valley creases, parameterised by $(a, b, \alpha)$ and folded by the single
+  degree of freedom $\theta$. The default pattern family here.
 
 **Mountain / valley assignment**
 : The direction of each crease. Written M and V; encoded by linetype as well as
   colour in every figure.
 
+**Perplexity**
+: t-SNE's smooth measure of effective neighbourhood size, defined as $2^{H}$ for
+  the Shannon entropy $H$ of the conditional neighbour distribution. Plays the
+  role that $k$ plays elsewhere; UMAP's counterpart is `n_neighbors`.
+
+**Principal component analysis (PCA)**
+: Orthogonal projection onto the directions of greatest variance, computed here
+  by singular value decomposition of the centred data. Exact at $\theta = 0$ and
+  at no other fold angle.
+
+**Procrustes alignment**
+: The similarity transform — rotation or reflection $R$, scale $s$, translation
+  $t$ — minimising squared distance between two configurations. Applied before
+  any embedding is compared to the truth, because an embedding can only ever be
+  correct up to similarity.
+
+**Product manifold**
+: The Cartesian product of $k$ folded patterns: intrinsic dimension $2k$ inside
+  ambient $\mathbb{R}^{3k}$, with the answer key the product of the individual
+  unfoldings. How the benchmark escapes intrinsic dimension two.
+
 **Rigid origami**
 : Folding in which facets stay flat and all deformation happens at creases.
+
+**S-curve**
+: A sheet bent into an S in $\mathbb{R}^3$. With the Swiss roll, one of the two
+  standard synthetic benchmarks: one fixed geometry, everywhere smooth, no
+  difficulty parameter.
+
+**Seed variance**
+: The spread of a metric across random seeds at one fixed configuration. The
+  reference against which any between-method difference must be judged. A gap
+  smaller than the seed variance is not a result.
 
 **Short-circuit**
 : Two points close in ambient space but far apart geodesically. The failure mode
   that breaks kNN-graph methods.
+
+**Swiss roll**
+: A plane rolled into a spiral in $\mathbb{R}^3$; the standard benchmark for
+  nonlinear dimension reduction and the comparator in Chapter
+  \@ref(comparison). It is genuinely isometric to a rectangle and so does have
+  an answer key — but one fixed geometry, uniform curvature, and no knob to turn.
+
+**t-SNE**
+: Neighbour embedding that matches a Gaussian neighbour distribution in the
+  ambient space against a heavy-tailed Student-$t$ one in the embedding, by
+  minimising KL divergence. Preserves local structure; distances between
+  clusters and the apparent size of clusters are not interpretable.
+
+**Trustworthiness ($T_k$)**
+: Rank-based metric penalising *false* neighbours — points the embedding places
+  together that were far apart in the ambient data. The complement of
+  continuity.
+
+**UMAP**
+: Neighbour embedding that builds a fuzzy simplicial set on the kNN graph and
+  optimises a cross-entropy against its low-dimensional counterpart. Faster than
+  t-SNE and generally more willing to preserve global arrangement; equally
+  seed-dependent.
+
+**Waterbomb**
+: A tessellation built from the waterbomb base — a square creased along both
+  diagonals and both midlines. Its degree-six vertices leave more than one
+  degree of freedom, so folding it means choosing a one-parameter path through
+  its configuration space rather than following the only one available.
+
+**Yoshimura**
+: The diamond tessellation that appears when a thin-walled cylinder buckles
+  under axial compression. It folds a flat strip into a corrugated cylinder, so
+  it is the one family here whose sheet can be closed on itself rather than left
+  as a rectangle.

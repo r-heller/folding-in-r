@@ -18,3 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Render, citation-check and package-check workflows.
 - `README.md`, `CITATION.cff` and contribution guide.
 - VG Wort instrumentation scaffold.
+- Chapter prose for ten of the twelve body chapters, the glossary, and both
+  appendices, written against the `foldbench` API.
+- Benchmark grid now scores five methods (PCA, classical MDS, Isomap, t-SNE,
+  UMAP) instead of PCA alone.
+- 61 bibliography entries added alongside the prose.
+
+### Fixed
+
+- `.gitignore` no longer swallows `data/processed/benchmark-grid.rds`. The
+  blanket `*.rds` rule is scoped to the repository root, where the bookdown
+  session cache actually lands, so the precomputed grid can be committed as
+  `scripts/run-benchmark-grid.R` has always said it should be.
+- A failed embedding in the benchmark grid is recorded as `NA` rather than
+  dropped. Dropping it biased every curve by removing the hard configurations.

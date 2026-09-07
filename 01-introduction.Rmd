@@ -2,10 +2,348 @@
 
 *Why should a crease pattern tell you anything about a gene expression matrix?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+It should not, and this book does not claim that it does. A folded sheet of
+paper is not a model of transcription, and no argument here depends on
+pretending otherwise.
 
-- The ground-truth thesis: a rigid crease pattern *is* the answer key, not a proxy for it.
-- What the book claims, and what it explicitly does not claim.
-- The Chari & Pachter challenge to 2D embeddings, stated up front as the target.
-- Why exact truth lets us evaluate the evaluation metrics, not just the methods.
-- Roadmap: fold the sheet (Part I), test the methods (II), build the benchmark (III), change a decision (IV).
+The claim is narrower, and in exchange it is checkable. The things we point at
+a gene expression matrix — PCA, Isomap, t-SNE, UMAP, an autoencoder, and the
+scores used to grade their output — are instruments. Instruments are calibrated
+against a standard whose value is known, not against the specimen you are
+curious about. A rigid crease pattern is such a standard. It is a manifold
+whose correct two-dimensional description is available in closed form, at any
+sample size, at a difficulty you can turn up continuously with one parameter.
+Point an instrument at it and the reading can be compared with the truth
+instead of with an expectation.
+
+That is the whole trick, and the rest of this book is what follows from it.
+
+## A crease pattern is the answer key {#intro-answer-key}
+
+Rigid origami folds a flat sheet along creases while every facet stays flat
+[@demaine2007folding]. Nothing stretches, nothing tears, and the material
+between creases does not bend. The map from the flat sheet to the folded
+surface is therefore an isometry: lengths measured *along* the surface are
+identical before and after folding. Chapter \@ref(folding-geometry) develops
+the geometry; @hull2020origametry is the standard reference.
+
+The consequence is worth stating slowly, because everything else rests on it.
+
+Take a point on the folded surface $\mathcal{M} \subset \mathbb{R}^3$. It came
+from exactly one point on the flat sheet $\mathcal{U} \subset \mathbb{R}^2$.
+That flat coordinate is a two-dimensional description of the point, and the
+unfolding $\phi : \mathcal{M} \to \mathcal{U}$ satisfies
+
+$$
+d_{\mathcal{M}}(p, q) \;=\; \lVert \phi(p) - \phi(q) \rVert_2
+\qquad \text{for all } p, q \in \mathcal{M},
+$$
+
+where $d_{\mathcal{M}}$ is geodesic distance along the folded surface. The
+sheet is a convex domain, so the straight segment joining any two flat
+coordinates stays inside it and the identity holds globally, not merely for
+nearby points.
+
+No numerical approximation appears anywhere in that statement. $\mathcal{U}$ is
+not a good embedding, not a defensible embedding, not the embedding a
+well-tuned method converges to given enough compute. It *is* the embedding,
+unique up to a rigid motion of the plane — and that residual freedom is exactly
+what Procrustes alignment removes before any error is measured.
+
+So the object under study comes with its own answer key, and the key is not a
+proxy for the truth, a consensus of methods, or a label someone assigned by
+eye. It is the generating coordinate itself, returned by the constructor before
+any folding happens.
+
+```{r intro-answer-key-demo}
+library(foldbench)
+
+# A Miura-ori sheet: 4 by 6 parallelogram cells.
+pattern <- miura_ori(n_rows = 4, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
+
+# The exact flat embedding. No inference, no optimisation, no fitting.
+head(unfold(pattern))
+
+# Sample the folded surface with a little ambient measurement noise.
+# theta is the fold angle, in radians, bounded above by pi/2.
+s <- sample_manifold(
+  pattern,
+  theta = pi / 6,
+  n     = 2000,
+  noise = list(type = "ambient", sd = 0.01),
+  seed  = BENCH_SEEDS[1]
+)
+
+dim(s$X)      # 2000 x 3  — what any method is allowed to see
+dim(s$truth)  # 2000 x 2  — the exact flat coordinates that produced X
+```
+
+`s$truth` is not an estimate. It is the argument that was passed to the fold
+map, recovered without inference. Any embedding $Y$ of `s$X` can therefore be
+scored against it directly:
+
+```{r intro-scoring}
+Y <- prcomp(s$X, center = TRUE, scale. = FALSE)$x[, 1:2]
+
+reconstruction_error(Y, s$truth)        # how far PCA is from the truth
+reconstruction_error(s$truth, s$truth)  # 0, by construction — the ruler's zero
+```
+
+The second line looks trivial. It is the point. On a real dataset there is no
+second line, and every quantity reported is a distance from something that is
+itself uncertain.
+
+## Exact geodesics, for free {#intro-geodesics}
+
+The isometry buys something beyond the embedding, and it is worth making
+explicit because a whole family of methods is built to estimate it.
+
+Isomap [@tenenbaum2000isomap] works by approximating geodesic distance on the
+data manifold with shortest paths through a $k$-nearest-neighbour graph. That
+approximation is the method's central assumption and its principal failure
+mode. On a crease pattern, no approximation is required: because folding
+preserves along-surface length, the ordinary Euclidean distance matrix of the
+flat truth *is* the exact geodesic distance matrix of the folded surface.
+
+```{r intro-geodesics-demo}
+# Exact geodesic distances on the folded surface in R^3 — computed in R^2,
+# because folding does not change them.
+G <- dist(s$truth)
+```
+
+One line, no graph, no shortest-path search, no neighbourhood parameter to
+tune. So the error in Isomap's geodesic estimate is itself measurable, which is
+a strictly stronger position than being able to measure only the error of its
+final embedding. Chapter \@ref(geodesic) uses this to separate the two failures
+that are usually conflated: a bad geodesic estimate, and a bad embedding of
+good geodesics.
+
+Figure \@ref(fig:intro-fold-sweep) shows what the fold angle $\theta$ does to
+the sheet. At $\theta = 0$ the manifold is a plane and PCA is exact. As $\theta$
+rises the accordion compresses, points on facets that are far apart on the
+sheet approach each other in $\mathbb{R}^3$, and the two-dimensional structure
+gets progressively harder to recover — continuously, with no discontinuity
+anywhere in the generating process. Every distance in `G` is unchanged
+throughout.
+
+```{r intro-fold-sweep, fig.cap = "One Miura-ori sheet at four fold angles, seen in profile. Difficulty is a dial, not a fixed dataset.", fig.alt = "Four side-by-side scatter panels showing the profile of the same folded sheet in the ambient y-z plane at fold angles 0, 0.5, 1.0 and 1.4 radians. At theta = 0 the points lie on a single horizontal line of width about 4 units. As theta increases the line opens into a zigzag: the horizontal extent shrinks to under 1 unit while the vertical extent grows to about 1 unit, so facets that are far apart along the sheet end up close together in ambient space. Up-sloping and down-sloping facets are distinguished by both colour and point shape."}
+library(ggplot2)
+
+thetas <- c(0, 0.5, 1.0, 1.4)   # radians; the fold is defined on [0, pi/2)
+
+sweep <- do.call(rbind, lapply(thetas, function(th) {
+  m <- sample_manifold(pattern, theta = th, n = 400, seed = BENCH_SEEDS[1])
+  # Facet band is a function of the exact truth, not of the ambient data.
+  band <- floor(m$truth[, "y"] / pattern$params$b)
+  data.frame(
+    y     = m$X[, "y"],
+    z     = m$X[, "z"],
+    slope = factor(band %% 2, levels = 0:1,
+                   labels = c("up-sloping", "down-sloping")),
+    theta = sprintf("theta == %.2f", th)
+  )
+}))
+
+ggplot(sweep, aes(y, z, colour = slope, shape = slope)) +
+  geom_point(size = 0.5, alpha = 0.7) +
+  facet_wrap(~ theta, nrow = 1, labeller = label_parsed) +
+  scale_color_book(name = "facet") +
+  scale_shape_manual(name = "facet", values = c(16, 17)) +
+  coord_equal() +
+  labs(x = "ambient y", y = "ambient z") +
+  theme_minimal(base_size = 9)
+```
+
+A fair objection arrives immediately: the Swiss roll also has a known
+parameterisation [@tenenbaum2000isomap], so what has been gained? Four things.
+The crease pattern is a *family* indexed by $\theta$ rather than a single
+geometry, so no configuration can be quietly selected after the fact. Its
+geodesics are exact rather than estimated, as above. It is piecewise flat, so
+it violates the smoothness assumptions that manifold-learning theory leans on —
+a feature, since real data manifolds have creases too. And it composes:
+products of folded sheets give exact ground truth at intrinsic dimension $2k$,
+where a benchmark stuck at dimension 2 cannot go. Chapter \@ref(comparison)
+runs the head-to-head and reports where the two benchmarks disagree about
+method rankings.
+
+## What is claimed {#intro-claims}
+
+Four claims, in decreasing order of confidence.
+
+**One.** For a rigidly folded crease pattern, the flat pattern is the exact
+two-dimensional embedding. This is geometry, not an empirical finding, and it
+is either true or the fold is not rigid.
+
+**Two.** Because the truth is exact, reconstruction error is a *measurement*.
+Procrustes-aligned RMSE against $\mathcal{U}$ has a known zero, a known scale,
+and no dependence on the method being graded. Chapter \@ref(evaluation) makes
+this the headline metric.
+
+**Three.** The same exactness lets us audit the metrics that are used when no
+truth exists. Trustworthiness, continuity and $k$-nearest-neighbour
+preservation are all surrogates for a distortion nobody can normally observe.
+Here the distortion is observable, so the surrogates can be scored on how well
+they track it. This is the book's main experimental contribution.
+
+**Four.** The resulting rankings sometimes disagree with rankings obtained from
+the standard benchmarks, and a benchmark that never changes a decision is not
+worth running. Chapter \@ref(application) tests whether it changes one.
+
+## What is not claimed {#intro-not-claimed}
+
+A folded sheet is not a cell. Nothing here establishes that any biological
+dataset lies near a developable surface, and no result should be read as
+evidence about the geometry of transcriptomes. The generalisation runs the
+other way: a method that cannot recover a two-dimensional structure whose truth
+is exact and whose noise you specified yourself has not earned the benefit of
+the doubt on data where the truth is unknown. Failure here is informative.
+Success here is necessary, not sufficient.
+
+Nor is this a claim that low-dimensional visualisation should be abandoned.
+Measuring distortion is not the same as concluding that the distortion is
+fatal, and this book takes no position on that beyond what its own numbers
+support.
+
+Finally, none of this is a contribution to rigidity theory or to computational
+origami design. The patterns used are textbook ones — Miura-ori, Yoshimura,
+waterbomb [@lang2011origami] — chosen because their fold kinematics are known
+in closed form and cheap to compute, not because they are novel.
+
+## The target {#intro-target}
+
+@chari2023specious argue that two-dimensional embeddings of single-cell
+genomics data are systematically misleading: that the pictures preserve far
+less of the original high-dimensional relationships than their use in the
+literature assumes, that the distortion is intrinsic to the compression rather
+than a tuning failure, and that conclusions read off such pictures are
+therefore unsafe. The rebuttals — that careful initialisation, perplexity and
+neighbourhood choices recover much of the structure [@kobak2019art] — are
+serious, but both sides argue on terrain where nobody has the answer key. On a
+gene expression matrix there is no $\mathcal{U}$ to compare against. The debate
+is conducted with surrogates on both sides.
+
+That is not a rhetorical complaint. It has a concrete cost: when two groups
+report different trustworthiness scores for the same embedding pipeline, there
+is no third quantity either can appeal to. Disagreements about the *method*
+become indistinguishable from disagreements about the *ruler*, and the
+literature has no mechanism for telling them apart.
+
+This book takes that challenge as its target, and accepts a strict limit on
+what it can do about it. It cannot tell you whether any particular UMAP plot of
+any particular tissue is misleading. It can tell you how much distortion a
+given method introduces on a manifold of specified difficulty, where "how much"
+is a number with units and a known zero. And — more usefully for the argument —
+it can tell you whether the instruments both camps use to make their case are
+reporting that distortion faithfully.
+
+## Evaluating the evaluators {#intro-evaluators}
+
+Here is the move that exact truth makes available, and which no standard
+benchmark supports.
+
+A metric such as trustworthiness takes the ambient data $X$ and the embedding
+$Y$ and returns a score in $[0, 1]$. It is used as a stand-in for the true
+distortion, which is normally unobservable. When $\mathcal{U}$ is known, both
+quantities are available at once, and the surrogate can be scored on how well
+it tracks what it stands in for — across methods, across fold angles, across
+noise levels, across seeds.
+
+The sharpest diagnostic is the cheapest one: evaluate the metrics on the truth
+itself.
+
+```{r intro-metric-on-truth}
+trustworthiness(s$X,  s$truth, k = 15)   # the exact answer does not score 1
+knn_preservation(s$X, s$truth, k = 15)
+```
+
+Neither returns 1, and $k$-nearest-neighbour preservation is not close to it.
+It cannot be, because these metrics compare neighbourhoods in the *ambient*
+data — which contain measurement noise, and, once the sheet is folded far
+enough, short circuits between facets that lie close in $\mathbb{R}^3$ but far
+apart on the sheet — against neighbourhoods in the embedding. The correct
+unfolding deliberately separates points that the ambient geometry has pushed
+together, and the metric charges it for doing so.
+
+The consequence is uncomfortable and easy to state: a method can score *higher*
+than the truth. On this sheet with two-dimensional PCA, across all 20 benchmark
+seeds, it always does — at a flat $\theta = 0$ and at a nearly compressed
+$\theta = 1.5$ alike. In the compressed case PCA collapses the fold entirely,
+which is close to the worst reconstruction available, and it still beats the
+exact unfolding on $k$-nearest-neighbour preservation by a wide margin.
+Whatever it is being rewarded for, it is not correctness. It is agreement with
+the ambient artefacts that the fold created. Chapter \@ref(evaluation)
+quantifies the gap across the full grid and reports how large it gets, for
+which metrics, and at which fold angles.
+
+There is a second reason the audit matters. Trustworthiness, continuity and
+$k$-nearest-neighbour preservation are all built from the same object — the
+$k$-neighbourhood graph — and Kruskal stress is dominated by the same short
+distances. They are not four independent opinions. When they agree, the
+agreement is weak evidence, because a distortion that the neighbourhood graph
+cannot see is invisible to all of them at once. Exact truth is what turns that
+suspicion into a measurement: Chapter \@ref(evaluation) reports how much of the
+variance in the surrogates is shared, and how much of the true error none of
+them captures.
+
+That result is the reason the book is organised around a benchmark rather than
+a method comparison. Comparing methods with a broken ruler produces a
+confidently wrong ordering, and the ordering looks no less confident for being
+wrong.
+
+## The shape of the argument {#intro-roadmap}
+
+**Part I — Folding.** Build the object. Chapter \@ref(folding-geometry)
+establishes what makes a crease pattern a valid manifold: developability,
+Maekawa's and Kawasaki's conditions, and why only *rigid* folding preserves the
+isometry that everything depends on. Chapter \@ref(generative) turns one
+pattern into a family — the Miura-ori parameterisation, uniform sampling on
+facets, noise models, and what $\theta$ does to the $k$-nearest-neighbour graph.
+
+**Part II — Methods under test.** Four families, each against exact truth.
+Linear projections in Chapter \@ref(linear), where two components are exact at
+$\theta = 0$ and the collapse of explained variance as $\theta$ rises motivates
+everything after it. Geodesic methods in Chapter \@ref(geodesic): classical
+MDS, Isomap [@tenenbaum2000isomap], locally linear embedding
+[@roweis2000lle] — Isomap is *built* for isometric embeddings, so the
+informative question is the exact angle at which its graph first bridges two
+facets, which `foldbench` locates directly. Neighbour embeddings in Chapter
+\@ref(neighbor), where t-SNE [@vandermaaten2008tsne] and UMAP
+[@mcinnes2018umap] are separated from their own seed noise. Autoencoders in
+Chapter \@ref(autoencoders), the only family that learns an explicit inverse,
+which makes the fold–unfold identity directly computable.
+
+**Part III — The benchmark.** Chapter \@ref(benchmarks) is the construction
+proper: the `foldbench` API end to end, pattern families beyond Miura-ori,
+product manifolds at intrinsic dimension $2k$, and random orthonormal lifts to
+arbitrary ambient dimension. Chapter \@ref(evaluation) audits the evaluators.
+Chapter \@ref(results) reports the full method $\times$ pattern $\times$
+$\theta$ $\times$ noise grid as distributions, and states plainly how much
+between-method variation falls inside within-method seed variance. Chapter
+\@ref(comparison) asks whether any of this beats the Swiss roll.
+
+**Part IV — Application.** Chapter \@ref(application) takes the grid, uses it
+to choose a method and its hyperparameters, applies that choice to a real
+single-cell dataset, and compares it against the field default. If the
+benchmark-guided choice does not win, that is the result, and it is reported as
+such. A benchmark whose recommendations are never tested against a real
+decision is a simulation study with better marketing.
+
+## What would falsify this {#intro-falsification}
+
+The book's central claim is not a matter of taste, so it should be possible to
+say what would sink it.
+
+If the standard metrics turned out to track true reconstruction error closely
+across the whole grid — high rank correlation with Procrustes RMSE at every
+fold angle, every noise level, every pattern family — then exact truth would be
+an elegant confirmation of what practitioners already do, and Chapter
+\@ref(evaluation) would be a short chapter. If method rankings on crease
+patterns matched rankings on the Swiss roll, Chapter \@ref(comparison) would
+conclude that the new benchmark adds nothing and should not be used. If the
+benchmark-guided choice in Chapter \@ref(application) lost to the default, the
+practical case would collapse regardless of how clean the geometry is.
+
+All three are live possibilities, and each is checked in the chapter that could
+fail it. The argument for building this benchmark is that these questions have
+answers, and that on a folded sheet the answers can be computed rather than
+debated.

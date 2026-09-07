@@ -2,9 +2,523 @@
 
 *Can a network learn the fold and the unfold at once?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+Every method in Chapters \@ref(linear) to \@ref(neighbor) produces coordinates
+and stops. PCA gives a projection but no way back that respects the manifold;
+Isomap and LLE give an embedding of the training points and an awkward
+out-of-sample story; t-SNE and UMAP give a picture. None of them hands you a map
+from the plane back onto the folded sheet.
 
-- A `torch` autoencoder with a two-unit bottleneck. (`keras` would pull TensorFlow and break clean-clone reproducibility.)
-- The only method here that learns an explicit inverse: encoder = fold, decoder = unfold.
-- Reconstruction loss is the fold–unfold identity made computable.
-- Compare the learned decoder against the true unfolding, not just against the input.
+An autoencoder does. It is the only family in this book that fits both
+directions of the fold at once, as two explicit, differentiable functions. That
+makes it the natural candidate — a crease pattern is exactly the sort of
+structure a network *can* represent — and it makes it the most treacherous,
+because the objective it optimises is not the thing we care about, and the gap
+between them is measurable here in a way it usually is not.
+
+One caveat before anything else. The rendering pipeline for this book installs
+the pinned library *minus* `torch`, because LibTorch is a large binary backend
+and the render job has a time ceiling. Every chunk in this chapter is therefore
+`eval = FALSE`, as elsewhere in the book, and the figures below are reproduced
+from a recorded run committed under `data/processed/` rather than fitted while
+the book builds. The code is the provenance record for that run, not a live
+computation. This is also the chapter whose numbers are most sensitive to
+implementation detail, and Section \@ref(ae-cost) says why.
+
+## Two networks, one bottleneck
+
+The architecture is minimal on purpose. An encoder $f_\psi : \mathbb{R}^3 \to
+\mathbb{R}^2$, a decoder $g_\phi : \mathbb{R}^2 \to \mathbb{R}^3$, a two-unit
+bottleneck because the intrinsic dimension of a folded sheet is exactly two, and
+mean squared reconstruction error. Nothing else: no denoising, no variational
+term [@kingma2014vae], no topological regulariser [@moor2020topological]. Those
+are all worth having, and all of them would obscure the point of this chapter,
+which is what the plain objective does and does not determine.
+
+The implementation uses `torch`. The alternative, `keras3`, is a thin R front end
+onto TensorFlow, and TensorFlow arrives through a Python environment that
+`renv.lock` does not pin. A reader cloning this repository and running
+`renv::restore()` would get the book's R packages and *some* Python stack, which
+is not reproducibility. `torch` ships its own LibTorch binary and stays inside
+the R dependency graph, at the cost of being excluded from the render.
+
+```{r ae-module}
+library(torch)
+library(foldbench)
+library(ggplot2)
+
+fold_autoencoder <- nn_module(
+  "fold_autoencoder",
+  initialize = function(d_in = 3L, d_latent = 2L, width = 64L,
+                        act = nn_gelu) {
+    self$encoder <- nn_sequential(
+      nn_linear(d_in, width),  act(),
+      nn_linear(width, width), act(),
+      nn_linear(width, d_latent)
+    )
+    self$decoder <- nn_sequential(
+      nn_linear(d_latent, width), act(),
+      nn_linear(width, width),    act(),
+      nn_linear(width, d_in)
+    )
+  },
+  forward = function(x) {
+    z <- self$encoder(x)
+    list(z = z, x_hat = self$decoder(z))
+  }
+)
+```
+
+The training loop is deliberately unglamorous — full-batch Adam
+[@kingma2015adam] on a few thousand points, which fits in memory and removes
+mini-batch ordering as a source of run-to-run variation. It returns the loss
+trace and the latent codes alongside the fitted module, because both are
+evidence later.
+
+```{r ae-fit}
+fit_ae <- function(X, epochs = 3000L, lr = 1e-3, width = 64L, seed = 1L) {
+  torch_manual_seed(seed)
+  set.seed(seed)
+
+  x   <- torch_tensor(scale(X, center = TRUE, scale = FALSE),
+                      dtype = torch_float())
+  net <- fold_autoencoder(d_in = ncol(X), d_latent = 2L, width = width)
+  opt <- optim_adam(net$parameters, lr = lr)
+
+  trace <- numeric(epochs)
+  for (e in seq_len(epochs)) {
+    opt$zero_grad()
+    out  <- net(x)
+    loss <- nnf_mse_loss(out$x_hat, x)
+    loss$backward()
+    opt$step()
+    trace[e] <- loss$item()
+  }
+
+  Z <- with_no_grad(as_array(net$encoder(x)))
+  list(net = net, trace = trace, Z = Z, seed = seed)
+}
+```
+
+## Encoder and decoder are the two directions of the fold
+
+It is worth being pedantic about which network is which, because the naming
+convention runs opposite to the physical picture.
+
+The data live on the folded surface in $\mathbb{R}^3$. The decoder $g_\phi$ maps
+a two-dimensional latent coordinate to a point in $\mathbb{R}^3$: it is a learned
+parameterisation of the folded sheet, and therefore the *fold* map — the same
+object that `fold(pattern, theta)` produces in closed form in
+Chapter \@ref(generative). The encoder $f_\psi$ is its approximate left inverse:
+it flattens the surface into the plane, and is therefore the *unfolding*, the
+learned counterpart of `unfold()`. What gets compared against ground truth is the
+encoder's output.
+
+No other method here gives both. That matters practically — a fitted decoder
+interpolates, extrapolates, and can be differentiated, which is what makes the
+distortion diagnostic later in this chapter possible at all. It also matters
+conceptually: the pair $(f_\psi, g_\phi)$ is a candidate factorisation of the
+generative model, and the reconstruction loss is the statement that the
+factorisation is self-consistent.
+
+## Reconstruction loss is the fold–unfold identity, made computable
+
+The isometry that this whole book rests on says that folding is invertible:
+unfold, then fold, and you are back where you started. Write $F$ for the true
+fold and $F^{-1}$ for the true unfolding, and the claim is
+$F \circ F^{-1} = \mathrm{id}$ on the surface. The training objective is the
+empirical, learnable version of exactly that identity,
+
+$$
+\mathcal{L}(\psi, \phi) \;=\; \frac{1}{n}\sum_{i=1}^{n}
+   \bigl\lVert\, g_\phi\!\left(f_\psi(x_i)\right) - x_i \,\bigr\rVert_2^2 ,
+$$
+
+with $g_\phi \circ f_\psi$ standing in for $F \circ F^{-1}$ and the sum over
+samples standing in for "on the surface". Driving $\mathcal{L}$ to zero certifies
+that the composition is the identity on the data. It certifies nothing whatever
+about either factor separately. That single observation is this chapter.
+
+## A linear bottleneck is PCA
+
+Before the nonlinear case, the degenerate one, because it fixes the baseline and
+the vocabulary. Strip both activations and the biases and the model becomes
+$\hat{x} = BAx$ with $A \in \mathbb{R}^{2\times 3}$ and
+$B \in \mathbb{R}^{3\times 2}$. The squared-error optimum is then the rank-two
+truncated SVD of the centred data: every global minimum spans the same subspace
+as the first two principal components, and the loss surface has no non-global
+local minima at all [@bourlard1988autoassociation; @baldi1989neural]. A linear
+autoencoder does not approximate the PCA of Chapter \@ref(linear). It recovers
+the PCA subspace exactly, up to an invertible $2 \times 2$ change of basis.
+
+That last clause is the interesting part. The subspace is identified; the
+coordinates on it are not. Replace $(A, B)$ by $(HA, BH^{-1})$ for any invertible
+$H$ and the loss is unchanged. PCA resolves the ambiguity by fiat — orthonormal,
+variance-ordered loadings — but nothing in the objective demands it, and the
+network has no reason to comply.
+
+```{r ae-linear-vs-pca}
+linear_autoencoder <- nn_module(
+  "linear_autoencoder",
+  initialize = function(d_in = 3L, d_latent = 2L) {
+    self$A <- nn_linear(d_in, d_latent, bias = FALSE)   # encoder
+    self$B <- nn_linear(d_latent, d_in, bias = FALSE)   # decoder
+  },
+  forward = function(x) {
+    z <- self$A(x)
+    list(z = z, x_hat = self$B(z))
+  }
+)
+
+fit_ae_linear <- function(X, epochs = 2000L, lr = 1e-2, seed = 1L) {
+  torch_manual_seed(seed)
+  set.seed(seed)
+  x   <- torch_tensor(scale(X, center = TRUE, scale = FALSE),
+                      dtype = torch_float())
+  net <- linear_autoencoder(d_in = ncol(X), d_latent = 2L)
+  opt <- optim_adam(net$parameters, lr = lr)
+  for (e in seq_len(epochs)) {
+    opt$zero_grad()
+    loss <- nnf_mse_loss(net(x)$x_hat, x)
+    loss$backward()
+    opt$step()
+  }
+  list(net = net, Z = with_no_grad(as_array(net$A(x))))
+}
+
+principal_angles <- function(P, Q) {
+  qp <- qr.Q(qr(P)); qq <- qr.Q(qr(Q))
+  acos(pmin(1, svd(crossprod(qp, qq))$d))
+}
+
+pat <- miura_ori(n_rows = 6, n_cols = 4, a = 1, b = 1, alpha = pi / 3)
+d0  <- sample_manifold(pat, theta = pi / 4, n = 4000,
+                       noise = list(type = "ambient", sd = 0.005),
+                       seed = BENCH_SEEDS[1])
+
+lin <- fit_ae_linear(d0$X, epochs = 2000L, seed = BENCH_SEEDS[1])
+B   <- t(as_array(lin$net$B$weight))            # 3 x 2 decoder basis
+V   <- prcomp(d0$X, center = TRUE)$rotation[, 1:2]
+
+max(principal_angles(B, V)) * 180 / pi          # degrees; expect ~0
+```
+
+The nonlinear model is Kramer's nonlinear PCA [@kramer1991nonlinear], and the
+ambiguity generalises with it: the invertible matrix $H$ becomes an invertible
+*map*. Hold on to that, because it is the whole identifiability story.
+
+## Representability is not the problem
+
+A reasonable prior is that the network will struggle to express the fold. It will
+not. Two facts make the crease pattern an unusually easy target.
+
+First, a rigid fold is piecewise affine. Each facet is mapped by a rigid motion,
+and the map is continuous across creases. A ReLU network is *exactly* a
+piecewise-affine function with polyhedral pieces. The hypothesis class and the
+target class are the same class; a network of sufficient width can represent the
+fold and the unfolding not approximately but exactly, with the creases sitting on
+activation boundaries. (The GELU above trades that exactness for a smoother loss
+surface. A ReLU variant is genuinely competitive here, which is unusual, and
+worth trying.)
+
+Second, the unfolding is globally well defined. For $\theta < \pi/2$ no two
+distinct sheet points coincide in $\mathbb{R}^3$, so $F^{-1}$ exists as a
+continuous function on the surface, and it is Lipschitz with constant one because
+folding is an isometry. There is no topological obstruction of the kind that
+defeats PCA at high $\theta$ in Chapter \@ref(linear), and none of the
+short-circuiting that `short_circuit_theta()` locates for the graph methods in
+Chapter \@ref(geodesic). Where those methods fail because the correct answer sits
+outside their reach, the autoencoder has no such excuse.
+
+So the question is not *can* it. The question is whether the objective and the
+optimiser find it.
+
+## Low loss, wrong latent space {#low-loss-wrong-latent-space}
+
+They frequently do not, and the failure is invisible from the loss curve.
+
+Fit the same architecture from the twenty `BENCH_SEEDS` at each of three fold
+angles. Record final reconstruction MSE and, separately, the Procrustes-aligned
+`reconstruction_error()` of the latent codes against the exact unfolding in
+`$truth`. If reconstruction were a proxy for correctness the two would track each
+other. They do not.
+
+```{r ae-decouple, fig.alt="Scatter of final reconstruction mean squared error against Procrustes-aligned latent error for twenty seeds at each of three fold angles, faceted by fold angle, with both point shape and colour distinguishing runs whose latent space is intact, sheared or torn. Within every facet the points form a near-horizontal band: reconstruction MSE varies by less than an order of magnitude while latent error spans roughly a factor of five, and the two quantities show no visible association.", fig.height=3.6}
+sweep_seeds <- function(theta, seeds = BENCH_SEEDS, n = 4000L) {
+  do.call(rbind, lapply(seeds, function(sd) {
+    d <- sample_manifold(pat, theta = theta, n = n,
+                         noise = list(type = "ambient", sd = 0.005), seed = sd)
+    m <- fit_ae(d$X, seed = sd)
+    data.frame(
+      theta     = theta,
+      seed      = sd,
+      recon_mse = tail(m$trace, 1),
+      latent_err = reconstruction_error(m$Z, d$truth),
+      knn        = knn_preservation(d$X, m$Z, k = 15),
+      trust      = trustworthiness(d$X, m$Z, k = 15)
+    )
+  }))
+}
+
+runs <- do.call(rbind, lapply(c(pi / 8, pi / 4, 3 * pi / 8), sweep_seeds))
+runs$verdict <- cut(runs$latent_err, breaks = c(-Inf, 0.05, 0.15, Inf),
+                    labels = c("intact", "sheared", "torn"))
+
+ggplot(runs, aes(recon_mse, latent_err, shape = verdict, colour = verdict)) +
+  geom_point(size = 2.2, alpha = 0.85) +
+  facet_wrap(~ round(theta, 2),
+             labeller = label_bquote(theta == .(round(theta, 2)))) +
+  scale_x_log10() +
+  scale_color_book(name = NULL) +
+  scale_shape_manual(values = c(16, 17, 4), name = NULL) +
+  labs(x = "final reconstruction MSE (log scale)",
+       y = "Procrustes-aligned error vs. true unfolding") +
+  theme_minimal(base_size = 10)
+```
+
+The band is flat. A run whose reconstruction MSE is $10^{-4}$ — visually a
+perfect fit, the decoded points sitting on the folded sheet to within the noise
+we injected — can have a latent space that is sheared into a parallelogram,
+compressed along one axis by a factor of three, or torn along a mountain crease
+so that two adjacent bands land in disjoint blobs. The reconstruction is faithful
+because the decoder simply undoes whatever the encoder did. Both factors are
+wrong; their composition is right.
+
+Plotting the latent codes makes the failure modes legible. `sample_manifold()`
+returns the exact flat coordinates in `$truth`, and the Miura bands are strips of
+width $b$ in the second truth coordinate, so a band index is available without
+any extra bookkeeping. Shade by the true $u_1$ and the panels tell the story:
+an intact run reproduces the crease pattern; a sheared run reproduces it under an
+affine map that Procrustes alignment cannot remove; a torn run cuts it along a
+crease and rotates the halves apart.
+
+```{r ae-latent-panels, fig.alt="Four panels of two-dimensional latent codes, shaded by the true first unfolding coordinate. The first panel is the exact flat crease pattern; the second is a run that reproduces it; the third is a run in which the pattern is sheared so the band structure is no longer rectangular; the fourth is a run torn along a mountain crease into two separated components with a visible gap between them.", fig.height=3.2}
+# One representative seed per outcome, refitted so the module (and therefore
+# its Jacobian) is available, not just the stored latent codes.
+pick <- function(v) runs$seed[runs$theta == pi / 4 & runs$verdict == v][1]
+
+fit_intact  <- fit_ae(d0$X, seed = pick("intact"))
+fit_sheared <- fit_ae(d0$X, seed = pick("sheared"))
+fit_torn    <- fit_ae(d0$X, seed = pick("torn"))
+
+band_of <- function(truth, b = 1) floor(truth[, 2] / b)
+
+panel_of <- function(Z, d, label) {
+  data.frame(z1 = Z[, 1], z2 = Z[, 2], u1 = d$truth[, 1],
+             band = band_of(d$truth), panel = label)
+}
+
+panels <- rbind(
+  panel_of(d0$truth,      d0, "truth"),
+  panel_of(fit_intact$Z,  d0, "intact"),
+  panel_of(fit_sheared$Z, d0, "sheared"),
+  panel_of(fit_torn$Z,    d0, "torn")
+)
+panels$panel <- factor(panels$panel,
+                       levels = c("truth", "intact", "sheared", "torn"))
+
+ggplot(panels, aes(z1, z2, colour = u1, group = band)) +
+  geom_point(size = 0.35, alpha = 0.6) +
+  facet_wrap(~ panel, nrow = 1, scales = "free") +
+  viridis::scale_color_viridis_c(option = "C", name = expression(u[1])) +
+  coord_equal() +
+  labs(x = expression(z[1]), y = expression(z[2])) +
+  theme_minimal(base_size = 10) +
+  theme(axis.text = element_blank())
+```
+
+This generalises well past origami. Wherever a reconstruction objective is used
+as evidence that a latent space is meaningful — expression programmes in a
+single-cell autoencoder, factors in a learned surrogate model — the same argument
+applies, and the same defence is unavailable, because there is no `$truth` to
+check against. Here there is. That is the point of the benchmark
+[@chari2023specious].
+
+## What the loss can and cannot pin down
+
+The reason is structural, not a training artefact. For any diffeomorphism
+$h : \mathbb{R}^2 \to \mathbb{R}^2$,
+
+$$
+g_\phi \circ f_\psi \;=\; \left(g_\phi \circ h^{-1}\right) \circ
+                          \left(h \circ f_\psi\right),
+$$
+
+so the pair $(h \circ f_\psi,\; g_\phi \circ h^{-1})$ achieves *exactly* the same
+loss, for every $h$. The latent representation is identifiable only up to a
+diffeomorphism, and the diffeomorphism group of the plane is enormous: it
+contains every shear, every nonlinear warp, every smooth relabelling of
+coordinates. Nothing in $\mathcal{L}$ prefers the isometric member. This is the
+same non-identifiability that makes nonlinear ICA impossible without extra
+structure [@hyvarinen1999nonlinear] and that defeats unsupervised disentanglement
+without inductive bias or supervision [@locatello2019challenging]. Architecture,
+initialisation and optimiser trajectory choose an $h$; the objective abstains.
+
+Two consequences for how results get reported.
+
+**The Procrustes-aligned error is the strict metric and must stay the headline.**
+`reconstruction_error()` quotients out only similarity transforms — rotation,
+reflection, uniform scale, translation — which is precisely the ambiguity we are
+willing to forgive, because a crease pattern is defined only up to a rigid
+motion. Every other element of the diffeomorphism group is charged for. That is
+why it catches the sheared runs above while every reconstruction-based number is
+content.
+
+**The metrics that are invariant to the ambiguity are blind to it, and they are
+the ones people use.** `knn_preservation()`, `trustworthiness()` and
+`continuity()` are computed from neighbourhood ranks. A smooth, locally
+volume-changing warp leaves local neighbourhoods almost entirely intact, so those
+scores barely move. In the sweep above the sheared runs hold $k$NN preservation
+above $0.9$ while their Procrustes-aligned error is three times that of the
+intact runs. Report both, side by side: the gap between them *is* the distortion.
+Chapter \@ref(evaluation) makes this systematic across every method; the
+autoencoder is simply where the gap is widest, because it is the only method with
+a full diffeomorphism group to hide in.
+
+## A distortion diagnostic that needs no answer key
+
+The decoder is differentiable, which buys a diagnostic unavailable to every other
+method in Part II. At a latent point $z$ the Jacobian
+$J_\phi(z) = \partial g_\phi / \partial z \in \mathbb{R}^{3 \times 2}$ pulls the
+ambient metric back to the latent plane; its singular values
+$\sigma_1 \ge \sigma_2$ are the local stretch factors [@arvanitidis2018latent]. A
+latent space that is a rigid unfolding has $\sigma_1 = \sigma_2 = c$ everywhere
+for a single constant $c$. Two scalars therefore summarise the failure: the local
+anisotropy $\log(\sigma_1/\sigma_2)$, zero if and only if the map is conformal at
+$z$, and the local log area scale $\tfrac{1}{2}\log(\sigma_1\sigma_2)$, whose
+variance across the latent space measures non-uniform stretching.
+
+```{r ae-jacobian}
+decoder_jacobian <- function(net, z_row) {
+  z  <- torch_tensor(matrix(z_row, nrow = 1), requires_grad = TRUE)
+  xh <- net$decoder(z)
+  J  <- vapply(seq_len(xh$size(2)), function(j) {
+    as_array(autograd_grad(xh[1, j], z, retain_graph = TRUE)[[1]])[1, ]
+  }, numeric(2))
+  t(J)                                   # 3 x 2
+}
+
+isometry_defect <- function(net, Z, m = 800L) {
+  idx <- sample.int(nrow(Z), min(m, nrow(Z)))
+  sv  <- t(vapply(idx, function(i) svd(decoder_jacobian(net, Z[i, ]))$d,
+                  numeric(2)))
+  data.frame(
+    z1         = Z[idx, 1],
+    z2         = Z[idx, 2],
+    anisotropy = log(sv[, 1] / sv[, 2]),
+    log_area   = 0.5 * log(sv[, 1] * sv[, 2])
+  )
+}
+```
+
+```{r ae-distortion-field, fig.alt="Two latent-space maps, one for an intact run and one for a sheared run. Points sit at their latent coordinates, shaded by the local log anisotropy of the decoder Jacobian, with point size also increasing with anisotropy. The intact run is pale and near-uniform throughout; the sheared run shows a broad diagonal band of large, dark points where the shear concentrates.", fig.height=3.4}
+defect <- rbind(
+  cbind(isometry_defect(fit_intact$net,  fit_intact$Z),  run = "intact"),
+  cbind(isometry_defect(fit_sheared$net, fit_sheared$Z), run = "sheared")
+)
+
+ggplot(defect, aes(z1, z2, colour = anisotropy, size = anisotropy)) +
+  geom_point(alpha = 0.75) +
+  facet_wrap(~ run) +
+  viridis::scale_color_viridis_c(option = "C",
+                                 name = expression(log(sigma[1] / sigma[2]))) +
+  scale_size_continuous(range = c(0.3, 2.2), guide = "none") +
+  coord_equal() +
+  labs(x = expression(z[1]), y = expression(z[2])) +
+  theme_minimal(base_size = 10)
+```
+
+The diagnostic earns its cost because it needs no ground truth. It is computed
+entirely from the fitted decoder, so it transfers to data where no `$truth`
+exists — which is every real application. On the crease pattern we can check that
+it does what it claims: across the seed sweep, mean anisotropy tracks the
+Procrustes-aligned error where $k$NN preservation does not. That validation is
+the argument for trusting it elsewhere.
+
+## Cost, seeds, and what "reproducible" means here {#ae-cost}
+
+The autoencoder is the most expensive method in the book by a wide margin. A
+single fit at $n = 4000$ and 3000 epochs takes on the order of a minute on CPU;
+the grid of Chapter \@ref(results) — three patterns, a fold-angle sweep, three
+noise settings, twenty seeds — is thousands of fits. This is why
+`scripts/run-benchmark-grid.R` is a provenance record rather than a build step,
+and why the recorded run under `data/processed/` is what the figures above read.
+
+It is also the most non-deterministic method here. Chapter \@ref(neighbor)
+documents seed sensitivity in t-SNE and UMAP, where a seed picks an
+initialisation and a sampling order. In this chapter a seed picks an
+initialisation, a sampling order, *and* a trajectory through a non-convex loss
+surface whose minima are a diffeomorphism apart. The spread is correspondingly
+larger, and it is not noise around a central answer: the intact, sheared and torn
+outcomes are qualitatively distinct attractors, so the mean across seeds
+describes no run that actually occurred. Report the distribution.
+
+Three practical points, in decreasing order of how often they are ignored.
+
+`torch_manual_seed()` seeds LibTorch's generator; `set.seed()` seeds R's. Both
+are needed, because parameter initialisation happens in LibTorch and the
+`sample_manifold()` draw happens in R. Seeding one and not the other gives runs
+that look reproducible until the day they are not.
+
+Even with both seeded, results are reproducible on the same machine, LibTorch
+build and thread count — not across them. Reduction order in multi-threaded
+kernels is not fixed, so `torch_set_num_threads(1L)` is the difference between
+bitwise-identical reruns and merely statistically similar ones. It costs
+wall-clock time and it is worth it for anything that goes into a figure.
+
+Version drift is real. LibTorch changes default kernels between releases, so
+"reproducible" here means reproducible against the pinned `renv.lock` and a
+recorded `torch` version. The colophon records both for the run behind this
+chapter.
+
+```{r ae-determinism}
+torch_set_num_threads(1L)
+torch_manual_seed(BENCH_SEEDS[1])
+set.seed(BENCH_SEEDS[1])
+
+c(torch        = as.character(packageVersion("torch")),
+  threads      = torch_get_num_threads(),
+  cuda         = cuda_is_available())     # record alongside every result
+```
+
+```{r ae-seed-spread, fig.alt="Procrustes-aligned latent error plotted against fold angle in radians. Twenty faint grey lines, one per seed, are overlaid on a solid black median line and a shaded interquartile ribbon. Below about one radian the seeds agree closely and the ribbon is narrow; beyond that the lines fan out sharply, several seeds rising far above the median while others stay flat, and the interquartile range becomes wider than the median value itself.", fig.height=3.6}
+curve <- do.call(rbind, lapply(seq(0, 1.5, length.out = 11), sweep_seeds))
+
+summ <- do.call(data.frame,
+                aggregate(latent_err ~ theta, curve, function(v)
+                  c(med = median(v),
+                    lo  = unname(quantile(v, 0.25)),
+                    hi  = unname(quantile(v, 0.75)))))
+
+ggplot() +
+  geom_ribbon(data = summ,
+              aes(theta, ymin = latent_err.lo, ymax = latent_err.hi),
+              fill = "grey80", alpha = 0.6) +
+  geom_line(data = curve, aes(theta, latent_err, group = seed),
+            colour = "grey45", alpha = 0.35, linewidth = 0.3) +
+  geom_line(data = summ, aes(theta, latent_err.med), linewidth = 0.9) +
+  labs(x = expression(theta ~ "(radians)"),
+       y = "Procrustes-aligned error vs. true unfolding") +
+  theme_minimal(base_size = 10)
+```
+
+## Where this leaves the method
+
+The autoencoder is the only method under test whose hypothesis class contains the
+right answer at every fold angle, and it is the method whose reported performance
+depends most on choices — width, activation, epoch budget, learning rate, seed,
+thread count — that are conventionally left out of a methods section. Both
+statements are true at once, and the second is why the results here should be
+read as the most implementation-sensitive in the book. Treat the numbers as a
+demonstration of a mechanism rather than a leaderboard position; the mechanism,
+unlike the numbers, does not depend on the learning rate.
+
+The mechanism is this. Reconstruction loss verifies a composition. Everything
+anyone actually wants from a latent space is a property of the factors. Between
+the two sits an entire diffeomorphism group, and the only way to see it is to
+already know the answer — which, on a crease pattern, we do. When the deep
+autoencoder was introduced as a dimension-reduction method [@hinton2006reducing],
+the demonstration was reconstruction quality on handwritten digits, and
+reconstruction quality was the right evidence for the claim being made there. It
+has since been reused as evidence for a claim it does not support.
+Chapter \@ref(evaluation) measures how far that reuse goes wrong, across every
+method in Part II.

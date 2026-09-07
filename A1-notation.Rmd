@@ -1,13 +1,133 @@
 # Notation {#notation}
 
-<!-- TODO: fill as the formal apparatus stabilises in Chapters 2, 3 and 9. -->
+Symbols keep the same meaning in every chapter. Where a symbol has a counterpart
+in the `foldbench` API, the third column names the argument, list element or
+function; an em dash means the quantity is mathematical only and never surfaces
+as code.
 
-| Symbol | Meaning |
-|---|---|
-| $\theta$ | Fold angle; the difficulty parameter |
-| $a, b, \alpha$ | Miura-ori cell parameters |
-| $M, V$ | Mountain and valley creases |
-| $k$ | Neighbourhood size for kNN-graph methods |
-| $D$ | Ambient dimension after linear lift |
-| $\mathcal{M}$ | The folded manifold in $\mathbb{R}^3$ |
-| $\mathcal{U}$ | The exact unfolding — ground truth in $\mathbb{R}^2$ |
+Two conventions run throughout. Calligraphic letters denote continuous objects —
+surfaces, sets, domains ($\Omega$, $\mathcal{M}$, $\mathcal{U}$). Roman capitals
+denote the finite $n$-row matrices sampled from them: $X$ from $\mathcal{M}$,
+$U$ from $\mathcal{U}$, $Y$ from whatever method is under test. A subscript
+$\theta$ marks a quantity that moves with the fold angle, which is most of them;
+it is dropped where no ambiguity follows.
+
+## Pattern geometry {-}
+
+| Symbol | Meaning | `foldbench` |
+|---|---|---|
+| $\Omega \subset \mathbb{R}^2$ | The flat sheet: the planar domain the pattern is drawn on, before folding | — |
+| $P$ | A crease pattern — $\Omega$ together with its crease segments and their assignment | `crease_pattern` |
+| $a$, $b$ | Miura-ori cell parameters: the two edge lengths of the parallelogram unit cell | `a`, `b` |
+| $\alpha$ | Miura-ori cell parameter: the acute angle of the unit cell, $0 < \alpha < \pi/2$ | `alpha` |
+| $n_x$, $n_y$ | Number of unit cells along each pattern axis | `n_x`, `n_y` |
+| $n_\vartheta$, $n_z$, $r$ | Yoshimura circumferential and axial cell counts, and cylinder radius | `n_theta`, `n_z`, `radius` |
+| $M$, $V$ | Mountain and valley creases | — |
+| $\lvert M\rvert$, $\lvert V\rvert$ | Their counts at a single interior vertex. Maekawa: $\lvert M\rvert - \lvert V\rvert = \pm 2$ | — |
+| $v$ | An interior vertex — a crease intersection not lying on the boundary $\partial\Omega$ | — |
+| $2m$ | Degree of an interior vertex. Even for any flat-foldable pattern | — |
+| $\beta_1,\dots,\beta_{2m}$ | Sector angles in cyclic order around $v$. Kawasaki: $\sum_{i}(-1)^{i+1}\beta_i = 0$ | — |
+| $F_j$ | The $j$-th facet: a flat polygon bounded by creases and by $\partial\Omega$ | `facet` |
+| $K$ | Gaussian curvature. $K = 0$ on every facet; all curvature is concentrated at vertices | — |
+
+## Folding {-}
+
+| Symbol | Meaning | `foldbench` |
+|---|---|---|
+| $\theta$ | Fold angle; the difficulty parameter. $\theta = 0$ is the flat sheet | `theta` |
+| $\pi/2$ | Open upper bound on the fold angle. `fold()` and `sample_manifold()` accept $\theta \in [0, \pi/2)$; there is no `theta_max()`, because the bound is the same for every pattern | — |
+| $f_\theta$ | The folding map $\Omega \to \mathbb{R}^3$ at angle $\theta$. An isometry for every $\theta$ | `fold()` |
+| $\mathcal{M}$, $\mathcal{M}_\theta$ | The folded manifold in $\mathbb{R}^3$; $\mathcal{M}_\theta = f_\theta(\Omega)$ | `fold_manifold` |
+| $\mathcal{U}$ | The exact unfolding — ground truth in $\mathbb{R}^2$. $\mathcal{U} = \Omega$, recovered by $f_\theta^{-1}$ | — |
+| $d_{\mathcal{M}}(p, q)$ | Geodesic distance: length of the shortest path from $p$ to $q$ measured *along* the surface. Needs no estimator — by the isometry it equals $\lVert u_p - u_q \rVert$, so `dist(truth)` computes it exactly | `dist(truth)` |
+| $\theta^{\ast}$ | Bridging angle: the smallest $\theta$ at which the $k$-nearest-neighbour graph connects two facets that are not adjacent in $\Omega$ | `short_circuit_theta()` |
+
+The identity the book rests on is
+
+$$
+d_{\mathcal{M}_\theta}\!\big(f_\theta(u),\, f_\theta(u')\big) \;=\; \lVert u - u' \rVert_2
+\qquad \text{for all } u, u' \in \Omega,\ \text{all } \theta \in [0, \theta_{\max}],
+$$
+
+the right-hand side holding as written because $\Omega$ is convex, so its own
+geodesics are straight lines. The left-hand side is $\theta$-dependent to
+compute and $\theta$-independent in value. That is what makes $\mathcal{U}$ an
+answer key rather than a reference embedding.
+
+The convexity proviso is not decoration. It holds for the rectangular sheets of
+the Miura-ori and waterbomb families. A Yoshimura sheet closed into a cylinder
+has a non-convex $\Omega$, and there the geodesic distance is the shortest of the
+two ways round rather than the straight-line distance in the plane; $\mathcal{U}$
+is still exact, but $\lVert u - u' \rVert_2$ is no longer the whole story.
+
+## Sampling and noise {-}
+
+| Symbol | Meaning | `foldbench` |
+|---|---|---|
+| $n$ | Number of sampled points | `n` |
+| $X$ | Ambient sample: $n \times 3$, or $n \times D$ after a lift. Rows $x_i$ | `X` |
+| $U$ | True unfolding of that same sample: $n \times 2$. Rows $u_i$. The ground truth | `truth` |
+| $c_i$ | Facet index of point $i$, an integer in $\{1,\dots,\lvert F\rvert\}$ | `facet` |
+| $\sigma$ | Noise scale. A single magnitude; what it perturbs is set by the type, not by a separate parameter per channel | `noise$sd` |
+| — | Noise type, one of four: `"none"`; `"ambient"`, isotropic Gaussian added in $\mathbb{R}^3$, moving points *off* $\mathcal{M}_\theta$ while $U$ is unchanged; `"manifold"`, applied to $u$ *before* folding, so the point stays on $\mathcal{M}_\theta$ and its row of $U$ moves with it, perturbing sampling density rather than truth; `"outlier"`, which displaces a fixed 2% of rows by $10\sigma$ | `noise$type` |
+| $\zeta$ | The random seed of one replicate | `seed` |
+| $N_{\mathrm{seeds}}$ | Number of seeds per grid cell. 20 throughout this book | `N_SEEDS` |
+
+## Embedding and evaluation {-}
+
+| Symbol | Meaning | `foldbench` |
+|---|---|---|
+| $d$ | Intrinsic dimension. $d = 2$ for one crease pattern, $2k$ for a $k$-factor product | — |
+| $D$ | Ambient dimension after linear lift, $D \ge 3$ | `D` |
+| $L$ | Lift matrix: $D \times 3$ with orthonormal columns, so $X \mapsto X L^{\top}$ is an isometry into $\mathbb{R}^D$ | `lift()` |
+| $q$ | Target dimension of an embedding. $q = 2$ unless stated otherwise | — |
+| $Y$ | An embedding: $n \times q$, produced by a method under test. Rows $y_i$ | `Y` |
+| $k$ | Neighbourhood size for kNN-graph methods and for the rank-based metrics | `k` |
+| $\mathcal{N}^X_k(i)$, $\mathcal{N}^Y_k(i)$ | Index sets of the $k$ nearest neighbours of point $i$, in $X$ and in $Y$ respectively | — |
+| $r_X(i,j)$, $r_Y(i,j)$ | Rank of $j$ in the distance ordering from $i$, in $X$ and in $Y$ | — |
+| $R$ | Procrustes rotation, $R \in O(q)$. The orthogonal rather than the special orthogonal group: reflections are allowed, because a mirrored unfolding is a correct unfolding | — |
+| $s$ | Procrustes scale, $s > 0$ | — |
+| $t$ | Procrustes translation, $t \in \mathbb{R}^q$ | — |
+| $\mathrm{RMSE}_{\mathrm{P}}$ | Procrustes-aligned RMSE against $U$. The headline metric; lower is better, $0$ is exact | `reconstruction_error()` |
+| $T_k$ | Trustworthiness at $k$. Penalises false neighbours — close in $Y$, far in $X$. In $[0,1]$, higher better | `trustworthiness()` |
+| $C_k$ | Continuity at $k$. Penalises missed neighbours — close in $X$, far in $Y$. In $[0,1]$, higher better | `continuity()` |
+| $P_k$ | kNN preservation: mean over $i$ of $\lvert \mathcal{N}^X_k(i) \cap \mathcal{N}^Y_k(i)\rvert / k$. In $[0,1]$, higher better | `knn_preservation()` |
+| $\sigma_1$ | Kruskal stress-1. Lower is better, $0$ is exact. Not exported by `foldbench`; defined where it is used, in Chapter \@ref(evaluation) | — |
+
+Written out, the four evaluation quantities that are not one-liners are
+
+$$
+\mathrm{RMSE}_{\mathrm{P}}(Y, U)
+= \min_{s,\,R,\,t} \left( \frac{1}{n} \sum_{i=1}^{n} \big\lVert s R y_i + t - u_i \big\rVert_2^2 \right)^{1/2},
+$$
+
+$$
+T_k = 1 - \frac{2}{nk(2n - 3k - 1)} \sum_{i=1}^{n} \sum_{j \,\in\, \mathcal{N}^Y_k(i) \setminus \mathcal{N}^X_k(i)} \big( r_X(i,j) - k \big),
+$$
+
+with $C_k$ the same expression under exchange of $X$ and $Y$, and
+
+$$
+\sigma_1 = \left( \frac{\sum_{i<j} \big( \lVert y_i - y_j \rVert - \lVert x_i - x_j \rVert \big)^2}{\sum_{i<j} \lVert x_i - x_j \rVert^2} \right)^{1/2}.
+$$
+
+As defined here $\sigma_1$ uses the raw distances, without the monotone
+regression step of non-metric MDS, so it is metric stress-1.
+Note also that $T_k$, $C_k$ and $P_k$ compare $Y$ against the *ambient sample*
+$X$, whereas $\mathrm{RMSE}_{\mathrm{P}}$ compares it against the *truth* $U$.
+That asymmetry is the subject of Chapter \@ref(evaluation).
+
+## Benchmark grid {-}
+
+| Symbol | Meaning | `foldbench` |
+|---|---|---|
+| $\mathsf{P}$ | Set of pattern families under test: Miura-ori, Yoshimura, waterbomb. Note these differ in their *flat* crease pattern only; the folding stage treats all three alike (Chapter \@ref(benchmarks)) | `PATTERNS` |
+| $\Theta$ | Grid of fold angles within $[0, \pi/2)$ | `THETA` |
+| $\mathsf{A}$ | Set of methods under test | `METHODS` |
+| $\mathsf{Z}$ | Set of seeds, $\lvert \mathsf{Z}\rvert = N_{\mathrm{seeds}}$ | `SEEDS` |
+| $\mathsf{E}$ | Set of evaluation metrics | — |
+| $G$ | The result table: one row per (pattern, $\theta$, noise, seed, method), with one column per metric. Built by `scripts/run-benchmark-grid.R`; there is no `benchmark_grid()` function | `benchmark-grid.rds` |
+| $\lvert G \rvert$ | $\lvert\mathsf{P}\rvert \cdot \lvert\Theta\rvert \cdot \lvert\mathsf{N}\rvert \cdot \lvert\mathsf{Z}\rvert \cdot \lvert\mathsf{A}\rvert$ rows, where $\mathsf{N}$ is the set of noise types | — |
+
+Column types and factor levels for $G$ are given in the codebook, Appendix
+\@ref(datasets).

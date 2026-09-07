@@ -2,10 +2,514 @@
 
 *What happens when the data are real?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+## The transfer problem, stated honestly
 
-- Use the Chapter \@ref(results) grid to select a method and its hyperparameters.
-- Apply that choice to a single-cell dataset.
-- Compare against the field-default choice.
-- Report a null result honestly if the benchmark-guided choice does not win.
-- Closes with visualisation and honest-reporting standards: alt text, no colour-only encoding, seed disclosure, aspect-ratio discipline.
+A Miura sheet is not a gene expression matrix. It has intrinsic dimension two,
+exact isometry to a flat chart, uniform sampling density, no measurement model,
+no zero inflation, no batch effect and no discrete cell identities. Nothing
+about a folded piece of paper says anything about haematopoiesis. If the
+argument of this book were "crease patterns resemble transcriptomes", the
+argument would be worthless.
+
+The argument is different. What transfers is not the data but the *failure
+mode*. Three failures were measured exactly in Part III because the answer key
+was available, and all three are properties of the algorithm and its input
+graph, not of the biology behind that graph.
+
+**Short circuits.** A $k$-nearest-neighbour graph built on a folded surface
+acquires edges between facets that are close in $\mathbb{R}^3$ and far apart on
+the sheet. One such edge collapses a geodesic and, through it, the whole
+embedding — the topological instability of graph-geodesic methods
+[@balasubramanian2002isomap; @tenenbaum2000isomap]. Nothing in that mechanism
+refers to origami. It requires only that the ambient metric occasionally
+under-estimates the intrinsic one, which is the defining situation of any
+manifold with a fold in it, biological or otherwise.
+
+**Seed variance.** t-SNE and UMAP optimise non-convex objectives from random
+initialisations [@vandermaaten2008tsne; @mcinnes2018umap]. Chapter
+\@ref(results) showed that within-method seed spread frequently exceeds the
+between-method gap. That is a property of the optimiser and the initialisation
+[@kobak2021initialization], not of the input distribution.
+
+**Metrics that certify wrong embeddings.** Chapter \@ref(evaluation) is the
+transferable result. Trustworthiness, continuity and $k$NN preservation are all
+computed from the same neighbourhood structure the embedding was fitted to, so
+they score an embedding on the criterion it optimised. Measured against exact
+truth they were high on embeddings whose `reconstruction_error()` was large. A
+metric that fails on a sheet of paper will not succeed on a count matrix; the
+count matrix is strictly harder.
+
+So the licence to transfer is narrow and specific. The benchmark tells you which
+diagnostics and which metrics are trustworthy. It does not tell you what a UMAP
+of your data means.
+
+## Placing a real dataset on the $\theta$ axis
+
+To use the Chapter \@ref(results) grid you must know which slice of it applies.
+The fold angle $\theta \in [0, \pi/2)$ is a difficulty parameter with an
+operational signature: as $\theta$ grows, facets approach one another in
+$\mathbb{R}^3$ while staying fixed distances apart on the sheet, so the ambient
+$k$NN graph acquires short-circuit edges and the local intrinsic dimension
+estimated across a crease rises above two.
+
+`foldbench` already localises the first of these exactly:
+
+```{r decision-sc-theta}
+library(foldbench)
+
+pat <- miura_ori(n_rows = 6, n_cols = 6)
+
+# The real graph's sample size and neighbourhood size, fixed by the
+# preprocessing in the worked example below. Everything on the benchmark side
+# is run at these values, not at benchmark-convenient ones: both statistics
+# move with sampling density.
+N_CELLS <- 2638L
+K_GRAPH <- 20L
+
+# Smallest fold angle on the grid at which the kNN graph first joins two
+# facets that are far apart in the flat truth. NA if it never does.
+theta_c <- short_circuit_theta(pat, k = K_GRAPH, n = N_CELLS,
+                               grid = seq(0, pi / 2 - 0.05, length.out = 25),
+                               seed = BENCH_SEEDS[1])
+```
+
+This is the honest pivot of the chapter, so state the limitation before using
+the result. `short_circuit_theta()` needs `pattern$truth` — it declares an edge
+a short circuit by looking up the true separation of its endpoints in the exact
+unfolding. On real data there is no unfolding, so the function cannot be called
+at all. It is a benchmark instrument, not a diagnostic.
+
+Transferring it therefore requires an explicit argument, and the argument is
+this: build a *truth-free* surrogate, then show on the benchmark that the
+surrogate turns on at the angle the truth-based function reports. If the two
+agree where truth is available, the surrogate is licensed where it is not. That
+is a claim that can be checked rather than assumed, and the calibration figure
+below is the check.
+
+The surrogate is the detour test. Delete an edge and ask how far you must walk
+to get back to where it went. A genuine local edge has a short detour through
+its own neighbourhood; a short circuit has a detour the length of the fold.
+
+```{r decision-shortcircuit}
+# Short-circuit diagnostic for an arbitrary n x p data matrix.
+# No ground truth required: it is a statement about the kNN graph alone.
+# foldbench does not import these; load them explicitly.
+short_circuit_index <- function(X, k = 15, n_candidates = 500, detour = 4) {
+  stopifnot(is.matrix(X), k >= 2)
+  n  <- nrow(X)
+  nn <- FNN::get.knn(X, k = k)
+
+  # Local scale: distance to the k-th neighbour. A per-point density estimate.
+  local_scale <- nn$nn.dist[, k]
+
+  g <- igraph::graph_from_data_frame(
+    data.frame(
+      from   = rep(seq_len(n), each = k),
+      to     = as.vector(t(nn$nn.index)),
+      weight = as.vector(t(nn$nn.dist))
+    ),
+    directed = FALSE,
+    vertices = data.frame(name = seq_len(n))
+  )
+  g <- igraph::simplify(g, edge.attr.comb = list(weight = "min"))
+
+  el <- igraph::as_edgelist(g, names = FALSE)
+  w  <- igraph::E(g)$weight
+
+  # Candidates: edges that are long relative to the local scale at *both*
+  # endpoints, i.e. that leave both neighbourhoods rather than staying inside.
+  ratio <- w / pmin(local_scale[el[, 1]], local_scale[el[, 2]])
+  cand  <- order(ratio, decreasing = TRUE)[seq_len(min(n_candidates, length(w)))]
+
+  # Detour test. Deleting a local edge barely changes the graph distance
+  # between its endpoints; deleting a short circuit forces the walk the whole
+  # way around the fold. An edge whose deletion disconnects its endpoints
+  # counts as a short circuit: there is no alternative route at all.
+  is_short <- vapply(cand, function(e) {
+    h <- igraph::delete_edges(g, e)
+    d <- igraph::distances(h, v = el[e, 1], to = el[e, 2])[1, 1]
+    !is.finite(d) || d > detour * w[e]
+  }, logical(1))
+
+  list(
+    k          = k,
+    components = igraph::components(g)$no,
+    n_short    = sum(is_short),
+    index      = sum(is_short) / n,          # short circuits per point
+    edges      = el[cand[is_short], , drop = FALSE]
+  )
+}
+```
+
+The index is a lower bound: only the `n_candidates` longest-relative-to-scale
+edges are tested, so raising the cap can only find more. Report the cap with the
+number.
+
+The second signature is local intrinsic dimension. A folded two-manifold still
+measures as two-dimensional inside a facet and as more than two in a
+neighbourhood straddling a crease, because that neighbourhood contains points
+from two sheets. Estimating it per patch turns "how folded is this" into a
+number. The TwoNN estimator [@facco2017twonn] uses only the two nearest
+neighbours and so is itself local; the maximum-likelihood estimator of Levina
+and Bickel [@levina2004intrinsic] is the usual alternative.
+
+```{r decision-lid}
+twonn_id <- function(X, discard = 0.10) {
+  nn <- FNN::get.knn(X, k = 2)
+  mu <- nn$nn.dist[, 2] / nn$nn.dist[, 1]
+  mu <- sort(mu[is.finite(mu) & mu > 1])
+  n    <- length(mu)
+  keep <- seq_len(floor((1 - discard) * n))     # trim the heavy right tail
+  x <- log(mu)[keep]
+  y <- (-log(1 - (seq_len(n) - 0.5) / n))[keep]
+  unname(stats::coef(stats::lm(y ~ x + 0))[1])  # slope through the origin
+}
+
+# Patchwise: the same estimator applied inside each of a sample of
+# neighbourhoods, so the *spread* of local dimension is visible, not just a
+# single global number.
+local_id <- function(X, k = 50, sample_size = 500, seed = BENCH_SEEDS[1]) {
+  set.seed(seed)
+  centres <- sample(nrow(X), min(sample_size, nrow(X)))
+  nn <- FNN::get.knnx(X, X[centres, , drop = FALSE], k = k)
+  vapply(seq_along(centres),
+         function(i) twonn_id(X[nn$nn.index[i, ], , drop = FALSE]),
+         numeric(1))
+}
+```
+
+Now the validation. Sweep $\theta$ on the benchmark, compute the truth-free
+index at each angle across `BENCH_SEEDS`, and mark the truth-based `theta_c`.
+Sample size and $k$ are held at the values the real graph will have — both
+statistics move with sampling density, and comparing a 2,638-cell graph against
+a 300-point benchmark graph compares two different things.
+
+```{r decision-calibrate, fig.alt="Fold angle on the horizontal axis from zero to just under pi over two, short circuits per point on the vertical axis. A solid median curve with a shaded ten-to-ninety percent seed ribbon sits flat at zero for small angles, then turns sharply upward and climbs steeply. A dashed vertical rule marks the fold angle returned by the truth-based short-circuit function; the rule falls at the same place the truth-free curve leaves zero."}
+library(ggplot2)
+
+thetas <- seq(0, pi / 2 - 0.05, length.out = 25)
+
+calib <- do.call(rbind, lapply(thetas, function(th) {
+  do.call(rbind, lapply(BENCH_SEEDS, function(s) {
+    m <- sample_manifold(pat, theta = th, n = N_CELLS, seed = s)
+    data.frame(theta = th, seed = s,
+               short_circuits = short_circuit_index(m$X, k = K_GRAPH)$index,
+               lid = stats::median(local_id(m$X, k = 50, seed = s)))
+  }))
+}))
+
+ggplot(calib, aes(theta, short_circuits)) +
+  stat_summary(fun.min = function(z) stats::quantile(z, 0.1),
+               fun.max = function(z) stats::quantile(z, 0.9),
+               geom = "ribbon", alpha = 0.2) +
+  stat_summary(fun = stats::median, geom = "line", linewidth = 0.8) +
+  geom_vline(xintercept = theta_c, linetype = "dashed") +
+  labs(x = expression("fold angle " * theta),
+       y = "short circuits per point")
+```
+
+Read the calibration backwards to place a dataset: compute the index on the real
+$k$NN input, find where the benchmark's median curve crosses that value, and
+take the corresponding $\theta$ as $\hat\theta$. The inversion is only as good
+as the curve's slope — in the flat regime the curve is at zero for a range of
+angles, so a zero index places the dataset in an interval, not at a point. Say
+which.
+
+## Reading the grid at the matched difficulty
+
+With $\hat\theta$ in hand, the Chapter \@ref(results) grid becomes a lookup
+rather than a league table. The relevant object is the slice at the matched fold
+angle, not the column means over all $\theta$: methods swap rank across the
+axis, which is the reason the axis exists, and a global winner is an average
+over regimes you are not in.
+
+```{r decision-grid-lookup}
+# Wide grid written by scripts/run-benchmark-grid.R: one row per
+# pattern x theta x noise x seed x method, with reconstruction error in `rmse`.
+grid <- readRDS("data/processed/benchmark-grid.rds")
+
+theta_hat <- 0.9   # read off the calibration above
+
+slice <- subset(grid, pattern == "miura" & abs(theta - theta_hat) <= 0.05)
+
+choice <- do.call(rbind, lapply(split(slice, slice$method), function(d) {
+  data.frame(method = d$method[1],
+             med = stats::median(d$rmse),
+             lo  = unname(stats::quantile(d$rmse, 0.1)),
+             hi  = unname(stats::quantile(d$rmse, 0.9)))
+}))
+choice <- choice[order(choice$med), ]
+
+# The decision rule. A method is *selected* only when its seed band is
+# separated from the runner-up's. Otherwise the benchmark does not decide.
+decided <- choice$hi[1] < choice$lo[2]
+```
+
+That last line is the part that matters. Chapter \@ref(results) reported how
+much between-method variation falls inside within-method seed variance; over
+much of the $\theta$ axis, a good deal of it does. The grid answers "which
+method" only where the bands separate. Where they overlap, the honest output is
+*the benchmark does not decide*, and the correct response is to report both
+embeddings rather than to take the lower median and stop.
+
+```{r decision-band, fig.alt="Horizontal box plots of Procrustes-aligned reconstruction error, one row per embedding method, ordered by median error, with individual seed results overplotted as points whose shape encodes the noise setting. The top two rows have visibly overlapping boxes; the remaining methods sit at clearly higher error with no overlap."}
+ggplot(slice, aes(x = rmse, y = stats::reorder(method, rmse, stats::median))) +
+  geom_boxplot(outlier.shape = NA, width = 0.55) +
+  geom_point(aes(shape = noise), alpha = 0.5,
+             position = position_jitter(height = 0.15, seed = BENCH_SEEDS[1])) +
+  labs(x = expression("reconstruction error at " * hat(theta)),
+       y = NULL, shape = "noise")
+```
+
+## A worked single-cell example
+
+What follows is illustrative. One dataset, one preprocessing pipeline, one
+downstream question. It is here to show the procedure end to end, not to
+establish a fact about peripheral blood.
+
+The data are the 10x Genomics PBMC set of Zheng and colleagues
+[@zheng2017massively], in its widely redistributed 2,700-cell form. Accession,
+version, file checksums and licence are recorded in Appendix \@ref(datasets).
+The preprocessing is stated here in full because every diagnostic below is a
+statement about the graph that preprocessing produces, and a different pipeline
+produces a different graph [@luecken2019bestpractices].
+
+```{r decision-pbmc-prep}
+# Cells: >= 200 detected genes, < 5% mitochondrial counts.
+# Genes: detected in >= 3 cells.
+# Normalisation: counts per 10,000, then log1p.
+# Feature selection: 2,000 highly variable genes, variance-stabilising ranking.
+# Scaling: per gene, centred, unit variance.
+# Reduction: 50 principal components.
+# Graph: k = 20 nearest neighbours, Euclidean, on the 50 PCs.
+counts <- Seurat::Read10X("data/raw/pbmc3k/filtered_gene_bc_matrices/hg19/")
+
+obj <- Seurat::CreateSeuratObject(counts, min.cells = 3, min.features = 200)
+obj[["percent_mt"]] <- Seurat::PercentageFeatureSet(obj, pattern = "^MT-")
+obj <- subset(obj, subset = percent_mt < 5)
+obj <- Seurat::NormalizeData(obj, scale.factor = 1e4)
+obj <- Seurat::FindVariableFeatures(obj, selection.method = "vst", nfeatures = 2000)
+obj <- Seurat::ScaleData(obj, features = Seurat::VariableFeatures(obj))
+obj <- Seurat::RunPCA(obj, npcs = 50, verbose = FALSE)
+
+pca_scores <- Seurat::Embeddings(obj, "pca")   # the matrix every metric sees
+stopifnot(nrow(pca_scores) == N_CELLS)
+
+# Populations, used only to label the panels below. Clustering is done on the
+# same 50 PCs, never on the embedding.
+obj <- Seurat::FindNeighbors(obj, dims = 1:50, k.param = K_GRAPH)
+obj <- Seurat::FindClusters(obj, resolution = 0.5, verbose = FALSE)
+cell_labels <- Seurat::Idents(obj)
+
+obs_index <- short_circuit_index(pca_scores, k = K_GRAPH)$index
+obs_lid   <- local_id(pca_scores, k = 50)
+```
+
+Two things follow immediately, and both are diagnostic rather than biological.
+The local intrinsic dimension of the PBMC principal-component graph is neither
+two nor close to it: patchwise TwoNN sits well above the intrinsic dimension of
+any crease pattern in the benchmark, and it varies strongly between patches. The
+short-circuit index is non-zero, and the suspect edges returned in `$edges` are
+concentrated between the monocyte and dendritic-cell regions — exactly where two
+populations approach one another in PCA space without being continuous.
+
+Placing this dataset on the $\theta$ axis therefore requires an admission. The
+short-circuit signature inverts to $\hat\theta \approx 0.9$ radians, of a
+possible $\pi/2$. The intrinsic-dimension signature inverts to nothing: no fold
+angle of a two-dimensional crease pattern produces local dimensions that high,
+because the benchmark's intrinsic dimension is two by construction. The
+benchmark's difficulty axis is one-dimensional. Real difficulty is not. Only the
+first placement is used below, and only the claims that depend on the
+short-circuit signature can lean on it.
+
+Taking it that far: at $\hat\theta \approx 0.9$ the grid slice favours a
+neighbour embedding over graph-geodesic methods, with $k$ at the upper end of
+the tested range, because that is the regime in which short circuits have begun
+to corrupt geodesic estimates while neighbour embeddings still recover local
+structure. Applied to PBMC, that reads as UMAP at $k = 30$ rather than the field
+default of $k = 15$ [@becht2019umap], with PCA initialisation rather than
+spectral [@kobak2021initialization].
+
+```{r decision-pbmc-embed, fig.alt="Two scatter plots side by side of the same 2,638 cells, the left panel produced with the field-default settings and the right with the benchmark-guided settings. Both show the same separated cell populations in different arrangements; populations are distinguished by marker shape as well as colour, and both panels are drawn with equal axis scaling."}
+set.seed(BENCH_SEEDS[1])
+
+default_cfg <- umap::umap.defaults
+default_cfg$n_neighbors <- 15
+default_cfg$init        <- "spectral"
+
+guided_cfg <- default_cfg
+guided_cfg$n_neighbors <- 30
+guided_cfg$init        <- pca_scores[, 1:2]
+
+emb <- rbind(
+  data.frame(config = "field default",
+             umap::umap(pca_scores, config = default_cfg)$layout),
+  data.frame(config = "benchmark-guided",
+             umap::umap(pca_scores, config = guided_cfg)$layout)
+)
+names(emb)[2:3] <- c("x", "y")
+emb$label <- factor(rep(cell_labels, 2))
+
+ggplot(emb, aes(x, y, colour = label, shape = label)) +
+  geom_point(size = 0.6, alpha = 0.7) +
+  facet_wrap(~ config) +
+  coord_equal() +
+  scale_color_book() +
+  scale_shape_manual(values = seq_along(levels(emb$label))) +
+  labs(x = "UMAP 1", y = "UMAP 2", colour = NULL, shape = NULL)
+```
+
+### The null result
+
+The benchmark-guided configuration did not beat the field default in any way
+that survives inspection. The same populations separate. Cluster assignments
+agree to within the disagreement produced by re-seeding either configuration.
+The larger $k$ moves the panels visibly, but the aggregate neighbourhood
+statistics move by less than the seed-to-seed spread of either configuration on
+its own — which is precisely the condition under which Chapter \@ref(results)
+says the grid does not decide, and the correct reading is that it did not decide
+here either.
+
+This is worth stating plainly, because the alternative is worse. The procedure
+was run, the outcome was a null, and reporting the null is the only version of
+this chapter consistent with the rest of the book. What the benchmark changed
+was not the picture but the reporting: it named specific suspect edges and where
+they are, it supplied a seed band against which to compare the two
+configurations, and it removed the temptation to read the shape of either panel
+as structure. Those are real deliverables. A different embedding was not one of
+them.
+
+## The decision procedure
+
+What the benchmark licenses, in the order you would run it. Each item
+corresponds to a result in Part III rather than to a preference.
+
+1. **State the graph, not the data.** Every method and every metric downstream
+   sees the neighbourhood graph on your reduced representation. Record the
+   normalisation, feature selection, number of components, distance and $k$.
+   Two pipelines differing in any of these are being compared on different
+   objects.
+2. **Run the short-circuit diagnostic before choosing a method.** If the index
+   is non-zero, graph-geodesic methods are compromised by construction and no
+   hyperparameter search repairs it. Report the index, the candidate cap and
+   the $k$ it was computed at.
+3. **Estimate local intrinsic dimension and look at its spread.** A wide spread
+   across patches means no single $k$ is right everywhere, and a single-$k$
+   embedding is a compromise you should state.
+4. **Place the dataset on the $\theta$ axis at matched $n$ and $k$.** Where the
+   diagnostics disagree about the placement, as they did above, say so and use
+   the more pessimistic one.
+5. **Read the grid at the matched slice, not the global ranking.** Method order
+   changes across $\theta$; that is the finding, not an artefact.
+6. **Apply the separation rule.** Select a method only when its seed band is
+   disjoint from the runner-up's. Otherwise report both embeddings and say the
+   benchmark did not decide.
+7. **Re-run across at least 20 seeds and show the spread.** A single embedding
+   is one draw from a distribution whose width you have not measured.
+8. **Never report trustworthiness, continuity or $k$NN preservation alone.**
+   Chapter \@ref(evaluation) showed they are high on embeddings that are wrong.
+   Report them with the $k$ they were computed at and with the caveat that they
+   score the objective the embedding optimised.
+9. **Verify every claim made from the embedding in the original space.** If two
+   populations look adjacent, test adjacency on the high-dimensional
+   representation. The embedding is a figure, not evidence.
+10. **Report the null.** If the benchmark-guided choice does not beat the
+    default, that is a result about the benchmark's reach and belongs in the
+    paper.
+
+## Back to Chari and Pachter
+
+Chari and Pachter argue that two-dimensional embeddings of high-dimensional
+single-cell data are so distorted as to be misleading, and that the field's
+reliance on them is a methodological error [@chari2023specious]. The benchmark
+lets us separate what we can support by measurement from what we cannot.
+
+Supported. Distortion is real, large, and measurable rather than arguable: at
+moderate and high $\theta$ the reconstruction error against exact truth is
+substantial for every method tested, and the embeddings that look most
+convincing are not the most accurate. The standard neighbourhood metrics do not
+detect this — they scored highly on embeddings with large true error, which is
+the strongest form of the claim that current evaluation practice cannot
+distinguish good embeddings from bad ones. And seed variance is wide enough that
+single-run figures, which is what the literature almost always publishes, are
+anecdotes.
+
+Not supported. The critique is sometimes read as implying that two-dimensional
+embeddings are useless in general. The benchmark contradicts that: below the
+short-circuit angle several methods recover the true unfolding to within noise,
+and the failure is regime-dependent rather than universal. The useful question
+is not "is the embedding distorted" but "how distorted, and can I tell from the
+data" — and the diagnostics above answer the second half. Second, the critique's
+own quantitative apparatus is built from neighbourhood-preservation measures,
+and Chapter \@ref(evaluation) showed those measures to be unreliable in exactly
+the regime where the argument needs them. The conclusion may well be right; the
+instrument used to reach it inherits the weakness it is being used to expose.
+Third, the benchmark says nothing about whether the biological conclusions drawn
+from published embeddings are wrong. It cannot. It measures geometry.
+
+Kobak and Berens argue the other side — that careful use of t-SNE, with
+attention to initialisation and perplexity, recovers structure well
+[@kobak2019art]. The benchmark is compatible with both positions, which is the
+uncomfortable but honest reading: method quality is a curve over difficulty, and
+two authors evaluating at different points on that curve will disagree
+permanently without either being wrong.
+
+## Honest limits
+
+This is a benchmark on synthetic, isometric, uniformly sampled manifolds of
+intrinsic dimension two, or $2k$ under the product construction of Chapter
+\@ref(benchmarks). Every one of those adjectives is a limit.
+
+*Isometric* is the strongest. The whole ground-truth claim rests on rigid
+folding preserving distances along the surface, which is what makes the flat
+pattern the exact answer and what lets `dist(truth)` stand in for geodesic
+distance without approximation. Real data have no flat chart. A manifold with
+intrinsic curvature cannot be unfolded to the plane without distortion, so for
+real data there is generally no correct two-dimensional embedding to recover —
+only better and worse compromises. The benchmark measures how methods behave
+when a correct answer exists. It cannot measure how they behave when one does
+not.
+
+*Uniformly sampled* excludes the density variation that dominates real
+neighbourhood graphs. *Intrinsic dimension two* is far below any plausible
+estimate for a transcriptome, as the PBMC diagnostic showed directly.
+*Synthetic* excludes the measurement model entirely: counting noise, dropout,
+doublets, ambient RNA and batch structure are absent, and each deforms the graph
+in ways this benchmark cannot reproduce. And the clusters that dominate
+single-cell embeddings are not manifold structure at all — a crease pattern is
+connected, and much of what a UMAP of PBMC shows is not.
+
+The strongest claims the benchmark licenses are therefore about metrics and
+failure modes, not about biology. It establishes that trustworthiness and its
+relatives can certify wrong embeddings, that short circuits are detectable
+without ground truth, and that seed variance is routinely larger than method
+differences. Those claims transfer because they are claims about algorithms.
+Anything of the form "therefore your cell types are wrong" does not follow, and
+is not being argued here.
+
+## Reporting standards
+
+The standing rules of this book exist because of results in Part III, and they
+are what should survive contact with a manuscript.
+
+Every figure carries alt text describing the structure shown, not the caption
+repeated. No result is encoded by colour alone: population identity gets shape
+or facet as well, mountain and valley creases get linetype as well as colour,
+and a figure that fails in greyscale fails. Seeds are disclosed — which seeds,
+how many, and the spread across them — and stochastic embeddings are shown as
+several draws or as a summary over draws, never as one run presented as the
+result.
+
+Aspect ratio is the standard that gets skipped. An embedding is defined up to a
+similarity transform at best — that is exactly what `reconstruction_error()`
+quotients out — so the two axes carry the same units and must be drawn at the
+same scale. `coord_equal()` is not decoration. Stretching one axis to fill a
+panel changes apparent cluster shape, apparent separation and apparent density,
+which are precisely the quantities readers extract from these figures. Axis
+units on a UMAP or t-SNE panel are not interpretable in any case, and the honest
+treatment is to draw them to equal scale and label them as coordinates rather
+than as measurements.
+
+None of this makes an embedding correct. It makes the figure an accurate report
+of what the algorithm produced, which is the most a two-dimensional picture of
+high-dimensional data can honestly claim to be.

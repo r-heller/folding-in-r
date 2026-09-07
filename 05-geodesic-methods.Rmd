@@ -2,10 +2,509 @@
 
 *If the data lie on a folded sheet, how do you flatten it back out?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+Every method in this chapter follows the same two-step recipe. Estimate a metric
+on the sample, then embed that metric in the plane. Isomap, Laplacian eigenmaps,
+diffusion maps and locally linear embedding differ only in which metric they
+estimate and how they embed it, and all four estimate it from the same object: a
+$k$-nearest-neighbour graph built in the ambient space.
 
-- Classical MDS with `cmdscale` as the baseline.
-- Isomap: geodesics estimated by shortest paths on a kNN graph (`igraph::distances`).
-- Locally linear embedding, and what it assumes about local neighbourhoods.
-- Isomap is *built* for isometric embeddings, so the interesting result is where it breaks.
-- Report the exact $\theta$ at which the kNN graph first bridges two facets — analytically and empirically.
+That shared dependence is what makes the family unusually easy to audit on a
+rigid fold. Rigid folding is an isometry (Chapter \@ref(folding-geometry)), so
+the folded surface carries the metric of the flat sheet unchanged. Geodesic
+distances, the Laplace–Beltrami operator, and the local affine charts that LLE
+fits are all identical at $\theta = 0$ and at $\theta_{\max}$. Whatever any of
+these methods would return *given the true metric*, it would return identically
+at every fold angle. The population target is $\theta$-invariant.
+
+So every bit of $\theta$-dependence in the curves below is graph-construction
+error. Nothing else is available to cause it. This is the sharpest statement the
+benchmark supports, and it is the reason this chapter is longer than its
+neighbours.
+
+## Classical MDS as the baseline
+
+`cmdscale()` double-centres a squared-distance matrix, takes its leading
+eigenvectors, and scales them by the square roots of the eigenvalues. Applied to
+a Euclidean distance matrix it returns the principal component scores up to sign
+— it is Chapter \@ref(linear)'s PCA, re-expressed in the vocabulary the rest of
+this chapter uses. That is precisely its value here: it holds the embedding step
+fixed so that the distance matrix is the only thing that varies.
+
+```{r geo-cmdscale}
+library(foldbench)
+
+pat <- miura_ori(n_rows = 6, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
+fld <- fold(pat, theta = 0.8)
+s   <- sample_manifold(pat, theta = 0.8, n = 800, seed = BENCH_SEEDS[1])
+
+Y_mds <- cmdscale(dist(s$X), k = 2)
+reconstruction_error(Y_mds, s$truth)
+
+# cmdscale on Euclidean distances is PCA
+Y_pca <- prcomp(s$X, rank. = 2)$x
+max(abs(abs(cor(Y_mds, Y_pca)) - diag(2)))
+```
+
+At $\theta = 0$ ambient and geodesic distances coincide and the baseline is exact
+to machine precision. Folding then contracts the sheet *anisotropically* in
+$\mathbb{R}^3$: the corrugation direction is squashed by a factor
+$\lambda(\theta) < 1$, the transverse direction by a different factor. Procrustes
+alignment permits rotation, reflection and a single isotropic scale, so it can
+absorb neither. `reconstruction_error` therefore rises monotonically with $\theta$,
+and that curve is the floor every method below has to beat.
+
+## Isomap
+
+Isomap replaces the ambient distance matrix with shortest-path distances on the
+neighbourhood graph and hands the result to the same `cmdscale`
+[@tenenbaum2000isomap]. Written out, it is four lines.
+
+```{r geo-knn-graph}
+knn_graph <- function(X, k) {
+  D  <- as.matrix(dist(X))
+  nn <- t(apply(D, 1, function(d) order(d)[2:(k + 1)]))
+  el <- cbind(rep(seq_len(nrow(X)), each = k), as.vector(t(nn)))
+  g  <- igraph::simplify(igraph::graph_from_edgelist(el, directed = FALSE))
+  igraph::E(g)$weight <- D[igraph::as_edgelist(g)]
+  g
+}
+
+isomap_embed <- function(X, k, d = 2) {
+  g <- knn_graph(X, k)
+  if (igraph::components(g)$no > 1L) return(NULL)   # fragmented graph
+  Dg <- igraph::distances(g, algorithm = "dijkstra")
+  cmdscale(Dg, k = d)
+}
+```
+
+`vegan::isomap()` does the same thing with more care about edge cases, and
+`vegan::isomapdist()` returns the graph distance matrix on its own, which is what
+the decomposition below needs. Two of its arguments matter. `epsilon` builds an
+$\varepsilon$-ball graph instead of a $k$-nearest-neighbour graph; on a sheet
+sampled at uniform density the two are close, but $\varepsilon$-balls fragment
+more readily near the boundary. And `fragmentedOK = FALSE` — the default — makes
+a disconnected graph an error rather than silently embedding the largest
+component. Leave it at the default. A run that quietly discards a third of the
+sheet and reports a low reconstruction error is worse than a run that stops.
+
+```{r geo-isomap-vegan}
+Dg <- vegan::isomapdist(dist(s$X), k = 12)
+Y_iso <- cmdscale(Dg, k = 2)
+reconstruction_error(Y_iso, s$truth)
+```
+
+Cost is $O(n^2)$ memory for the distance matrix and $O(n^2 \log n)$ for
+all-pairs Dijkstra, which caps the sample size at a few thousand before landmark
+variants become necessary.
+
+## Locally linear embedding
+
+LLE takes the opposite view: never estimate a global metric at all
+[@roweis2000lle]. For each point, find the affine weights $w_{ij}$ over its $k$
+neighbours that best reconstruct it, constrained to sum to one; then find the
+low-dimensional configuration that the *same* weights reconstruct as well as
+possible [@saul2003think]. The sum-to-one constraint makes the weights invariant
+to translation, rotation and scaling of the neighbourhood, which is the sense in
+which LLE never needs a metric.
+
+What it assumes is that each neighbourhood is well approximated by an affine
+subspace of the intended output dimension. On a piecewise-flat surface that
+assumption is not approximately true, it is either exactly true or badly false.
+In the interior of a facet the neighbourhood *is* affine and the weights are
+exact. At a crease the neighbourhood spans two planes, its affine hull is
+three-dimensional, and the reconstruction has a two-parameter family of exact
+solutions. The creases are therefore exactly where the regularisation decides
+the answer.
+
+The CRAN `lle` package is archived, so the book implements the algorithm
+directly. Twenty lines, and having them on the page makes the dependence on
+`reg` visible instead of buried.
+
+```{r geo-lle}
+lle_embed <- function(X, k = 12, d = 2, reg = 1e-3) {
+  n <- nrow(X)
+  D <- as.matrix(dist(X))
+  W <- matrix(0, n, n)
+  for (i in seq_len(n)) {
+    nb <- order(D[i, ])[2:(k + 1)]
+    Z  <- sweep(X[nb, , drop = FALSE], 2, X[i, ])
+    C  <- tcrossprod(Z)
+    C  <- C + reg * sum(diag(C)) * diag(k)   # k > ambient dim: C is singular
+    w  <- solve(C, rep(1, k))
+    W[i, nb] <- w / sum(w)
+  }
+  M <- crossprod(diag(n) - W)
+  e <- RSpectra::eigs_sym(M, k = d + 1, sigma = 0)   # shift-invert at zero
+  e$vectors[, order(e$values)][, 2:(d + 1), drop = FALSE]
+}
+```
+
+The regularisation is not a numerical nicety. The local Gram matrix $C$ is
+$k \times k$ but has rank at most $D$, the ambient dimension. Here $D = 3$ and
+$k$ is in the dozens, so $C$ is singular by a wide margin at every point on the
+sheet, the weights are non-unique, and `reg` alone selects among them. Vary
+`reg` over three orders of magnitude and the embedding changes visibly. That is
+the standing instability of LLE, and this benchmark puts it in its worst regime:
+a two-dimensional manifold in three dimensions, where $k$ exceeds $D$ for any
+usable neighbourhood size. The second eigenproblem is delicate for a related
+reason — the bottom eigenvector of $M$ is the constant vector with eigenvalue
+zero, and the gap to the next one is small, so the shift-invert solve above is
+the minimum required care.
+
+## What Isomap's error is made of
+
+Isomap's premise is this book's premise: recover the geodesic metric, then embed
+it. On a rigid fold the geodesic metric is known in closed form, so the premise
+can be checked rather than assumed. Provided the flat crease pattern is
+intrinsically convex — true for the rectangular Miura sheet, false as soon as the
+pattern has a hole or a re-entrant boundary — the straight segment between any
+two points of the flat sheet stays inside it, and the geodesic distance on the
+folded surface is exactly the Euclidean distance between the corresponding rows
+of the ground-truth unfolding.
+
+```{r geo-truth-identity}
+# Folding is an isometry, so the exact geodesic distance between two samples is
+# the Euclidean distance between their rows of the flat truth. There is nothing
+# to estimate and nothing to converge to: this is the answer key, in closed form.
+D_true <- dist(s$truth)
+
+# The ambient metric can only understate the surface separation, never overstate
+# it. The largest gap is the worst short circuit in the sample.
+max(as.matrix(dist(s$X)) - as.matrix(D_true))   # <= 0 up to rounding
+max(as.matrix(D_true) - as.matrix(dist(s$X)))   # the worst short circuit
+```
+
+That identity splits Isomap's error into two pieces, and the split is
+measurable, which it is not on any other benchmark:
+
+$$
+\underbrace{\hat{d}_{ij}}_{\text{graph}} \;=\;
+\underbrace{d_{\mathcal{M}}(i,j)}_{\text{truth}} \;+\;
+\underbrace{\big(\hat{d}_{ij} - d_{\mathcal{M}}(i,j)\big)}_{\text{estimation error}},
+\qquad
+Y \;=\; \operatorname{cmdscale}(\hat{D}, 2).
+$$
+
+Feed `cmdscale` the exact geodesics and the second term vanishes. But $D_{\text{true}}$
+is the distance matrix of a set of points that already lie in a plane, so it is
+exactly Euclidean of rank two, its double-centring has exactly two non-zero
+eigenvalues, and classical MDS reconstructs $\mathcal{U}$ up to a rigid motion.
+The embedding step contributes *nothing*.
+
+```{r geo-decomposition}
+reconstruction_error(cmdscale(D_true, k = 2), s$truth)   # ~1e-15: embedding error is zero
+reconstruction_error(cmdscale(Dg,     k = 2), s$truth)   # all of Isomap's error
+
+rel_err <- function(A, B) sqrt(sum((A - B)^2) / sum(B^2))
+rel_err(as.matrix(Dg), as.matrix(D_true))       # graph estimation error
+```
+
+So on a rigid fold, one hundred per cent of Isomap's reconstruction error is
+graph-estimation error. There is no residual "MDS cannot represent this"
+term to hide behind, and no need to argue about how much of the failure belongs
+to which stage.
+
+One refinement makes the accounting sharper still. Graph distances are biased
+*upward*: a polygonal chain of hops is never shorter than the straight line it
+approximates, and the bias vanishes as the sample density grows
+[@bernstein2000graph]. But `reconstruction_error` aligns scale, so a bias that is
+uniform across all pairs costs exactly nothing. Only *anisotropic* distortion is
+charged. This is why the honest part of the graph error stays invisible for a
+long stretch of $\theta$ — and why short circuits, which contract one direction
+and leave the other alone, are charged at full price the moment they appear.
+
+## Short circuits
+
+Define, for each edge of the graph, the distortion ratio
+
+$$\rho_{ij} \;=\; \frac{d_{\mathcal{M}}(i,j)}{\lVert x_i - x_j \rVert}\;\ge\;1 ,$$
+
+the factor by which an edge understates the true surface separation of its
+endpoints. On a flat sheet $\rho \equiv 1$. Within a facet $\rho = 1$ exactly, at
+any $\theta$. An edge is a **short circuit** when $\rho_{ij} > \tau$ for a
+threshold $\tau$; the book uses $\tau = 2$, meaning the edge claims as
+neighbours two points at least twice as far apart along the surface as through
+the air. Computing $\rho$ requires the answer key, which is the point.
+
+```{r geo-shortcircuit-flag}
+short_circuits <- function(g, X, U, tau = 2) {
+  el  <- igraph::as_edgelist(g)
+  amb <- sqrt(rowSums((X[el[, 1], ] - X[el[, 2], ])^2))
+  geo <- sqrt(rowSums((U[el[, 1], ] - U[el[, 2], ])^2))   # exact, by isometry
+  data.frame(i = el[, 1], j = el[, 2],
+             ambient = amb, geodesic = geo,
+             rho = geo / amb, short = geo / amb > tau)
+}
+```
+
+The mechanism is the one Chapter \@ref(generative) previews. As $\theta$ grows,
+facets that are far apart along the surface approach one another in
+$\mathbb{R}^3$, the ambient $k$-nearest-neighbour search stops respecting the
+surface, and the graph acquires edges that jump the fold. Isomap's response is
+not graceful, for a structural reason: Dijkstra takes a *minimum* over paths, so
+a single bad edge is enough to corrupt every pair whose shortest path can be
+routed through it. The damage is not proportional to the number of bad edges.
+
+```{r geo-shortcircuit-map, fig.height=3.6, fig.alt="Two panels of the same k-nearest-neighbour graph on a folded Miura sheet at a fold angle just past onset. Left panel shows the folded surface seen side-on in the x-z plane; right panel shows the exact flat unfolding. Graph edges are drawn as line segments, with honest edges as thin solid lines in dark purple and short-circuit edges as dashed orange lines. In the left panel the short-circuit edges are short and inconspicuous, spanning the narrow gap between adjacent facets. In the right panel the same edges are revealed as long chords running across the sheet, connecting regions that are far apart on the true manifold."}
+s2 <- sample_manifold(pat, theta = 1.15, n = 800, seed = BENCH_SEEDS[1])
+g2 <- knn_graph(s2$X, k = 12)
+ed <- short_circuits(g2, s2$X, s2$truth, tau = 2)
+
+seg <- function(P, lab) data.frame(
+  panel = lab, short = ed$short,
+  x  = P[ed$i, 1], y  = P[ed$i, 2],
+  xend = P[ed$j, 1], yend = P[ed$j, 2]
+)
+
+segs <- rbind(seg(s2$X[, c(1, 3)], "Folded surface (x, z)"),
+              seg(s2$truth,            "Exact unfolding (truth)"))
+segs <- segs[order(segs$short), ]         # short circuits drawn on top
+
+ggplot2::ggplot(segs, ggplot2::aes(x, y, xend = xend, yend = yend,
+                                   colour = short, linetype = short)) +
+  ggplot2::geom_segment(linewidth = 0.25) +
+  ggplot2::facet_wrap(~ panel, scales = "free") +
+  ggplot2::scale_linetype_manual(values = c(`FALSE` = "solid", `TRUE` = "22"),
+                                 labels = c("honest edge", "short circuit")) +
+  scale_color_book(end = 0.8, labels = c("honest edge", "short circuit")) +
+  ggplot2::coord_equal() +
+  ggplot2::labs(x = NULL, y = NULL, colour = NULL, linetype = NULL)
+```
+
+The right-hand panel is the one to read. In $\mathbb{R}^3$ the offending edges
+are short and unremarkable; on the answer key they are long chords across the
+sheet. No diagnostic computed from the data alone distinguishes them, which is
+why short circuits are usually discovered by noticing that the embedding looks
+wrong.
+
+Push $\theta$ further and the short circuits stop being isolated. Once they are
+dense enough to percolate across the corrugation direction, shortest paths can
+zig-zag the whole width of the sheet at the ambient rather than the geodesic
+rate, the graph metric converges to the ambient chordal metric, and Isomap
+converges to `cmdscale`. That is the endpoint of the failure and it is
+falsifiable: past the collapse, Isomap's curve does not merely worsen, it merges
+with the linear baseline it was supposed to improve on. The result is the one
+Balasubramanian and Schwartz raised against Isomap two years after it appeared
+[@balasubramanian2002isomap], reproduced here with the error measured rather than
+inferred from a picture.
+
+## The $k$ that works at low $\theta$ is not the $k$ that works at high $\theta$
+
+$k$ controls a trade-off whose balance point moves with $\theta$. Small $k$
+fragments the graph on a sparse sample and inflates the polygonal-path bias;
+large $k$ enlarges the neighbourhood radius, which admits more short circuits and
+lets each one span more true surface distance. Neither end is safe everywhere.
+
+```{r geo-theta-by-k, fig.height=3.2, fig.alt="Procrustes RMSE against fold angle theta, faceted into five panels for k equal to 5, 8, 12, 20 and 30. Each panel shows two curves: Isomap as a solid dark purple line with an interquartile ribbon, and the classical MDS baseline as a dashed orange line. The MDS baseline rises steadily with theta and is identical in every panel. Isomap tracks near zero error across a range of theta, then rises abruptly to meet the MDS baseline. The theta at which the rise begins is similar across panels, but the height and steepness of the jump grow with k, and at k equal to 5 the curve is truncated at low theta where the graph is fragmented."}
+K_GRID <- c(5, 8, 12, 20, 30)
+THETA  <- seq(0, 1.4, length.out = 15)   # theta is bounded by pi/2
+
+rows <- list()
+for (th in THETA) for (sd in BENCH_SEEDS) {
+  si <- sample_manifold(pat, theta = th, n = 800, seed = sd)
+  rows[[length(rows) + 1L]] <- data.frame(
+    theta = th, seed = sd, k = NA_integer_, method = "classical MDS",
+    rmse = reconstruction_error(cmdscale(dist(si$X), k = 2), si$truth))
+  for (kk in K_GRID) {
+    Y <- isomap_embed(si$X, kk)
+    rows[[length(rows) + 1L]] <- data.frame(
+      theta = th, seed = sd, k = kk, method = "Isomap",
+      rmse = if (is.null(Y)) NA_real_ else reconstruction_error(Y, si$truth))
+  }
+}
+cur  <- do.call(rbind, rows)
+
+base <- subset(cur, method == "classical MDS")
+base <- do.call(rbind, lapply(K_GRID, function(kk) transform(base, k = kk)))
+cur  <- rbind(subset(cur, method == "Isomap"), base)
+
+q <- aggregate(rmse ~ theta + k + method, cur, na.action = na.pass,
+               FUN = function(v) c(med = median(v, na.rm = TRUE),
+                                   lo  = quantile(v, .25, na.rm = TRUE),
+                                   hi  = quantile(v, .75, na.rm = TRUE)))
+q <- do.call(data.frame, q)
+names(q)[4:6] <- c("med", "lo", "hi")
+
+ggplot2::ggplot(q, ggplot2::aes(theta, med, colour = method, linetype = method)) +
+  ggplot2::geom_ribbon(ggplot2::aes(ymin = lo, ymax = hi, fill = method),
+                       alpha = 0.15, colour = NA) +
+  ggplot2::geom_line(linewidth = 0.7) +
+  ggplot2::facet_wrap(~ k, nrow = 1,
+                      labeller = ggplot2::labeller(k = function(v) paste0("k = ", v))) +
+  scale_color_book(end = 0.8) +
+  scale_fill_book(end = 0.8) +
+  ggplot2::labs(x = expression(theta), y = "Procrustes RMSE",
+                colour = NULL, fill = NULL, linetype = NULL)
+```
+
+Two things follow, and both invalidate the usual reporting practice. The
+ranking of $k$ reverses across the fold angle: the value that minimises RMSE on
+a nearly flat sheet is among the worst once the fold is deep, so a single-$k$
+evaluation reports the position of an arbitrary point on a curve whose shape it
+does not show. And past a certain $\theta$ the window closes entirely — every
+$k$ small enough to avoid short circuits is too small to keep the graph
+connected. Beyond that angle Isomap has no admissible tuning, which is a more
+useful thing to report than a best-case number.
+
+## Where the graph first bridges
+
+The onset can be predicted, not just observed. Two families of bad edge exist
+and they have different criteria.
+
+Take the Miura corrugation seen end-on: a triangle wave of slant length $a$,
+amplitude $H(\theta) = a \sin\theta \sin\alpha$ and projected half-wavelength
+$L(\theta) = a\sqrt{1 - \sin^2\theta \sin^2\alpha}$, so that $H^2 + L^2 = a^2$
+[@schenk2013miura]. Write $\lambda(\theta) = L/a$ for the contraction of the
+corrugation direction.
+
+**Across a crease.** Two points at equal arclength $s$ on opposite flanks of a
+valley are $2s$ apart along the surface and $2s\lambda$ apart in
+$\mathbb{R}^3$, for every $s$. The configuration is scale-free, so
+$\rho = 1/\lambda(\theta)$ regardless of $s$, $k$ or $n$, and short circuits of
+this family appear when
+
+$$\sin^2\theta_\star \;=\; \frac{1 - \tau^{-2}}{\sin^2\alpha}.$$
+
+At $\alpha = \pi/3$ the fully folded sheet has $\lambda = \sqrt{1 - \sin^2 60^\circ} = 1/2$
+exactly, so $\rho$ tops out at exactly $2$: with $\tau = 2$ the threshold
+coincides with $\theta_{\max}$, and with $\tau = 1.5$ it falls at
+$\theta_\star = 1.04$. The onset of this family does not depend on $k$ at all.
+
+**Across a trough.** Two facets separated by an intervening facet are $2L(\theta)$
+apart in $\mathbb{R}^3$ at closest approach, a fixed distance rather than a
+scale-free one, so they bridge when the neighbourhood radius reaches it. For $n$
+points uniform on a sheet of area $A$, the expected $k$-th-neighbour distance is
+$r_k = \sqrt{kA/(\pi n)}$; writing $m$ for the mean number of sample points per
+facet, the criterion $2L(\theta) \le r_k$ becomes
+
+$$\frac{k}{m} \;\ge\; \frac{4\pi\, a\, \lambda(\theta)^2}{b \sin\alpha}.$$
+
+At $a = b = 1$, $\alpha = \pi/3$ and full compression the right-hand side is
+$3.6$. With twenty points per facet this family needs $k \gtrsim 70$ and never
+fires on the book's grid; with five points per facet it needs only
+$k \gtrsim 20$ and does. Sample size and neighbourhood size enter here, and only
+here.
+
+```{r geo-bridge-theta}
+r_k <- function(k, n, area) sqrt(k * area / (pi * n))
+
+theta_bridge_analytic <- function(k, n, area, a = 1, alpha = pi / 3, tau = 2) {
+  solve_theta <- function(s2) if (s2 <= 1) asin(sqrt(max(s2, 0))) else NA_real_
+  c(crease = solve_theta((1 - tau^-2) / sin(alpha)^2),
+    trough = solve_theta((1 - r_k(k, n, area)^2 / (4 * a^2)) / sin(alpha)^2))
+}
+
+theta_bridge_empirical <- function(pat, k, n, seeds, tau = 2,
+                                   thetas = seq(0, 1.4, length.out = 40)) {
+  vapply(seeds, function(sd) {
+    for (th in thetas) {
+      si <- sample_manifold(fold(pat, th), n = n, seed = sd)
+      gi <- knn_graph(si$X, k)
+      if (any(short_circuits(gi, si$X, si$truth, tau)$short)) return(th)
+    }
+    NA_real_
+  }, numeric(1))
+}
+
+emp <- theta_bridge_empirical(pat, k = 12, n = 800, seeds = BENCH_SEEDS, tau = 1.5)
+quantile(emp, c(.1, .5, .9))
+```
+
+Report the empirical onset as a distribution over `BENCH_SEEDS`, not a point.
+The analytic threshold is where bridging pairs first *exist*; whether a
+particular sample contains one is a matter of where its points fell, so the
+measured onset sits at or above the prediction and tightens onto it as $n$
+grows. Agreement between the two is the check that the mechanism is understood
+rather than merely named.
+
+## Spectral relatives
+
+Laplacian eigenmaps skip the geodesic entirely. Weight each graph edge by
+$w_{ij} = \exp(-\lVert x_i - x_j\rVert^2/\sigma^2)$, then minimise
+$\sum_{ij} w_{ij}\lVert y_i - y_j\rVert^2$ subject to $Y^\top D Y = I$; the
+solution is the generalised eigenvectors of $Ly = \gamma D y$ for the smallest
+non-zero $\gamma$ [@belkin2003laplacian]. Numerically it is cleaner to work with
+the symmetric conjugate $\mathcal{A} = D^{-1/2} W D^{-1/2}$ and take its largest
+algebraic eigenvalues, which `RSpectra` handles directly.
+
+```{r geo-laplacian-eigenmaps}
+laplacian_eigenmap <- function(X, k = 12, d = 2, sigma = NULL) {
+  g <- knn_graph(X, k)
+  W <- igraph::as_adjacency_matrix(g, attr = "weight", sparse = TRUE)
+  if (is.null(sigma)) sigma <- mean(W@x)
+  W@x <- exp(-(W@x / sigma)^2)
+  dg  <- Matrix::rowSums(W)
+  Dh  <- Matrix::Diagonal(x = 1 / sqrt(dg))
+  e   <- RSpectra::eigs_sym(Dh %*% W %*% Dh, k = d + 1, which = "LA")
+  sweep(e$vectors[, -1, drop = FALSE], 1, sqrt(dg), "/")   # drop trivial vector
+}
+```
+
+Diffusion maps add two knobs to the same object [@coifman2006diffusion]. An
+anisotropic normalisation $w_{ij} \mapsto w_{ij}/(q_i^\alpha q_j^\alpha)$ with
+$q_i = \sum_j w_{ij}$ removes the influence of sampling density at $\alpha = 1$,
+recovering the Laplace–Beltrami operator; and a diffusion time $t$ rescales the
+coordinates as $\gamma_\ell^{\,t}\psi_\ell$.
+
+```{r geo-diffusion-map}
+diffusion_map <- function(X, k = 12, d = 2, alpha = 1, t = 1, sigma = NULL) {
+  g <- knn_graph(X, k)
+  W <- igraph::as_adjacency_matrix(g, attr = "weight", sparse = TRUE)
+  if (is.null(sigma)) sigma <- mean(W@x)
+  W@x <- exp(-(W@x / sigma)^2)
+  q  <- Matrix::rowSums(W)
+  Qa <- Matrix::Diagonal(x = q^-alpha)
+  Wa <- Qa %*% W %*% Qa
+  dg <- Matrix::rowSums(Wa)
+  Dh <- Matrix::Diagonal(x = 1 / sqrt(dg))
+  e  <- RSpectra::eigs_sym(Dh %*% Wa %*% Dh, k = d + 1, which = "LA")
+  psi <- sweep(e$vectors[, -1, drop = FALSE], 1, sqrt(dg), "/")
+  sweep(psi, 2, e$values[-1]^t, "*")
+}
+```
+
+Both inherit the same graph and therefore the same failure, but the signature
+differs. Isomap's shortest path is a minimum, so one bad edge changes a block of
+the distance matrix outright; the failure arrives late and abruptly. A spectral
+method averages over all paths, so a bridge with a small Gaussian weight
+perturbs the operator only slightly — but it perturbs the *low* end of the
+spectrum, exactly where the informative eigenvectors live, and the eigenvector
+that the corrugation direction generates is the one a cross-fold bridge attacks.
+The result is a degradation that begins earlier and rises more smoothly, and
+whose visible form is not a contraction but a fold-over: the two bridged regions
+map to the same place, and the eigenvalue ordering swaps, so the second and
+third coordinates trade roles part-way along the $\theta$ curve. Report which
+eigenvectors you used, or the curve is uninterpretable.
+
+There is also a failure with nothing to do with folding, and this benchmark
+provokes it if the sheet is set up carelessly. On a rectangle
+$[0, L_x] \times [0, L_y]$ the Neumann Laplacian eigenfunctions are
+$\cos(m\pi x/L_x)\cos(n\pi y/L_y)$ with eigenvalues
+$\pi^2(m^2/L_x^2 + n^2/L_y^2)$. The mode $(2,0)$ precedes $(0,1)$ whenever
+$L_x > 2L_y$, in which case the first two non-trivial eigenvectors are *both*
+functions of $x$ and the "two-dimensional embedding" is a parabolic arc carrying
+no transverse information at all. This happens at $\theta = 0$, on a perfectly
+flat sheet, and it is a property of the domain rather than of the data. Keep
+$n_x a$ and $n_y b$ within a factor of two of each other, or the folding results
+will be contaminated by an artefact of the aspect ratio.
+
+## What the family shares
+
+Four methods, one graph, one point of failure. The metric each of them is trying
+to estimate does not change with $\theta$, so their $\theta$-curves measure
+nothing but the quality of the ambient nearest-neighbour search as an
+approximation to the surface. That approximation degrades for a reason that is
+now stated exactly: facets approach in $\mathbb{R}^3$ at a rate
+$\lambda(\theta)$ fixed by the crease geometry, and the graph starts crossing
+between them when the neighbourhood radius $r_k$ catches up.
+
+Isomap is the sharpest case because its two stages separate cleanly and one of
+them contributes zero error. It is also, on this benchmark, the method with the
+best claim to being fair-tested: it was designed for exactly the isometric
+setting a rigid fold provides, given the geodesics it recovers the answer key to
+machine precision, and it still fails — not because the premise was wrong, but
+because the graph that estimates the geodesics is built in the wrong space.
+
+Chapter \@ref(neighbor) takes the same graph to methods that make no metric
+claim at all, and Chapter \@ref(evaluation) asks whether the quantities usually
+used to certify these embeddings would have caught any of this.

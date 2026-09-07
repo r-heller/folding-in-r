@@ -13,6 +13,9 @@
 
 suppressPackageStartupMessages({
   library(foldbench)
+  library(vegan)
+  library(Rtsne)
+  library(umap)
 })
 
 quick <- "--quick" %in% commandArgs(trailingOnly = TRUE)
@@ -34,12 +37,40 @@ NOISE <- list(
 SEEDS <- if (quick) BENCH_SEEDS[1:2] else BENCH_SEEDS
 N     <- if (quick) 150L else 800L
 
-# TODO: add the embedding methods (prcomp, cmdscale, Isomap, LLE, Rtsne, umap,
-# torch autoencoder) once the chapters that describe them are written. The grid
-# machinery below is deliberately method-agnostic: add an entry to METHODS and
-# it joins the grid.
+# The grid machinery is deliberately method-agnostic: add an entry to METHODS
+# and it joins the grid. Each entry takes the ambient matrix and returns an
+# n x d embedding.
+#
+# The torch autoencoder of Chapter 7 is deliberately NOT here. It is the one
+# method whose result depends on a training run rather than a closed-form or
+# fixed-iteration procedure, and .github/workflows/render-book.yml excludes
+# torch from the restored library to stay inside the 90-minute ceiling. Its
+# figures are reproduced from a recorded run instead; see that chapter.
+#
+# Isomap is run on the k-NN graph rather than the full distance matrix, and it
+# is the method that fails discontinuously once short-circuit edges appear, so
+# it is wrapped: a disconnected graph is a legitimate outcome of a large theta,
+# not a script error, and must be recorded as NA rather than aborting the grid.
 METHODS <- list(
-  pca = function(X, d = 2) stats::prcomp(X, rank. = d)$x[, seq_len(d), drop = FALSE]
+  pca = function(X, d = 2) {
+    stats::prcomp(X, rank. = d)$x[, seq_len(d), drop = FALSE]
+  },
+  mds = function(X, d = 2) {
+    stats::cmdscale(stats::dist(X), k = d)
+  },
+  isomap = function(X, d = 2, k = 10) {
+    tryCatch(
+      vegan::isomap(stats::dist(X), ndim = d, k = k)$points[, seq_len(d), drop = FALSE],
+      error = function(e) matrix(NA_real_, nrow = nrow(X), ncol = d)
+    )
+  },
+  tsne = function(X, d = 2) {
+    Rtsne::Rtsne(X, dims = d, perplexity = 30, check_duplicates = FALSE,
+                 verbose = FALSE)$Y
+  },
+  umap = function(X, d = 2) {
+    umap::umap(X, n_components = d)$layout
+  }
 )
 
 rows <- list()
@@ -52,13 +83,17 @@ for (pname in names(PATTERNS)) {
                              noise = NOISE[[nname]], seed = seed)
         for (mname in names(METHODS)) {
           emb <- METHODS[[mname]](m$X)
+          # A method that could not embed this configuration records NA across
+          # the row. Dropping the row instead would silently bias the curves by
+          # removing exactly the hard cases the benchmark exists to expose.
+          ok <- is.matrix(emb) && !anyNA(emb)
           rows[[length(rows) + 1L]] <- data.frame(
             pattern = pname, theta = th, noise = nname,
             seed = seed, method = mname,
-            rmse  = reconstruction_error(emb, m$truth),
-            trust = trustworthiness(m$X, emb, k = 10),
-            cont  = continuity(m$X, emb, k = 10),
-            knn   = knn_preservation(m$X, emb, k = 10),
+            rmse  = if (ok) reconstruction_error(emb, m$truth)   else NA_real_,
+            trust = if (ok) trustworthiness(m$X, emb, k = 10)    else NA_real_,
+            cont  = if (ok) continuity(m$X, emb, k = 10)         else NA_real_,
+            knn   = if (ok) knn_preservation(m$X, emb, k = 10)   else NA_real_,
             stringsAsFactors = FALSE
           )
         }

@@ -32,5 +32,9 @@ renv/sandbox/
 .DS_Store
 Thumbs.db
 
-# bookdown new_session cache
-*.rds
+# bookdown new_session cache. Scoped to the repo root: the cache file is
+# <book_filename>.rds and lands there. A blanket *.rds would also swallow
+# data/processed/benchmark-grid.rds, which scripts/run-benchmark-grid.R
+# explicitly expects to be committed as the provenance record for Chapter 10.
+/*.rds
+!data/processed/*.rds

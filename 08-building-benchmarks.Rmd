@@ -2,10 +2,523 @@
 
 *How do you build a manifold whose true geometry you already know?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+Chapter \@ref(generative) established the object: a rigid fold is an isometry,
+so the flat crease pattern is the exact two-dimensional embedding of the folded
+surface, not an approximation of it. This chapter is the operating manual for
+`foldbench`, the companion package that turns that fact into data. It runs the
+API from a pattern specification to a table of metrics, sets out the three
+pattern families and states precisely how far the difference between them
+currently goes, and then does the thing that makes the construction more than a
+curiosity: it raises intrinsic dimension past two, and ambient dimension past
+three, while keeping the answer key exact.
 
-- The `foldbench` API end to end.
-- Pattern families beyond Miura-ori: Yoshimura, waterbomb.
-- Product constructions: intrinsic dimension $2k$ in ambient $3k$, ground truth still exact.
-- Random linear lift to arbitrary ambient dimension $D$.
-- Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark.
+## Four objects, five verbs
+
+A `crease_pattern` is a flat, unfolded specification. It carries `vertices` (an
+$n \times 2$ matrix of flat coordinates), `creases` (a data frame of `from`/`to`
+vertex indices with an `assignment` column, `"M"` or `"V"`), `grid` (the row and
+column index of each vertex), `params`, and `family`.
+
+`unfold()` returns the flat coordinates. `fold()` maps the pattern into
+$\mathbb{R}^3$ and returns a `fold_manifold` — a list of `coords`, `truth`,
+`pattern` and `theta`. `sample_manifold()` draws points from the folded surface
+and returns a plain list of two matrices: `X`, what the method is allowed to
+see, and `truth`, what it is scored against. `fold_product()` and `lift()`
+compose samples into higher dimension.
+
+```{r bench-pipeline}
+library(foldbench)
+library(ggplot2)
+
+pat <- miura_ori(n_rows = 6, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
+pat
+#> <crease_pattern> miura
+#>   vertices: 49
+#>   creases:  84 (M: 42, V: 42)
+
+m <- fold(pat, theta = pi / 6)
+str(m, max.level = 1)
+#> List of 4
+#>  $ coords : num [1:49, 1:3]
+#>  $ truth  : num [1:49, 1:2]
+#>  $ pattern:List of 5
+#>  $ theta  : num 0.524
+
+s <- sample_manifold(pat, theta = pi / 6, n = 2000L,
+                     noise = list(type = "ambient", sd = 0.01),
+                     seed  = BENCH_SEEDS[1])
+dim(s$X)      #> 2000 3
+dim(s$truth)  #> 2000 2
+```
+
+Two details bite immediately. `sample_manifold()` takes a `crease_pattern` and a
+`theta`, not a pre-folded object — folding and sampling are one call, and there
+is no need to hold a `fold_manifold` unless you want to plot it. And `theta` is
+in radians on the half-open interval $[0, \pi/2)$. There is no `theta_max()`;
+$\pi/2$ is the bound, and it is exclusive because the terminal state is
+degenerate.
+
+`unfold(pat)` and `s$truth` are different matrices and it is worth being clear
+which you want. The first is the flat position of the 49 *vertices*; the second
+is the flat position of the 2000 *sample points*. Metrics are computed against
+`s$truth`.
+
+The single most useful consequence of the isometry is that you never need a
+geodesic solver:
+
+```{r bench-geodesic}
+# Exact along-surface distances. No graph, no shortest paths, no approximation.
+D_geo <- stats::dist(s$truth)
+
+# Ambient distances are shorter wherever the fold has brought facets together.
+D_amb <- stats::dist(s$X)
+mean(as.numeric(D_amb) <= as.numeric(D_geo))   #> 1
+```
+
+Isomap spends its entire budget estimating `D_geo` from a neighbourhood graph.
+Here it is one line, and it is exact. That asymmetry — the benchmark knows
+what the method is trying to reconstruct — is the whole apparatus in miniature.
+
+## From a sample to a metric table
+
+`foldbench` does not wrap embedding methods. It scores them. Any function taking
+an $n \times p$ matrix and returning an $n \times d$ one will do.
+
+```{r bench-methods}
+library(vegan); library(Rtsne); library(umap)
+
+methods <- list(
+  pca    = function(X, d = 2) stats::prcomp(X, rank. = d)$x[, seq_len(d)],
+  mds    = function(X, d = 2) stats::cmdscale(stats::dist(X), k = d),
+  isomap = function(X, d = 2, k = 10) vegan::isomap(stats::dist(X), ndim = d,
+                                                    k = k)$points[, seq_len(d)],
+  tsne   = function(X, d = 2) Rtsne::Rtsne(X, dims = d, perplexity = 30,
+                                           check_duplicates = FALSE)$Y,
+  umap   = function(X, d = 2) umap::umap(X, n_components = d)$layout
+)
+
+# Kruskal stress is not in foldbench; it is small enough to keep local.
+kruskal_stress <- function(X, Y) {
+  dx <- as.numeric(stats::dist(X)); dy <- as.numeric(stats::dist(Y))
+  sqrt(sum((dx - dy * (sum(dx * dy) / sum(dy^2)))^2) / sum(dx^2))
+}
+
+score <- function(Y, X, truth, k = 10) data.frame(
+  rmse   = reconstruction_error(Y, truth),
+  trust  = trustworthiness(X, Y, k),
+  cont   = continuity(X, Y, k),
+  knn    = knn_preservation(X, Y, k),
+  stress = kruskal_stress(X, Y)
+)
+
+tbl <- do.call(rbind, lapply(names(methods), function(nm) {
+  cbind(method = nm, score(methods[[nm]](s$X), s$X, s$truth))
+}))
+knitr::kable(tbl, digits = 3)
+```
+
+`reconstruction_error(embedding, truth)` is the headline. It aligns the
+embedding to the truth over translation, rotation, reflection and uniform scale
+via `vegan::procrustes()`, then reports the root mean squared residual — the
+smallest error achievable without deforming the embedding. Note the argument
+order: embedding first, truth second. It returns zero when the two differ only
+by a similarity transform, which is the correct notion of "right answer" for a
+method that cannot be expected to recover an arbitrary choice of axes.
+
+The other three are the field-standard neighbourhood diagnostics, and they are
+in the package for one reason: so that Chapter \@ref(evaluation) can measure how
+badly they mislead. All three saturate. On this sample, feeding the *truth
+itself* in as the embedding gives trustworthiness $0.9999$, continuity $0.9998$
+and $k$-NN preservation $0.977$ — the last of which is not $1$ even though the
+answer is exactly correct, because ambient neighbours and geodesic neighbours
+are not the same set once the sheet is folded. That gap is a measurement, not a
+bug, and it is the subject of the next chapter.
+
+## The noise argument
+
+`noise` is a plain list with `type` and `sd`. Four types, and the differences
+matter more than the magnitudes.
+
+`"none"` is the clean surface. `"manifold"` perturbs the flat coordinates
+*before* folding, so the point moves along the surface and `truth` moves with
+it; the ground truth stays exact for the observed point. `"ambient"` adds
+isotropic Gaussian noise in $\mathbb{R}^3$ *after* folding, so points leave the
+surface and `truth` is the truth for the underlying clean point rather than for
+what was observed. `"outlier"` displaces a fixed 2% of rows by $10\,\sigma$ and
+leaves their `truth` rows untouched, so those rows are adversarial by
+construction — the fraction is hard-coded, and `sd` scales the displacement, not
+the count.
+
+Only `"manifold"` noise leaves the benchmark exactly self-consistent. The other
+two are deliberately not self-consistent, because measurement error in real data
+is not either.
+
+## Where the neighbourhood graph breaks
+
+`short_circuit_theta()` searches a grid of fold angles for the first one at
+which the $k$-nearest-neighbour graph connects two points that are far apart
+along the surface.
+
+```{r bench-shortcircuit}
+short_circuit_theta(miura_ori(6, 6), k = 10, n = 300,
+                    grid = seq(0, pi / 2 - 0.05, length.out = 25), seed = 1)
+```
+
+The threshold is blunt — a true separation above the median pairwise distance —
+and deliberately so: the transition is sharp, so the exact cut-off barely moves
+the answer. What it gives you is a single number per configuration marking where
+every graph-based method should be expected to fail, which turns the curves of
+Chapter \@ref(results) from a description into a diagnosis. Report it alongside
+the curves rather than instead of them.
+
+## Three crease patterns, one fold
+
+The three constructors build genuinely different flat patterns. The folding
+stage does not distinguish them. Both halves of that sentence are load-bearing,
+and the table separates them.
+
+```{r bench-family-table, echo=FALSE, eval=TRUE}
+fam <- data.frame(
+  Family   = c("Miura-ori", "Yoshimura", "Waterbomb"),
+  Call     = c("miura_ori(6, 6, a, b, alpha)", "yoshimura(6, 6, a, b)",
+               "waterbomb(6, 6, a, b)"),
+  Lattice  = c("alternate rows sheared by b/tan(alpha)",
+               "alternate rows staggered by a/2",
+               "alternate rows staggered by a/2"),
+  MV       = c("42 : 42, banded by row and column",
+               "24 : 60, every vertical crease V",
+               "42 : 42, alternating crease by crease"),
+  Same     = rep("accordion about the row creases; identical up to sheet width",
+                 3L)
+)
+knitr::kable(
+  fam,
+  col.names = c("Family", "Constructor",
+                "Differs: flat lattice", "Differs: crease assignment",
+                "Does not differ: folded geometry"),
+  caption = paste("What the three families do and do not change in",
+                  "foldbench 0.1.0.")
+)
+```
+
+All three share the signature `(n_rows, n_cols, a, b)`; only `miura_ori()`
+takes the facet angle `alpha`, constrained to $(0, \pi/2)$. There is no
+`radius` argument and no cylindrical constructor. `n_rows` and `n_cols` count
+*cells*, so a $6 \times 6$ pattern has $7 \times 7 = 49$ vertices and 84
+creases, and every interior vertex has degree four in all three families.
+
+**Miura-ori** is the reference pattern: parallelogram facets produced by
+shearing alternate rows along $x$ by $b/\tan\alpha$, and the pattern behind the
+negative-Poisson-ratio metamaterials that made it well known
+[@schenk2013miura]. Mountain and valley run in whole rows and whole columns.
+
+**Yoshimura** is the diamond pattern that forms spontaneously when a thin
+cylindrical shell buckles under axial load [@yoshimura1955buckling].
+`foldbench` builds its planar tessellation: alternate rows offset by half a
+cell, with every vertical crease assigned V. The resulting 24 : 60 mountain to
+valley ratio is strongly asymmetric where Miura-ori is balanced.
+
+**Waterbomb** takes its name from the six-crease bistable base
+[@hanna2014waterbomb]. It shares the Yoshimura vertex lattice exactly and
+differs only in assignment: parity alternates along the crease list rather than
+by row or column band, so it changes within a row instead of between rows.
+
+One thing to know before reading the patterns against Chapter
+\@ref(folding-geometry): every interior vertex here carries a 2 : 2 parity
+split, not the 3 : 1 that Maekawa's theorem requires of a flat-foldable vertex.
+These are crease patterns for rigid folding, not certified flat-foldable ones.
+
+```{r bench-family-gallery, fig.alt="Three panels showing the flat crease patterns produced by miura_ori, yoshimura and waterbomb at six by six cells. Mountain creases are drawn as solid dark lines and valley creases as dashed light lines, so the two fold types are distinguishable by line style as well as by colour. Miura-ori is a sheared grid with mountains and valleys in whole rows and columns; Yoshimura is a staggered grid whose vertical creases are all valleys; waterbomb shares the Yoshimura lattice but alternates parity crease by crease.", fig.height=3}
+seg <- do.call(rbind, lapply(
+  list(miura = miura_ori(6, 6), yoshimura = yoshimura(6, 6),
+       waterbomb = waterbomb(6, 6)),
+  function(p) data.frame(
+    family     = p$family,
+    x          = p$vertices[p$creases$from, "x"],
+    y          = p$vertices[p$creases$from, "y"],
+    xend       = p$vertices[p$creases$to,   "x"],
+    yend       = p$vertices[p$creases$to,   "y"],
+    assignment = p$creases$assignment
+  )
+))
+
+ggplot(seg, aes(x, y, xend = xend, yend = yend,
+                colour = assignment, linetype = assignment)) +
+  geom_segment(linewidth = 0.35) +
+  facet_wrap(~ family, nrow = 1) +
+  scale_colour_book(name = "crease") +
+  scale_linetype_manual(name = "crease",
+                        values = c(M = "solid", V = "22")) +
+  coord_equal() +
+  theme_minimal(base_size = 9) +
+  theme(axis.title = element_blank(), axis.text = element_blank())
+```
+
+For a single pattern, `plot_crease()` produces the same figure with the
+package's own palette, and `autoplot.fold_manifold()` draws the $y$–$z$ profile
+of a folded state. The `autoplot` method is exported by name but not registered
+for S3 dispatch, so call it directly rather than through `ggplot2::autoplot()`.
+
+### The one kinematic
+
+A reference chapter has to describe what the tool does rather than what the
+family names imply, so: `fold()` and `sample_manifold()` implement a single
+kinematic, an accordion about the row creases. Neither function reads
+`$creases`, `$family` or `alpha`. `fold()` uses `grid$row` and `params$b`;
+`sample_manifold()` uses `params$b` and the bounding box of `$vertices`. A flat
+point $(u_x, u_y)$ maps to
+
+$$
+\bigl(u_x,\; u_y \cos\theta,\; \zeta(u_y)\, \sin\theta \bigr),
+\qquad
+\zeta(u_y) = \begin{cases}
+u_y - \lfloor u_y/b \rfloor b & \text{on even bands},\\[2pt]
+b - \bigl(u_y - \lfloor u_y/b \rfloor b\bigr) & \text{on odd bands}.
+\end{cases}
+$$
+
+This is a genuine isometry, and the ground-truth claim rests on it entirely. The
+$x$ coordinate is untouched; in $u_y$ the map has unit speed, since
+$\cos^2\theta + \sin^2\theta = 1$; and $\zeta$ is continuous across band
+boundaries, where $\zeta \to b$ from below and $\zeta \to b$ from above. Arc
+length is therefore preserved exactly, which is why `dist(s$truth)` is the exact
+geodesic distance matrix and why every metric in this book is computed against
+an exact answer rather than an estimate.
+
+What does *not* follow is that the three families give three manifolds. Because
+the fold reads only the row index and `b`, all three produce the same folded
+geometry over a rectangle differing only in width — $6.577$ for Miura at
+$\alpha = \pi/3$, $6.5$ for the other two. `alpha` is not a fold parameter in
+0.1.0; it changes the flat bounding box and nothing else. Nor is this an
+accordion *equivalent* to a Miura-ori fold: a true Miura-ori zigzags in $x$ as
+well as $y$ and carries two families of creases, where this carries one.
+
+So in version 0.1.0 the family is a property of the crease pattern, not of the
+sampled manifold. `plot_crease()` draws a real distinction; `sample_manifold()`
+does not yet act on it. Differentiating the families in the fold is future work,
+and until it lands, the `pattern` factor in the Chapter \@ref(results) grid
+should be read as a robustness check — three near-replicate geometries — rather
+than as a geometric contrast. Any apparent difference between families there is
+sampling variation, and should be reported as such.
+
+The axes that do carry signal are $\theta$, the noise type, and the two
+dimensions. The rest of this chapter is about the dimensions, because that is
+where the construction earns its keep: `fold_product()` and `lift()` read the
+sample rather than the pattern, so neither is affected by any of the above.
+
+## Products: intrinsic dimension $2k$, truth still exact
+
+`fold_product()` takes two or more `sample_manifold()` outputs with equal row
+counts and stacks them side by side. The result has intrinsic dimension $2k$ in
+ambient dimension $3k$.
+
+```{r bench-product}
+a <- sample_manifold(miura_ori(6, 6), theta = pi / 6, n = 3000, seed = 1001)
+b <- sample_manifold(yoshimura(6, 6), theta = pi / 5, n = 3000, seed = 1002)
+c3 <- sample_manifold(waterbomb(6, 6), theta = pi / 4, n = 3000, seed = 1003)
+
+prod <- fold_product(a, b, c3)
+dim(prod$X)      #> 3000 9
+dim(prod$truth)  #> 3000 6
+```
+
+Why the answer key survives is the load-bearing step, so it is worth stating
+properly. Let $\phi_i : S_i \to \mathbb{R}^3$ be the fold map of factor $i$,
+with $S_i \subset \mathbb{R}^2$ the flat sheet. Each $\phi_i$ is an isometry:
+$d_{\Sigma_i}(\phi_i u, \phi_i v) = \lVert u - v\rVert$. Write
+$\Phi = (\phi_1, \dots, \phi_k)$ on $S_1 \times \cdots \times S_k \subset
+\mathbb{R}^{2k}$, landing blockwise in $\mathbb{R}^{3k}$.
+
+Because the blocks occupy orthogonal coordinate directions of
+$\mathbb{R}^{3k}$, the metric that $\mathbb{R}^{3k}$ induces on the product
+surface *is* the product metric. A curve decomposes into component curves with
+$\lVert \dot\gamma \rVert^2 = \sum_i \lVert \dot\gamma_i \rVert^2$, and
+minimising length gives
+
+$$
+d_{\Sigma}^{2} \;=\; \sum_{i=1}^{k} d_{\Sigma_i}^{2},
+\qquad
+d_{S}^{2} \;=\; \sum_{i=1}^{k} d_{S_i}^{2}.
+$$
+
+Each summand on the left equals its counterpart on the right, so the totals are
+equal. A product of isometries is an isometry. The ground truth is exactly the
+column-wise concatenation `cbind(a$truth, b$truth, c3$truth)`, and
+`reconstruction_error()` aligns in $2k$ dimensions with no change of form.
+
+One trap, and it is silent. The factors must be sampled with **different
+seeds**. `sample_manifold()` calls `set.seed()`, so two factors sharing a seed
+draw the same uniforms and their flat coordinates end up affinely dependent. The
+product then has $2k$ columns of truth spanning a two-dimensional subspace:
+
+```{r bench-product-seed-trap}
+same <- fold_product(
+  sample_manifold(miura_ori(6, 6), pi / 6, 300, seed = 1001),
+  sample_manifold(yoshimura(6, 6), pi / 5, 300, seed = 1001)
+)
+qr(scale(same$truth, scale = FALSE))$rank   #> 2, not 4
+qr(scale(prod$truth, scale = FALSE))$rank   #> 6
+```
+
+Check the rank. A benchmark that has silently collapsed to intrinsic dimension
+two will look encouragingly easy.
+
+Two further consequences. The fold angles may differ across factors, so one
+product can mix an almost-flat factor with a deeply folded one — a manifold
+whose difficulty is anisotropic across intrinsic directions, which no standard
+benchmark offers. And sample size must grow with $k$: to hold the expected
+number of points inside a geodesic ball of radius $r$ constant, $n$ scales as
+$r^{-2k}$. Three thousand points on a $2k = 6$ manifold is sparser than a
+hundred points on a single sheet. That is not a defect of the construction; it
+is the curse of dimensionality arriving on schedule, with an exact answer key
+still attached.
+
+Honesty requires one caveat. A product factorises, so a method that exploited
+the block structure would find it easier than a generic manifold of the same
+intrinsic dimension. Nothing in the method set does exploit it, and the
+alternative — a genuinely irreducible high-dimensional manifold — comes with no
+exact truth at all. Exactness is the trade this book makes.
+
+## Lifting to ambient dimension $D$
+
+Intrinsic and ambient dimension are different difficulties, and benchmarks
+routinely confound them. `lift()` separates them. It takes the manifold *list*,
+not a matrix, and returns the same list with `X` lifted and `truth` untouched.
+
+```{r bench-lift}
+L <- lift(prod, ambient_dim = 200, seed = 7)
+dim(L$X)                        #> 3000 200
+identical(L$truth, prod$truth)  #> TRUE
+```
+
+The implementation draws a Gaussian matrix, takes its QR decomposition and keeps
+$Q$ with $Q^\top Q = I_p$, so the column space is Haar distributed. For any two
+rows,
+
+$$
+\lVert Q x - Q y \rVert^{2}
+  = (x - y)^\top Q^\top Q\,(x - y)
+  = \lVert x - y \rVert^{2}.
+$$
+
+Every pairwise ambient distance is preserved to machine precision. Because $Q$
+is linear, straight segments map to straight segments, each flat facet stays
+flat, and every along-surface path keeps its length. The intrinsic geometry is
+untouched. `truth` is not recomputed, not re-aligned, not adjusted — it is the
+same matrix, still exact, now describing a manifold in $\mathbb{R}^{200}$.
+
+```{r bench-lift-isometry, fig.alt="Scatter plot of one thousand randomly chosen pairwise distances measured after a random orthonormal lift to two hundred dimensions, against the same distances measured in the original nine-dimensional ambient space. Every point lies on the dashed identity line, and an annotation reports a maximum absolute deviation of about five times ten to the minus fifteen, confirming that the lift preserves distances to machine precision.", fig.height=3.4}
+i <- sample(nrow(prod$X), 1000L); j <- sample(nrow(prod$X), 1000L)
+d0 <- sqrt(rowSums((prod$X[i, ] - prod$X[j, ])^2))
+dD <- sqrt(rowSums((L$X[i, ]    - L$X[j, ])^2))
+
+ggplot(data.frame(d0, dD), aes(d0, dD)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "22") +
+  geom_point(alpha = 0.25, size = 0.6) +
+  annotate("text", x = -Inf, y = Inf, hjust = -0.1, vjust = 1.8, size = 3,
+           label = sprintf("max |deviation| = %.1e", max(abs(dD - d0)))) +
+  labs(x = "distance in ambient R^9", y = "distance after lift to R^200") +
+  theme_minimal(base_size = 9)
+```
+
+This decouples the two axes. Run the same manifold, the same `truth` and the
+same seeds at `ambient_dim` $= 10, 50, 200, 1000$, and any degradation you
+observe is caused by ambient dimension alone: distance concentration in the
+nearest-neighbour search [@beyer1999nn], whatever PCA preprocessing a method
+applies by default, numerical conditioning. The manifold did not get harder. The
+measurement did.
+
+Where the noise enters decides which experiment you are running. Noise supplied
+through `sample_manifold()` is added before the lift, is carried into the
+$p$-dimensional signal subspace, and keeps its magnitude — the null model, in
+which ambient dimension is free. Noise added to `L$X` afterwards is isotropic in
+$\mathbb{R}^{D}$, so its expected squared norm grows as $D\sigma^2$ while only a
+$p$-dimensional slice lies along the signal, and signal-to-noise falls as $D$
+rises. Both are legitimate; they answer different questions, so say which one
+you ran.
+
+Note also that `ambient_dim` must strictly exceed `ncol(X)`, and that a lift
+does not defeat linear methods. The data still lie in a $p$-dimensional affine
+subspace and PCA finds it. That is correct behaviour and a useful control: a
+lift is a change of ambient coordinates, not an added nonlinearity. What it
+defeats is any procedure that is not equivariant under rotation, which includes
+more default pipelines than their authors tend to realise.
+
+## Why intrinsic dimension 2 is not a benchmark
+
+The Swiss roll, the S-curve and the severed sphere share one property: $d = 2$
+in $D = 3$. That is exactly the configuration in which a two-dimensional scatter
+plot can be checked by eye, which is why the suite survived, and it is also why
+it certifies almost nothing. Chapter \@ref(comparison) runs the comparison
+directly; the argument is this.
+
+At $d = 2$ the target dimension of every method under test matches the truth.
+t-SNE and UMAP output two dimensions [@vandermaaten2008tsne; @mcinnes2018umap];
+on a two-dimensional manifold a faithful bijective map exists in principle, and
+the crowding problem — the reason those methods have the loss functions they do
+— does not arise at all. A benchmark permanently at $d = 2$ systematically
+flatters exactly the methods that are, in practice, always applied to data with
+$d \gg 2$.
+
+Neighbourhood estimation is easy at $d = 2$ and only at $d = 2$. Estimating a
+tangent space needs at least $d + 1$ neighbours in general position, and the
+density required to supply them scales as $r^{-d}$. With $k = 10$ a single sheet
+is comfortably resolved and a $2k = 6$ product is not, at identical sample
+sizes. Intrinsic-dimension estimation — the step that goes wrong first in
+applied work [@levina2004intrinsic] — is never exercised if the answer is always
+two.
+
+The metrics saturate. As the table above showed, trustworthiness and continuity
+exceed $0.999$ on a two-dimensional sheet even before a method is involved,
+which leaves them no room to rank anything. Their discriminating range appears
+only once intrinsic dimension exceeds the target dimension and a method is
+forced to discard structure. That is the regime that matters, and a $d = 2$
+benchmark never enters it.
+
+Finally, the criticism that motivates this book is a criticism about high
+dimensions. The claim that two-dimensional embeddings of high-dimensional
+biological data are systematically misleading [@chari2023specious] cannot be
+tested on a manifold that was two-dimensional to begin with. `fold_product()`
+gives $d = 2k$ with the answer key intact; `lift()` gives arbitrary $D$ with the
+answer key intact. Together they cover a plane of difficulty of which the
+standard suite occupies a single point.
+
+```{r bench-dimension-curve, fig.alt="Procrustes-aligned reconstruction error plotted against fold angle theta, with one line per method distinguished by both colour and line type, in three panels for product manifolds of intrinsic dimension two, four and six at fixed sample size. Ribbons show the interquartile range across twenty seeds. Errors are small and tightly bunched in the d equals two panel and separate progressively across methods as intrinsic dimension rises.", fig.height=3.2}
+make_product <- function(k, theta, n, seed) {
+  parts <- lapply(seq_len(k), function(i)
+    sample_manifold(miura_ori(6, 6), theta = theta, n = n, seed = seed + i))
+  if (k == 1L) parts[[1]] else do.call(fold_product, parts)
+}
+
+rows <- list()
+for (k in 1:3) for (th in seq(0, 1.4, by = 0.2)) for (sd_ in BENCH_SEEDS) {
+  mf <- make_product(k, th, n = 800L, seed = sd_)
+  for (nm in names(methods)) {
+    rows[[length(rows) + 1L]] <- data.frame(
+      d = 2L * k, theta = th, method = nm, seed = sd_,
+      rmse = reconstruction_error(methods[[nm]](mf$X, d = 2L * k), mf$truth)
+    )
+  }
+}
+res <- do.call(rbind, rows)
+
+ggplot(res, aes(theta, rmse, colour = method, linetype = method,
+                fill = method)) +
+  stat_summary(fun = median, geom = "line") +
+  stat_summary(fun.min = function(v) quantile(v, 0.25),
+               fun.max = function(v) quantile(v, 0.75),
+               geom = "ribbon", alpha = 0.12, colour = NA) +
+  facet_wrap(~ d, nrow = 1, labeller = label_both) +
+  scale_colour_book() + scale_fill_book() +
+  labs(x = expression(theta), y = "reconstruction error") +
+  theme_minimal(base_size = 9)
+```
+
+The loop above is the whole grid machinery: there is no `benchmark_grid()` in
+`foldbench`, and there does not need to be. `scripts/run-benchmark-grid.R`
+builds the Chapter \@ref(results) version the same way, over pattern $\times$
+$\theta$ $\times$ noise $\times$ seed $\times$ method, and commits the result to
+`data/processed/benchmark-grid.rds` because the full run takes hours. Chapter
+\@ref(evaluation) turns this machinery on the evaluators themselves; Appendix
+\@ref(datasets) records the constructor calls, sample sizes and seeds behind
+every figure in Part III.

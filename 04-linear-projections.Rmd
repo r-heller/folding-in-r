@@ -2,9 +2,532 @@
 
 *When is a projection just a shadow?*
 
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+A linear method answers exactly one question: of all the planes through the
+data, which one loses the least? On a folded sheet that question has an exact
+answer at one end of the fold range and a worthless one at the other, and the
+passage between them is the first curve in this book.
 
-- PCA via SVD with `prcomp`; why not `princomp` or an eigendecomposition of the covariance.
-- At $\theta = 0$ two components are exact. Variance explained collapses as $\theta$ rises.
-- One curve — and it motivates the whole book.
-- Kernel PCA as the bridge into Part II.
+The reason to start here is not that principal component analysis is
+interesting. It is that PCA is the only method in Part II whose failure is
+*legible*. In the same run that produces the embedding it reports how much of
+the data it had to discard to produce it. Nothing in Chapter \@ref(neighbor) or
+Chapter \@ref(autoencoders) does that: a neighbour embedding returns a clean
+two-dimensional picture at every fold angle and offers no internal signal
+separating a faithful layout from a fabricated one. PCA hands you the third
+eigenvalue and lets you decide.
+
+That is the promise, anyway. This chapter shows that on a folded sheet the third
+eigenvalue lies — not about the arithmetic, which is exact, but about the
+question anyone actually asks it. Establishing that, and producing the reference
+curve against which every later method is judged, is the whole job.
+
+## What `prcomp` computes, and what `princomp` does instead {#linear-prcomp}
+
+Let $X \in \mathbb{R}^{n \times p}$ hold the ambient sample, $X_c$ its
+column-centred version, and
+
+$$
+X_c = U \Sigma V^{\top}, \qquad
+\Sigma = \operatorname{diag}(\sigma_1 \ge \sigma_2 \ge \dots \ge \sigma_p \ge 0).
+$$
+
+The rank-$d$ PCA embedding is $Y = U_{1:d}\Sigma_{1:d}$, the leading columns of
+the scores. By the Eckart–Young theorem [@eckart1936approximation] this is the
+best rank-$d$ approximation of $X_c$ in both the Frobenius and the spectral
+norm. That optimality is the basis of PCA's role here: whatever a linear map can
+do with a folded sheet, PCA already does. When PCA fails, the linear family has
+failed, not one implementation of it [@pearson1901pca; @hotelling1933pca;
+@jolliffe2002pca].
+
+`prcomp()` forms this decomposition by calling LAPACK's SVD on $X_c$ directly.
+`princomp()` instead eigendecomposes the sample covariance
+$S = X_c^{\top}X_c / n$. Algebraically the two agree — the eigenvalues of $S$
+are $\sigma_i^2/n$ — and numerically they do not, because forming the
+cross-product squares the condition number,
+$\kappa(X_c^{\top}X_c) = \kappa(X_c)^2$ [@golub2013matrix].
+
+That distinction is usually pedantic. Here it is the subject of the chapter. The
+quantity the next three sections watch is $\sigma_3$: exactly zero on a flat
+sheet, and leaving zero as the sheet folds. If $\sigma_3/\sigma_1 = 10^{-9}$ —
+a barely folded sheet, or a flat one measured in single precision — then the
+Gram matrix carries that ratio as $10^{-18}$, below `.Machine$double.eps`, and
+the third eigenvalue returns as noise or as a small negative number.
+
+```{r linear-pca-basics}
+library(foldbench)
+
+pattern <- miura_ori(n_rows = 4, n_cols = 6, a = 1, b = 1, alpha = pi / 3)
+s       <- sample_manifold(pattern, theta = 0, n = 4000, seed = BENCH_SEEDS[1])
+
+fit <- prcomp(s$X, center = TRUE, scale. = FALSE)
+
+fit$sdev                        # third entry ~1e-16: the flat sheet is planar
+fit$sdev^2 / sum(fit$sdev^2)    # proportion of variance per component
+
+reconstruction_error(fit$x[, 1:2], s$truth)   # 0 to machine precision
+```
+
+```{r linear-svd-vs-eigen}
+ms <- sample_manifold(pattern, theta = 0.05, n = 4000, seed = BENCH_SEEDS[1])
+Xc <- scale(ms$X, center = TRUE, scale = FALSE)
+
+sv <- svd(Xc)$d
+ev <- sqrt(pmax(eigen(crossprod(Xc), symmetric = TRUE)$values, 0))
+
+rbind(svd = sv, eigen = ev)     # the same numbers, at half the significant digits
+
+c(kappa_data = sv[1] / sv[3],
+  kappa_gram = (sv[1] / sv[3])^2,
+  eps        = .Machine$double.eps)
+```
+
+Three further reasons to prefer `prcomp()` throughout this book. It tolerates
+$p \ge n$, which `princomp()` refuses — and $p \ge n$ is exactly the regime the
+lift of Section \@ref(linear-random-projection) creates. It uses the $n-1$
+divisor, so `sdev^2` is the unbiased variance rather than `princomp()`'s
+$n$-divisor version, and the two disagree by a factor that quietly contaminates
+any variance ratio compared across sample sizes. And `rank.` restricts what is
+returned without changing what is computed, so `prcomp(X, rank. = 2)` is a
+convenience rather than an approximation.
+
+Set `scale. = FALSE`. The ambient coordinates of a folded sheet share a unit —
+they are lengths in $\mathbb{R}^3$ — and the lift of
+Section \@ref(linear-random-projection) is orthonormal, hence an isometry.
+Standardising columns rescales the axes independently and destroys exactly the
+metric structure that makes a crease pattern a ground truth. On a real data
+matrix with heterogeneous units the opposite argument usually wins; the point is
+that it is an argument, not a default.
+
+## The variance structure of a folded sheet {#linear-variance}
+
+`foldbench` folds the sheet as an accordion along $y$. A flat coordinate
+$(u_x, u_y)$ maps to
+
+$$
+\bigl(u_x,\; u_y \cos\theta,\; w(u_y)\sin\theta \bigr),
+$$
+
+where $w$ is the triangle wave of period $2b$ that runs up and down the band
+height. Arc length is preserved along $y$ because
+$\cos^2\theta + \sin^2\theta = 1$, which is the isometry Chapter
+\@ref(folding-geometry) requires and the reason `s$truth` stays exact at every
+$\theta$. It also makes the covariance structure available in closed form. Write
+$W$ for the flat sheet's width and $H$ for its height. With points drawn
+uniformly on the flat rectangle, the three ambient variances are
+
+$$
+\lambda_x = \frac{W^2}{12}, \qquad
+\lambda_y = \frac{H^2}{12}\cos^2\theta, \qquad
+\lambda_z = \frac{b^2}{12}\sin^2\theta,
+$$
+
+and the cross-covariances vanish over whole periods of $w$. Everything this
+chapter claims follows from those three expressions.
+
+At $\theta = 0$ the sample lies in a plane, $\lambda_z = 0$, and the two-column
+score matrix is the flat coordinate composed with a rotation, a reflection and a
+translation. Procrustes alignment removes precisely that group
+[@schonemann1966procrustes], so `reconstruction_error()` returns zero to machine
+precision. PCA is not approximately right on a flat sheet. It is exactly right,
+and it is the only method in this book of which that can be said.
+
+Folding then does two things at once, in opposite directions. The out-of-plane
+spread $\lambda_z$ grows from zero; the in-plane spread $\lambda_y$ shrinks
+towards zero. They cross when $\cos^2\theta \, H^2 = \sin^2\theta \, b^2$, that
+is at
+
+$$
+\theta^{\star} = \arctan(H/b) = \arctan(n_{\text{rows}}),
+$$
+
+and $\theta^{\star}$ is the only interesting angle in the linear analysis of a
+folded sheet. Below it the third principal direction is the surface normal.
+Above it the third principal direction is the *in-plane* axis that folding has
+squeezed flat, and PC2 has silently swapped from $y$ to the sawtooth $z$.
+
+That swap is the failure, and it is discontinuous. Below $\theta^{\star}$ the
+embedding is $(u_x,\, u_y\cos\theta)$ — an anisotropic squash, injective,
+recoverable up to the aspect ratio it has destroyed. Above $\theta^{\star}$ the
+embedding is $(u_x,\, w(u_y)\sin\theta)$, and $w$ maps every band of the sheet
+onto the same interval. Points a whole sheet apart land on top of each other.
+The projection has become a shadow in the literal sense: the accordion viewed
+end-on, all its folds overlapping.
+
+Now the residual variance fraction, the quantity a scree plot reports:
+
+$$
+r(\theta) = \frac{\lambda_3}{\lambda_x + \lambda_y + \lambda_z},
+\qquad \lambda_3 = \min(\lambda_y, \lambda_z).
+$$
+
+It is zero at $\theta = 0$, rises, peaks at $\theta^{\star}$, and falls back to
+zero as $\theta \to \pi/2$, because at full compression the sheet is planar
+again — spanned now by $x$ and $z$ instead of $x$ and $y$. It is a hump, not a
+staircase. And it is a small hump: for a sheet four bands high and six cells
+wide it never exceeds about 2% across the entire fold range.
+
+```{r linear-variance-theta}
+thetas <- seq(0, pi / 2 - 1e-4, length.out = 41)
+
+curve <- do.call(rbind, lapply(thetas, function(th) {
+  s   <- sample_manifold(pattern, theta = th, n = 4000, seed = BENCH_SEEDS[1])
+  fit <- prcomp(s$X, center = TRUE, scale. = FALSE)
+  lam <- fit$sdev^2
+  data.frame(
+    theta    = th,
+    residual = lam[3] / sum(lam),
+    rmse     = reconstruction_error(fit$x[, 1:2], s$truth)
+  )
+}))
+
+max(curve$residual)                              # ~0.021
+curve$theta[which.max(curve$residual)]           # ~1.33; atan(4) = 1.326
+```
+
+Two percent. A practitioner reading that scree plot concludes the data are
+two-dimensional, and is most confident of it — because $r$ has fallen back
+towards zero — at the fold angles where the embedding has collapsed
+completely. Reconstruction error over the same range runs from 0 to about 1.18,
+which is the standard deviation of the coordinate that was destroyed,
+$H/\sqrt{12} \approx 1.15$.
+
+```{r linear-fig-variance, fig.cap = "Residual variance and reconstruction error disagree about the whole fold range. The variance a linear projection discards is a hump that returns to zero; the error it commits is a staircase that does not.", fig.alt = "Two curves plotted against fold angle scaled to the interval zero to one, each rescaled to its own maximum. The residual-variance curve, drawn solid with round markers, rises slowly from zero, peaks at about 0.84 of the fold range, then drops back to zero at full compression. The Procrustes RMSE curve, drawn dashed with square markers, rises quadratically from zero, jumps upward at the same 0.84 point and then stays flat on a high plateau. A vertical reference line marks the crossover angle. Curves are distinguished by line type, marker shape and colour."}
+library(ggplot2)
+
+long <- rbind(
+  data.frame(theta = curve$theta, quantity = "residual variance",
+             value = curve$residual / max(curve$residual)),
+  data.frame(theta = curve$theta, quantity = "Procrustes RMSE",
+             value = curve$rmse / max(curve$rmse))
+)
+long$theta <- long$theta / (pi / 2)
+
+ggplot(long, aes(theta, value,
+                 colour = quantity, linetype = quantity, shape = quantity)) +
+  geom_vline(xintercept = atan(4) / (pi / 2), colour = "grey60",
+             linewidth = 0.3) +
+  geom_line(linewidth = 0.6) +
+  geom_point(size = 1.5) +
+  scale_color_book(name = NULL) +
+  scale_linetype_manual(name = NULL, values = c("dashed", "solid")) +
+  scale_shape_manual(name = NULL, values = c(15, 16)) +
+  labs(x = expression(theta / (pi / 2)), y = "scaled to its own maximum") +
+  theme_minimal(base_size = 9)
+```
+
+Figure \@ref(fig:linear-fig-variance) is the argument in one panel. The
+magnitudes are not comparable and are not meant to be; the *shapes* are the
+finding. One is a hump. The other is a staircase. Any workflow that selects a
+dimension from a scree plot, or reports "98% of variance captured" as evidence
+that an embedding is faithful, is reading the wrong curve — and on real data it
+is the only curve available.
+
+Figure \@ref(fig:linear-fig-embeddings) shows the staircase as a picture. Points
+are banded by their true position along the folding axis, so a faithful
+embedding keeps the bands ordered and a collapsed one interleaves them.
+
+```{r linear-fig-embeddings, fig.cap = "PCA scores at four fold angles, with points banded by their true coordinate along the folding axis. Band order survives an anisotropic squash and does not survive the swap of the second principal axis.", fig.alt = "Four scatter panels of two-dimensional PCA scores at fold angles equal to zero, four tenths, eight tenths and ninety-five hundredths of pi over two. Points are split into four bands by their true position along the folding axis, shown by both colour and marker shape. In the first panel the bands form ordered horizontal stripes across a rectangle. By the third panel the rectangle has flattened vertically but the stripes remain ordered. In the fourth panel all four bands are superimposed within a single narrow strip, completely interleaved."}
+fracs  <- c(0, 0.4, 0.8, 0.95)
+
+panels <- do.call(rbind, lapply(fracs, function(f) {
+  s <- sample_manifold(pattern, theta = f * pi / 2, n = 1500,
+                       seed = BENCH_SEEDS[1])
+  Y <- prcomp(s$X, center = TRUE, scale. = FALSE)$x[, 1:2]
+  data.frame(
+    pc1   = Y[, 1],
+    pc2   = Y[, 2],
+    band  = cut(s$truth[, "y"], breaks = 4, labels = paste("band", 1:4)),
+    theta = sprintf("theta = %.2f (pi/2)", f)
+  )
+}))
+
+ggplot(panels, aes(pc1, pc2, colour = band, shape = band)) +
+  geom_point(size = 0.5, alpha = 0.7) +
+  facet_wrap(~ theta, nrow = 1) +
+  scale_color_book(name = NULL) +
+  scale_shape_manual(name = NULL, values = c(16, 17, 15, 3)) +
+  coord_equal() +
+  labs(x = "PC1", y = "PC2") +
+  theme_minimal(base_size = 9)
+```
+
+## Classical MDS is the same computation {#linear-cmdscale}
+
+Classical multidimensional scaling takes a distance matrix $D$, double-centres
+its squared entries into
+
+$$
+B = -\tfrac{1}{2}\, J\, D^{(2)}\, J, \qquad
+J = I - \tfrac{1}{n}\mathbf{1}\mathbf{1}^{\top},
+$$
+
+eigendecomposes $B$, and returns $Y = V_{1:d}\Lambda_{1:d}^{1/2}$
+[@torgerson1952mds; @gower1966distance]. When $D$ is the Euclidean distance
+matrix of a point cloud, $B = X_c X_c^{\top}$ exactly — the Gram matrix of the
+centred data. Its non-zero eigenvalues are the $\sigma_i^2$ above and its
+eigenvectors are the columns of $U$, so $Y = U_{1:d}\Sigma_{1:d}$: the PCA
+scores, identical, up to the sign of each axis.
+
+```{r linear-cmds-equivalence}
+s <- sample_manifold(pattern, theta = 0.6, n = 1500, seed = BENCH_SEEDS[1])
+
+Y_pca <- prcomp(s$X, center = TRUE, scale. = FALSE)$x[, 1:2]
+Y_mds <- cmdscale(dist(s$X), k = 2)
+
+flip <- sign(diag(crossprod(Y_pca, Y_mds)))      # axes may come out negated
+max(abs(Y_pca %*% diag(flip) - Y_mds))           # ~1e-13
+
+reconstruction_error(Y_pca, s$truth)             # identical to 12 digits
+reconstruction_error(Y_mds, s$truth)
+```
+
+This is worth stating flatly, because benchmark tables routinely list "PCA" and
+"classical MDS" as separate rows. On Euclidean input they are one method, and a
+grid that reports different numbers for them has a bug — a centring convention,
+a sign convention, or a metric that is not invariant to reflection. It is a free
+correctness check on the machinery of Chapter \@ref(benchmarks), and it is used
+as one.
+
+The two differ in cost and in what they will accept. `prcomp()` on an
+$n \times p$ matrix is $O(np^2)$; `cmdscale()` builds an $n \times n$ Gram
+matrix, which at $n = 20{,}000$ is 3.2 GB before any arithmetic happens. Given
+coordinates, never route through distances.
+
+`cmdscale()` earns its keep the moment $D$ stops being Euclidean. Feed it
+geodesic distances along the folded surface and it is no longer PCA — it is
+Isomap [@tenenbaum2000isomap], and $B$ may acquire negative eigenvalues, because
+a non-Euclidean $D$ need not embed in any Euclidean space at all. Chapter
+\@ref(geodesic) takes that up, together with the sharper question of what
+happens when the geodesics are *estimated* from a neighbourhood graph rather
+than known. Here they are known: rigid folding is an isometry, so the geodesic
+distance between two sampled points is `dist(s$truth)`, computed in the plane,
+with no graph and no approximation anywhere.
+
+## The reference curve {#linear-reference-curve}
+
+Procrustes-aligned RMSE against `s$truth` is the headline metric and PCA is its
+baseline. Alignment matters. PCA scores arrive with arbitrary axis order,
+arbitrary sign and a scale set by the ambient units, none of which are claims
+about the data. `reconstruction_error()` removes translation, rotation,
+reflection and isotropic scale through `vegan::procrustes()` [@R-vegan;
+@schonemann1966procrustes], leaving disagreement of shape. What survives
+alignment is real.
+
+The removal of *isotropic* scale is what makes the quadratic onset in
+Figure \@ref(fig:linear-fig-variance) happen. Below $\theta^{\star}$ the
+embedding differs from the truth by the diagonal map
+$\operatorname{diag}(1, \cos\theta)$. Procrustes absorbs the isotropic part of
+that map exactly and can do nothing about the rest, so what is measured is the
+*anisotropy*, of size $1 - \cos\theta = O(\theta^2)$. The reference curve leaves
+zero quadratically not because the geometry is forgiving but because the metric
+is correctly quotienting out a symmetry.
+
+```{r linear-theta-curve}
+rp2 <- function(X, seed) {
+  set.seed(seed)
+  X %*% qr.Q(qr(matrix(rnorm(ncol(X) * 2), ncol(X), 2)))
+}
+
+design <- expand.grid(
+  n_rows = c(2L, 4L, 8L),
+  frac   = seq(0, 0.98, length.out = 21),
+  seed   = BENCH_SEEDS,
+  KEEP.OUT.ATTRS = FALSE
+)
+
+grid <- do.call(rbind, Map(function(n_rows, frac, seed) {
+  p <- miura_ori(n_rows = n_rows, n_cols = 6)
+  s <- sample_manifold(p, theta = frac * pi / 2, n = 800, seed = seed)
+  emb <- list(
+    pca  = prcomp(s$X, center = TRUE, scale. = FALSE)$x[, 1:2],
+    cmds = cmdscale(dist(s$X), k = 2),
+    rp2  = rp2(s$X, seed)
+  )
+  data.frame(
+    n_rows = n_rows, frac = frac, seed = seed,
+    method = names(emb),
+    rmse   = vapply(emb, reconstruction_error, numeric(1), truth = s$truth),
+    row.names = NULL
+  )
+}, design$n_rows, design$frac, design$seed))
+```
+
+```{r linear-fig-theta-curve, fig.cap = "The reference curve. Procrustes-aligned RMSE of PCA across the fold range for three sheet aspect ratios, with classical MDS lying on top of it and a random two-dimensional projection as the ceiling. Bands are the interquartile range across seeds; the vertical line is the predicted crossover arctan(H/b).", fig.alt = "Three panels, one per sheet height of two, four and eight bands. Each plots Procrustes-aligned reconstruction error against fold angle scaled to zero-to-one. The PCA curve, solid with round markers, starts at zero, rises quadratically, jumps sharply upward at a vertical reference line and then stays flat. The classical MDS curve, dashed, is indistinguishable from it. The random-projection curve, dotted with open triangles, is high and roughly constant across the whole range with a wide interquartile band, while the PCA band is narrow. The vertical reference line sits further to the right in each successive panel."}
+agg <- aggregate(rmse ~ n_rows + frac + method, data = grid,
+                 FUN = function(v) c(med = median(v),
+                                     lo  = unname(quantile(v, 0.25)),
+                                     hi  = unname(quantile(v, 0.75))))
+agg <- do.call(data.frame, agg)
+names(agg)[4:6] <- c("med", "lo", "hi")
+agg$panel <- factor(sprintf("H/b = %d", agg$n_rows),
+                    levels = sprintf("H/b = %d", c(2L, 4L, 8L)))
+
+cross <- data.frame(panel = levels(agg$panel),
+                    x = atan(c(2, 4, 8)) / (pi / 2))
+
+ggplot(agg, aes(frac, med, colour = method, linetype = method, shape = method)) +
+  geom_vline(data = cross, aes(xintercept = x), colour = "grey60",
+             linewidth = 0.3, inherit.aes = FALSE) +
+  geom_ribbon(aes(ymin = lo, ymax = hi, fill = method),
+              alpha = 0.15, colour = NA) +
+  geom_line(linewidth = 0.6) +
+  geom_point(size = 1.4) +
+  facet_wrap(~ panel, nrow = 1) +
+  scale_color_book(name = NULL) +
+  scale_fill_book(name = NULL) +
+  scale_linetype_manual(name = NULL, values = c("dashed", "solid", "dotted")) +
+  scale_shape_manual(name = NULL, values = c(17, 16, 2)) +
+  labs(x = expression(theta / (pi / 2)), y = "Procrustes RMSE") +
+  theme_minimal(base_size = 9)
+```
+
+The curve is faceted by aspect ratio rather than by pattern family for a reason
+worth recording. In `foldbench` 0.1.0 the sampler applies the same accordion map
+to every family, so `miura_ori()`, `yoshimura()` and `waterbomb()` differ in the
+sampled manifold only through the flat extent of their vertex lattice — the
+crease assignment reaches `plot_crease()` and not `sample_manifold()`. The
+parameter that actually moves the linear reference curve is $H/b$, because it
+sets $\theta^{\star}$.
+
+Three regimes, then, and all three are visible in
+Figure \@ref(fig:linear-fig-theta-curve). Zero at $\theta = 0$, to machine
+precision, in the noise-free case. A quadratic rise while PC2 still tracks the
+folding axis. A jump at $\theta^{\star} = \arctan(H/b)$, after which the curve is
+flat, because once the projection has become many-to-one further folding cannot
+make the aligned configuration much worse. Taller sheets fold further before
+they break, and the vertical line moves right across the three panels exactly as
+$\arctan(H/b)$ predicts.
+
+This is the honest baseline, and "honest" is meant literally. PCA cannot
+represent a fold — a fold is a non-linear isometry and no linear map inverts one
+— so the plateau is not an implementation failure. It is the correct answer to a
+question the data do not satisfy. What makes the baseline valuable is that PCA
+does not pretend otherwise: the embedding degenerates visibly, the scores pile
+up, and the geometry of the failure is legible from the eigenvalues even when
+its magnitude is not.
+
+Two rules follow, both enforced in Chapter \@ref(results).
+
+**Every method is plotted on these axes.** A method that merely matches this
+curve has bought nothing with its hyperparameters, its stochasticity and its
+compute. A method that beats it at some $\theta$ and loses at another has a
+domain of validity, which is a finding rather than a defect — provided the
+domain is reported. Chapter \@ref(comparison) shows that a single fixed test
+geometry cannot detect such a crossing at all.
+
+**Zero at $\theta = 0$ is a required pass.** Any method that fails to recover a
+flat sheet exactly from noise-free input is misconfigured, and Chapter
+\@ref(neighbor) names the ones that fail it out of the box.
+
+## Random projection and the Johnson–Lindenstrauss bound {#linear-random-projection}
+
+Real data do not arrive in three columns. `lift()` maps the sample into
+$\mathbb{R}^{D}$ through a matrix with orthonormal columns — `qr.Q()` of a
+Gaussian matrix — so it is an exact isometry rather than an approximate one.
+Every pairwise distance is preserved to machine precision and the manifold is
+unchanged in everything but its coordinates. This matters for the argument
+below: when a method's answer moves after a lift, the geometry did not move, so
+the method is responding to the coordinate system.
+
+```{r linear-lift-invariance}
+s  <- sample_manifold(pattern, theta = 0.6, n = 1500, seed = BENCH_SEEDS[1])
+sL <- lift(s, ambient_dim = 200, seed = BENCH_SEEDS[1])
+
+dim(sL$X)                                        # 1500 x 200
+max(abs(dist(s$X) - dist(sL$X)))                 # ~1e-14: an exact isometry
+identical(s$truth, sL$truth)                     # TRUE: the truth is untouched
+
+reconstruction_error(prcomp(s$X,  scale. = FALSE)$x[, 1:2], s$truth)
+reconstruction_error(prcomp(sL$X, scale. = FALSE)$x[, 1:2], sL$truth)
+```
+
+PCA passes. Rotating into $\mathbb{R}^{200}$ rotates the principal subspace with
+it and the aligned error is invariant. Set `scale. = TRUE` and it stops passing,
+because standardising 200 columns whose scales are an artefact of a random
+rotation is not an equivariant operation. That one line is a diagnostic worth
+keeping in any pipeline that lifts.
+
+Going the other way is where the guarantees live. The Johnson–Lindenstrauss
+lemma says that $n$ points in any dimension can be mapped into
+$k = O(\varepsilon^{-2}\log n)$ dimensions by a random linear map with all
+pairwise distances preserved to within a factor $1 \pm \varepsilon$, with high
+probability [@johnson1984extensions]. The Dasgupta–Gupta argument supplies an
+explicit constant [@dasgupta2003elementary], and Achlioptas showed the Gaussian
+entries can be replaced by sparse $\pm 1$ coins without loss
+[@achlioptas2003database; @bingham2001random].
+
+The bound depends on $\log n$. It does not depend on the ambient dimension, and
+— the part that matters here — it does not depend on the intrinsic dimension
+either. Knowing that the data lie on a two-dimensional sheet buys nothing.
+
+```{r linear-jl-bound}
+jl_dim <- function(n, eps) ceiling(4 * log(n) / (eps^2 / 2 - eps^3 / 3))
+
+jl_dim(n = 1500, eps = 0.10)   # 6269
+jl_dim(n = 1500, eps = 0.50)   # 351
+```
+
+For 1500 points and a 10% distortion tolerance, JL asks for 6269 dimensions —
+four times the number of points, and three orders of magnitude more than the
+sheet has. Loosening the tolerance to 50% distortion, which nobody would accept
+in a figure, still asks for 351. The target here is $k = 2$.
+
+The lemma is silent, and it is silent by a factor of a thousand. That is not a
+criticism of JL, which is tight up to constants. It is the point:
+
+> There is no distance-preservation guarantee for any two-dimensional embedding
+> of a two-dimensional manifold, linear or otherwise.
+
+Every method in Part II operates in a regime where the only general theorem
+available says nothing whatsoever, which is a sharper form of the objection
+raised by @chari2023specious than the usual appeal to intuition, and the reason
+an empirical benchmark with exact truth is not optional.
+
+Random projection therefore enters the grid as `rp2` in one specific role: the
+floor. It is a linear map chosen without reference to the data, so its error is
+what "used no information about the geometry" looks like — the null model, not a
+method. Figure \@ref(fig:linear-fig-theta-curve) shows it high and roughly flat
+across the whole fold range, with a wide interquartile band whose width is the
+choice of projection rather than anything about the sheet. Note where the PCA
+curve meets it. Past that fold angle the best linear projection is no better than
+an arbitrary one, and the linear family has nothing left to contribute.
+
+## Kernel PCA, and the shape of Part II {#linear-kernel-pca}
+
+Section \@ref(linear-cmdscale) reduced PCA to an eigenproblem on the Gram matrix
+$X_c X_c^{\top}$. Kernel PCA replaces that Gram matrix with a centred kernel
+matrix $K_{ij} = \kappa(x_i, x_j)$ and takes its leading eigenvectors
+[@scholkopf1998kernelpca]. With the linear kernel it is PCA. With any other
+kernel it is classical MDS on a distance induced by $\kappa$. One substitution,
+and it organises everything that follows.
+
+Isomap replaces $K$ with a double-centred matrix of graph shortest-path
+distances (Chapter \@ref(geodesic)); diffusion maps use a heat kernel
+[@coifman2006diffusion]; locally linear embedding builds its operator from local
+reconstruction weights rather than from distances at all [@roweis2000lle].
+Neighbour embeddings abandon the eigenproblem and minimise a divergence between
+neighbour distributions [@vandermaaten2008tsne; @mcinnes2018umap], and
+autoencoders replace the linear decoder with a network (Chapter
+\@ref(autoencoders)). Read in that order, Part II is a sequence of increasingly
+aggressive answers to one question: which matrix should we be decomposing?
+
+Kernel PCA with an RBF kernel is not, however, the answer for a folded sheet,
+and the reason previews the central failure of Chapter \@ref(geodesic). The
+bandwidth $\sigma$ sets a length scale, and the fold has one too: the
+out-of-plane amplitude $b\sin\theta$, together with the gap $b\cos\theta$ between
+successive bands. Choose $\sigma$ below them and the kernel sees a disconnected
+pile of facets; choose it above and the kernel joins facets that are near in
+$\mathbb{R}^3$ and far along the surface — the short circuit that
+`short_circuit_theta()` locates. Both scales move with $\theta$, so no single
+bandwidth is correct across the fold range, and reporting kernel PCA as one
+curve requires tuning $\sigma$ with knowledge of $\theta$ that no honest
+pipeline has. The defensible presentation is one curve per bandwidth over the
+whole range, which is what Chapter \@ref(results) reports.
+
+The linear family is finished. It is exact where the problem is linear, it
+degrades along a curve that is smooth, reproducible and predictable in closed
+form, it breaks at a fold angle we can name before running anything, and it
+saturates at a value set by the coordinate it destroyed. Nothing that follows is
+as well behaved. Several things that follow are better — and Chapter
+\@ref(evaluation) asks whether the metrics used to say so can be trusted to
+notice.
