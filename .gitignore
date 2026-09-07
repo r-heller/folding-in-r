@@ -9,6 +9,12 @@ _bookdown_files/
 # documented way to check a chapter knits, so the directory recurs.
 figure/
 
+# Chapter 1's figure chunk copies js/fold-figure.html to knitr's output.dir. A
+# full build resolves that to docs/, which is where the iframe expects it; a
+# standalone render of the chapter resolves it to the input directory and drops
+# a copy here instead. The source of record is js/fold-figure.html.
+/fold-figure.html
+
 # The rendered site. Built by render-book.yml and deployed to gh-pages with
 # clean: true, so nothing here needs to be tracked -- and a tracked copy means
 # whoever clones the repository gets a rendered book older than the sources.
