@@ -1,10 +1,10 @@
 # Book helpers
 
 The code this book runs on lives here, as plain R scripts sourced into the
-render session by `_common.R`. There is no companion package: clone the
-repository, run `renv::restore()`, and the helpers are on the search path.
-
-This is the same arrangement `scientometrics-in-r` uses.
+render session by `_common.R`. Clone the repository and run `renv::restore()`
+to use them. The separately revived `foldbenchR` package is not a dependency
+of this book; these helpers and the committed research artefacts remain
+versioned together.
 
 ## Layout
 

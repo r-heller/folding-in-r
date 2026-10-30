@@ -49,14 +49,12 @@ set.seed(42)
 # is no companion package: no install step, and no version of the helpers that
 # can drift from the version the chapters were written against.
 #
-# Sourcing is tolerant of an empty R/ while chapters are still being written —
-# every chunk is eval = FALSE until then, so nothing calls a helper. Once the
-# first chapter goes live this should become a hard error, exactly as in
-# scientometrics-in-r/_common.R.
+# The developed chapters require these helpers; a missing source directory
+# must fail before any scientific output is rendered.
 local({
   helpers <- sort(list.files("R", pattern = "\\.R$", full.names = TRUE))
   if (!length(helpers)) {
-    message("_common.R: no helper scripts in R/ yet — scaffold mode.")
+    stop("_common.R: required book helper scripts are missing from R/.")
   } else {
     for (f in helpers) source(f, local = FALSE)
   }

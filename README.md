@@ -78,16 +78,29 @@ completeness.
 
 The pattern constructors, the folding and sampling interface, the product and
 lift constructions, and the evaluation metrics live in `R/` as plain scripts,
-sourced by `_common.R` at render time. There is no companion package to
-install, and no way for the helpers to drift from the chapters that use them:
-they are versioned together, in this repository, at the same commit.
+sourced by `_common.R` at render time. No package installation is needed for
+these helpers: they are versioned with the chapters at the same commit.
+The standalone `foldbenchR` package is being revived separately, at the owner's
+request, using the same documented Miura construction. It does not replace
+these book helpers or the provenance of the committed benchmark results.
 
 ## Building the book
 
+Install R and Pandoc first. From the checkout:
+
 ```sh
+R -e 'install.packages("renv", repos="https://cloud.r-project.org")'
 R -e 'renv::restore()'
-R -e 'bookdown::render_book("index.Rmd", output_format = "all")'
+R -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::bs4_book")'
+R -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::epub_book")'
+# PDF additionally needs XeLaTeX and the fonts/packages in style/preamble.tex.
+R -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::pdf_book")'
 ```
+
+Open `docs/index.html` or serve `docs/` with `python3 -m http.server --directory docs`.
+HTML and EPUB were rebuilt locally on 30 October 2026 using R 4.6.1 and an isolated
+library; that validates the current content, not an exact restore of the older
+lockfile. PDF was not rebuilt because this environment has no TeX installation.
 
 Two passes are not required, but `renv::restore()` is: the package versions are
 pinned in `renv.lock`.
@@ -119,9 +132,11 @@ Supporting scripts:
 
 ## Status
 
-Version 0.1.0 — scaffold. Chapters carry their opening question and an outline;
-the prose is not written. `drafts/` holds work in progress and is not part of
-the rendered book.
+Version 0.1.0 — work in progress. Ten body chapters contain developed material;
+Chapter 7 (learned folds) and Chapter 12 (the real-data application) remain
+explicit outlines. `drafts/` is outside the rendered book. The volume is not a
+complete submission-ready manuscript. Current verification and remaining work
+are recorded in `MAINTENANCE.md`.
 
 ## Cite this repository
 

@@ -105,7 +105,7 @@ missing system library — so `R/metrics.R` computes all-pairs shortest paths by
 min-plus relaxation with a work list, which is Bellman–Ford rather than Dijkstra
 [@dijkstra1959note] and was timed against two alternatives at the book's sample
 size before it was kept. LLE consumes neighbourhood structure, not geodesics, and
-is in Chapter \@ref(neighbor) with the other methods that do.
+is in the [neighbor embeddings chapter](#neighbor) with the other methods that do.
 ```
 
 ## The geodesic you do not have to estimate {#geo-core}

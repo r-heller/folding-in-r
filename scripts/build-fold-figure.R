@@ -118,6 +118,16 @@ geom <- list(
   worst_isometry_error = worst
 )
 
+# JSON can expose IEEE signed zero differently across R/jsonlite versions.
+# Canonicalize zero without rounding or changing any nonzero geometry value;
+# the exact byte comparison below still detects every stored coordinate change.
+canonical_zero <- function(x) {
+  if (is.numeric(x)) x[x == 0] <- 0
+  else if (is.list(x)) x[] <- lapply(x, canonical_zero)
+  x
+}
+geom <- canonical_zero(geom)
+
 block <- paste0("window.__FOLD_GEOM__ = ",
                 jsonlite::toJSON(geom, auto_unbox = TRUE, digits = DIGITS), ";")
 
