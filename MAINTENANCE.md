@@ -19,6 +19,10 @@ folding figure. Standalone foldbenchR is revived separately, as requested.
   scaffold mode. Missing helpers now stop the render before scientific output.
 - Medium, chapter 5: an escaped cross-reference inside a block engine became a
   nonexistent citation `ref`. Use a chapter link that survives both HTML/EPUB.
+- Browser review caught a missing charset declaration in the standalone figure.
+  It now declares UTF-8, a responsive viewport and document language, and displays
+  isometry error in unambiguous scientific notation. The changed asset was copied
+  to the rendered output and its actual browser encoding/value were rechecked.
 - README distinguishes ten developed chapters from two outlines, documents the
   local build evidence, and preserves book-helper and standalone-package roles.
 
