@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What Folding Hides</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,6 +109,8 @@ input:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
 .foot p{margin:0 0 10px}
 @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
 </style>
+</head>
+<body>
 
 <div class="wrap">
 <header>
@@ -427,7 +434,7 @@ window.__FOLD_GEOM__ = {"name":"Miura-ori","n_facet":16,"flat":[[[-0.79241,-0.60
   // legend swatch + provenance
   document.getElementById("swVis").style.background = rgb(COL[Math.floor(NF / 2)], 1);
   document.getElementById("isoErr").textContent =
-    G.worst_isometry_error.toExponential(1).replace("e-", " × 10⁻");
+    G.worst_isometry_error.toExponential(1);
   thOut.textContent = G.thetas[state.ti].toFixed(2);
 
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -439,3 +446,6 @@ window.__FOLD_GEOM__ = {"name":"Miura-ori","n_facet":16,"flat":[[[-0.79241,-0.60
 })();
 
 </script>
+
+</body>
+</html>

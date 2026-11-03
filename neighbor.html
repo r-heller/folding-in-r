@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 6 Neighbour embeddings | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content='Why do t-SNE and UMAP disagree about the same data?  Rtsne with check_duplicates = TRUE; document the duplicate-row failure mode. umap(method = "naive") — the default backend pulls Python...'>
+<meta name="description" content="Why do t-SNE and UMAP disagree about the same data?  6.1 What this chapter answers The four methods in this chapter — LLE, Laplacian eigenmaps, t-SNE and UMAP — do not try to recover the...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 6 Neighbour embeddings | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/neighbor.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content='Why do t-SNE and UMAP disagree about the same data?  Rtsne with check_duplicates = TRUE; document the duplicate-row failure mode. umap(method = "naive") — the default backend pulls Python...'>
+<meta property="og:description" content="Why do t-SNE and UMAP disagree about the same data?  6.1 What this chapter answers The four methods in this chapter — LLE, Laplacian eigenmaps, t-SNE and UMAP — do not try to recover the...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 6 Neighbour embeddings | Folding in R">
-<meta name="twitter:description" content='Why do t-SNE and UMAP disagree about the same data?  Rtsne with check_duplicates = TRUE; document the duplicate-row failure mode. umap(method = "naive") — the default backend pulls Python...'>
+<meta name="twitter:description" content="Why do t-SNE and UMAP disagree about the same data?  6.1 What this chapter answers The four methods in this chapter — LLE, Laplacian eigenmaps, t-SNE and UMAP — do not try to recover the...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -115,16 +115,614 @@
 <span class="header-section-number">6</span> Neighbour embeddings<a class="anchor" aria-label="anchor" href="#neighbor"><i class="fas fa-link"></i></a>
 </h1>
 <p><em>Why do t-SNE and UMAP disagree about the same data?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+<div id="nbr-question" class="section level2" number="6.1">
+<h2>
+<span class="header-section-number">6.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#nbr-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>The four methods in this chapter — LLE, Laplacian eigenmaps, t-SNE and UMAP —
+do not try to recover the unfolding. That sentence has to come before any
+number, because the rest of the chapter scores them against the unfolding and a
+reader who meets the scores first will read them as a verdict on the methods
+rather than on the pairing.</p>
+<p>What each of them minimises is a discrepancy between <strong>neighbourhoods</strong>: which
+points are near which, in the ambient cloud and in the picture. None of them
+carries a term that asks for a distance to be reproduced. The registry records
+this as a field rather than as a remark — <code>consumes = "neighbourhood"</code> — so a
+later chapter cannot forget it. <code>reconstruction_error()</code> is a Procrustes
+distance to the chart, and asking these four to be small on it is asking them
+for something they were never built to deliver.</p>
+<p>Then this chapter judges them by it anyway, for two reasons. The reader will:
+every one of these methods is used in practice as though its output were a map,
+and a map is a claim about distance. And the benchmark can, which is the rarer
+thing — the answer key exists in closed form, so the question “how much of the
+geometry survived?” has an exact answer rather than an argument. What comes out
+is not that the methods are bad. It is that the setting on which they are most
+often tuned, and the picture that tuning produces, move in the <em>opposite</em>
+direction to accuracy.</p>
+</div>
+<div id="nbr-setup" class="section level2" number="6.2">
+<h2>
+<span class="header-section-number">6.2</span> Setup<a class="anchor" aria-label="anchor" href="#nbr-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grid</span>   <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/benchmark-grid.rds"</span>, <span class="st">"2483a468d82d4d64"</span><span class="op">)</span></span>
+<span><span class="va">sweeps</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/part2-sweeps.rds"</span>,   <span class="st">"16d43ff4992c0e58"</span><span class="op">)</span></span>
+<span><span class="va">budget</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/seed-budget.rds"</span>,    <span class="st">"e5f73dce72d53066"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">NBR</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"lle"</span>, <span class="st">"laplacian"</span>, <span class="st">"tsne"</span>, <span class="st">"umap"</span><span class="op">)</span></span>
+<span><span class="va">pat</span>  <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span></span>
+<span><span class="va">cell</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">pat</span>, theta <span class="op">=</span> <span class="fl">0.5</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p>Three committed artefacts. <code>benchmark-grid.rds</code> sweeps <span class="math inline">\(\theta\)</span> at fixed
+neighbourhood size; <code>part2-sweeps.rds</code> sweeps the neighbourhood size at three
+fixed <span class="math inline">\(\theta\)</span>; <code>seed-budget.rds</code> is the measurement standing rule 1’s seed
+floor is checked against. <code>cell</code> is one sample, drawn once, used for every
+figure that shows an embedding rather than a curve.</p>
+</div>
+<div id="nbr-background" class="section level2" number="6.3">
+<h2>
+<span class="header-section-number">6.3</span> Background<a class="anchor" aria-label="anchor" href="#nbr-background"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu">method_table</span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu">method_table</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">chapter</span> <span class="op">==</span> <span class="fl">6L</span>,</span>
+<span>                 <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"label"</span>, <span class="st">"consumes"</span>, <span class="st">"stochastic"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"The four registry entries this chapter describes."</span><span class="op">)</span></span></code></pre></div>
+<div class="inline-table"><table class="table table-sm">
+<caption>
+<span id="tab:nbr-registry">Table 6.1: </span>The four registry entries this chapter describes.</caption>
+<thead><tr class="header">
+<th align="left">label</th>
+<th align="left">consumes</th>
+<th align="left">stochastic</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">LLE</td>
+<td align="left">neighbourhood</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">Laplacian eigenmaps</td>
+<td align="left">neighbourhood</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">t-SNE</td>
+<td align="left">neighbourhood</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">UMAP</td>
+<td align="left">neighbourhood</td>
+<td align="left">TRUE</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>LLE</strong> <span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span> writes each point as a weighted combination of its <span class="math inline">\(k\)</span>
+nearest neighbours and then finds the low-dimensional configuration that keeps
+those weights. <strong>Laplacian eigenmaps</strong> <span class="citation">(<a href="references.html#ref-belkin2003laplacian">28</a>)</span> takes the bottom
+eigenvectors of the graph Laplacian of a heat-kernel-weighted neighbourhood
+graph. Both are spectral, deterministic, and solve a single eigenproblem.</p>
+<p><strong>t-SNE</strong> <span class="citation">(<a href="references.html#ref-vandermaaten2008tsne">7</a>)</span> converts ambient distances into a
+neighbour-probability distribution, converts embedding distances into a second
+one with a heavy-tailed kernel, and minimises the Kullback–Leibler divergence
+between them by gradient descent from a random initialisation. <strong>UMAP</strong>
+<span class="citation">(<a href="references.html#ref-mcinnes2018umap">8</a>)</span> builds a fuzzy simplicial set on the neighbourhood graph and
+minimises a cross-entropy, also from a random start. Both are stochastic, and
+the registry refuses to run them unseeded:</p>
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">unseeded</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/embed.html">embed</a></span><span class="op">(</span><span class="st">"tsne"</span>, <span class="va">cell</span><span class="op">)</span>, error <span class="op">=</span> <span class="va">conditionMessage</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strwrap.html">strwrap</a></span><span class="op">(</span><span class="va">unseeded</span>, width <span class="op">=</span> <span class="fl">72</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div>
+<pre><code>#&gt; tsne is stochastic and was called without a seed. Standing rule 1:
+#&gt; every stochastic result in this book is reported across BENCH_SEEDS,
+#&gt; and an unseeded fit cannot be one of them.</code></pre>
+<p>That error is deliberate. Standing rule 1 says every stochastic result in this
+book is reported across <code>BENCH_SEEDS</code>, and an unseeded fit cannot be one of
+them — it is an anecdote with no way of being labelled as one afterwards. The
+cheapest place to enforce a reporting rule is at the call that would break it.</p>
+<div class="boximportant">
+<p>
+Two neighbourhood parameters, two names, one quantity. t-SNE’s is
+<em>perplexity</em>, a smooth measure of the effective number of
+neighbours; UMAP’s is <code>n_neighbors</code>. <code>R/methods.R</code>
+maps the registry’s <code>k</code> onto both, so a sweep over
+<code>k</code> is a sweep over perplexity for one and over
+<code>n_neighbors</code> for the other, and the curves are comparable. A
+previous version of <code>embed_tsne()</code> declared <code>k</code>
+and passed a fixed perplexity — every <code>k</code> returned the same
+embedding, and a flat curve would have been read as insensitivity to
+neighbourhood size.
+</p>
+</div>
+</div>
+<div id="nbr-core" class="section level2" number="6.4">
+<h2>
+<span class="header-section-number">6.4</span> What the methods produce, and what it costs<a class="anchor" aria-label="anchor" href="#nbr-core"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">NBR</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/embed.html">embed</a></span><span class="op">(</span><span class="va">m</span>, <span class="va">cell</span>, k <span class="op">=</span> <span class="va">K_DEFAULT</span>,</span>
+<span>        seed <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Logic.html">isTRUE</a></span><span class="op">(</span><span class="va">METHOD_REGISTRY</span><span class="op">[[</span><span class="va">m</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">stochastic</span><span class="op">)</span><span class="op">)</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">NBR</span></span>
+<span></span>
+<span><span class="va">Dchart</span>   <span class="op">&lt;-</span> <span class="fu">reference_dist</span><span class="op">(</span><span class="va">cell</span>, <span class="st">"chart"</span><span class="op">)</span></span>
+<span><span class="va">cell_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">reconstruction_error</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, truth <span class="op">=</span> <span class="va">cell</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span></span>
+<span><span class="va">cell_qnx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">qnx</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, reference <span class="op">=</span> <span class="va">Dchart</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:nbr-fig-embeddings"></span>
+<img src="06-neighbor-embeddings_files/figure-html/nbr-fig-embeddings-1.png" alt="Four scatter panels of the same 800 points, each with its own axes. The LLE panel is an evenly filled quadrilateral with a smooth top-to-bottom colour ramp and four level-set paths that run across it without crossing. The Laplacian eigenmaps panel is a quadrilateral whose points crowd onto its edges, leaving the interior sparse. The t-SNE panel is broken into many small separated islands with the level-set paths jumping between them. The UMAP panel is broken into curved filaments and loops with the ramp ordered left to right along them." width="90%"><p class="caption">
+Figure 6.1: One folded sample, embedded four ways. Colour is the first chart coordinate and the black paths are level sets of the second, so a faithful embedding shows a smooth colour ramp crossed by non-intersecting paths. The Procrustes error against the chart is printed under each panel. The axes carry no numbers because an embedding is defined only up to a similarity and its units mean nothing.
+</p>
+</div>
+<p>Figure <a href="neighbor.html#fig:nbr-fig-embeddings">6.1</a> is one cell of the grid — a Miura at
+<span class="math inline">\(\theta =\)</span> 0.5, 800 points, no noise — seen four ways. LLE
+returns the chart to within 0.092; UMAP to
+0.18; Laplacian eigenmaps to
+0.22; t-SNE, at this neighbourhood size, to
+0.63, which is most of the way to the score a
+random configuration earns.</p>
+<p>The <span class="math inline">\(Q_{NX}\)</span> column tells a different story about the same four pictures.
+Scored at <span class="math inline">\(K =\)</span> 20 <strong>against the chart</strong>, they run
+0.911, 0.757,
+0.767 and 0.755. t-SNE,
+last by Procrustes distance by a factor of
+3.5, is <em>ahead</em> of UMAP on
+rank preservation. That is not a contradiction and not a defect in either
+metric: one reads distances and the other reads rank order, and an embedding
+that shatters the sheet into islands can keep every local rank while destroying
+every distance between islands.</p>
+<div id="the-deception" class="section level3" number="6.4.1">
+<h3>
+<span class="header-section-number">6.4.1</span> The deception<a class="anchor" aria-label="anchor" href="#the-deception"><i class="fas fa-link"></i></a>
+</h3>
+<p>The parameter these methods are tuned on is the neighbourhood size, and tuning
+is done by looking. That is the part exact truth is able to expose.</p>
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">KS</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">5L</span>, <span class="fl">12L</span>, <span class="fl">30L</span>, <span class="fl">70L</span><span class="op">)</span></span>
+<span><span class="va">tperp</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">KS</span>, <span class="kw">function</span><span class="op">(</span><span class="va">kk</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/embed.html">embed</a></span><span class="op">(</span><span class="st">"tsne"</span>, <span class="va">cell</span>, k <span class="op">=</span> <span class="va">kk</span>,</span>
+<span>                                          seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">perp_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">tperp</span>, <span class="va">reconstruction_error</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, truth <span class="op">=</span> <span class="va">cell</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span></span>
+<span><span class="va">perp_qnx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">tperp</span>, <span class="va">qnx</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, reference <span class="op">=</span> <span class="va">Dchart</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:nbr-fig-perplexity"></span>
+<img src="06-neighbor-embeddings_files/figure-html/nbr-fig-perplexity-1.png" alt="Four scatter panels of the same 800 points at perplexity 5, 12, 30 and 70. The first is a spray of small separated islands with black level-set paths crossing all over it. The second has fewer, larger islands. The third is nearly a filled quadrilateral with two indentations. The fourth is a filled quadrilateral with a smooth diagonal colour ramp and level-set paths that do not cross." width="90%"><p class="caption">
+Figure 6.2: t-SNE on one sample at four perplexities. Left to right the picture loses every visible feature and gains an order of magnitude in accuracy. Colour is the first chart coordinate; the black paths are level sets of the second, and the axes are unnumbered for the same reason as in the previous figure.
+</p>
+</div>
+<p>The left-hand panel of Figure <a href="neighbor.html#fig:nbr-fig-perplexity">6.2</a> is the picture
+practitioners recognise and reward: crisp, well-separated islands, obvious
+structure, something to point at. It scores 0.88. The
+right-hand panel is a featureless filled quadrilateral with no structure to
+point at whatsoever. It scores 0.089, a factor of
+9.9 better, and it is featureless because
+<strong>the answer is a flat rectangular patch</strong>. The truth here has no clusters in it. Every
+island in the left-hand panel is an artefact of the setting.</p>
+<p><span class="math inline">\(Q_{NX}\)</span> against the chart moves the same way — 0.727 to
+0.875 — so this is not one metric’s idiosyncrasy. What
+disagrees with both is the eye. The tuning advice that circulates for these
+methods is largely advice about how the picture looks
+<span class="citation">(<a href="references.html#ref-kobak2019art">19</a>,<a href="references.html#ref-wattenberg2016tsne">31</a>)</span>, and on this benchmark that advice points
+away from the truth, monotonically, across the whole swept range.</p>
+</div>
+</div>
+<div id="nbr-results" class="section level2" number="6.5">
+<h2>
+<span class="header-section-number">6.5</span> Results<a class="anchor" aria-label="anchor" href="#nbr-results"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">[</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"none"</span> <span class="op">&amp;</span> <span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"ok"</span> <span class="op">&amp;</span></span>
+<span>           <span class="va">grid</span><span class="op">$</span><span class="va">method</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">NBR</span>, <span class="st">"isomap"</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">sp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">data.frame</span>,</span>
+<span>              <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">method</span> <span class="op">+</span> <span class="va">theta</span>, <span class="va">cl</span>,</span>
+<span>                        <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, med <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html">median</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>,</span>
+<span>                                      hi <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">sp</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">sub</a></span><span class="op">(</span><span class="st">"^rmse\\."</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">sp</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">th_max</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">THETA_GRID</span><span class="op">)</span></span>
+<span><span class="va">degrade</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">NBR</span>, <span class="st">"isomap"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">a</span> <span class="op">&lt;-</span> <span class="va">sp</span><span class="op">[</span><span class="va">sp</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="va">m</span>, <span class="op">]</span></span>
+<span>  <span class="va">a</span><span class="op">$</span><span class="va">med</span><span class="op">[</span><span class="va">a</span><span class="op">$</span><span class="va">theta</span> <span class="op">==</span> <span class="va">th_max</span><span class="op">]</span> <span class="op">/</span> <span class="va">a</span><span class="op">$</span><span class="va">med</span><span class="op">[</span><span class="va">a</span><span class="op">$</span><span class="va">theta</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">widths</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html">transform</a></span><span class="op">(</span><span class="va">sp</span>, w <span class="op">=</span> <span class="va">hi</span> <span class="op">-</span> <span class="va">lo</span><span class="op">)</span></span>
+<span><span class="va">worst</span>  <span class="op">&lt;-</span> <span class="va">widths</span><span class="op">[</span><span class="va">widths</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"tsne"</span>, <span class="op">]</span></span>
+<span><span class="va">worst</span>  <span class="op">&lt;-</span> <span class="va">worst</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html">which.max</a></span><span class="op">(</span><span class="va">worst</span><span class="op">$</span><span class="va">w</span><span class="op">)</span>, <span class="op">]</span></span>
+<span></span>
+<span><span class="va">out_hi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">method</span>,</span>
+<span>                    <span class="va">grid</span><span class="op">[</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"outlier"</span> <span class="op">&amp;</span> <span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"ok"</span> <span class="op">&amp;</span></span>
+<span>                         <span class="va">grid</span><span class="op">$</span><span class="va">theta</span> <span class="op">==</span> <span class="va">th_max</span>, <span class="op">]</span>, <span class="va">median</span><span class="op">)</span></span>
+<span><span class="va">out_hi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html">setNames</a></span><span class="op">(</span><span class="va">out_hi</span><span class="op">$</span><span class="va">rmse</span>, <span class="va">out_hi</span><span class="op">$</span><span class="va">method</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">out_hi_mid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">method</span>,</span>
+<span>                        <span class="va">grid</span><span class="op">[</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"outlier"</span> <span class="op">&amp;</span> <span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"ok"</span> <span class="op">&amp;</span></span>
+<span>                             <span class="va">grid</span><span class="op">$</span><span class="va">theta</span> <span class="op">&gt;=</span> <span class="fl">0.5</span>, <span class="op">]</span>, <span class="va">median</span><span class="op">)</span></span>
+<span><span class="va">out_hi_mid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html">setNames</a></span><span class="op">(</span><span class="va">out_hi_mid</span><span class="op">$</span><span class="va">rmse</span>, <span class="va">out_hi_mid</span><span class="op">$</span><span class="va">method</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsn</span>  <span class="op">&lt;-</span> <span class="va">sp</span><span class="op">[</span><span class="va">sp</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"tsne"</span>, <span class="op">]</span>; <span class="va">tsn</span> <span class="op">&lt;-</span> <span class="va">tsn</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">tsn</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">ump</span>  <span class="op">&lt;-</span> <span class="va">sp</span><span class="op">[</span><span class="va">sp</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"umap"</span>, <span class="op">]</span>; <span class="va">ump</span> <span class="op">&lt;-</span> <span class="va">ump</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">ump</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">gap</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">tsn</span><span class="op">$</span><span class="va">med</span> <span class="op">-</span> <span class="va">ump</span><span class="op">$</span><span class="va">med</span><span class="op">)</span></span>
+<span><span class="va">over</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span><span class="op">(</span><span class="va">tsn</span><span class="op">$</span><span class="va">hi</span>, <span class="va">ump</span><span class="op">$</span><span class="va">hi</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span><span class="op">(</span><span class="va">tsn</span><span class="op">$</span><span class="va">lo</span>, <span class="va">ump</span><span class="op">$</span><span class="va">lo</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">jump</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">noise</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">qnx</span> <span class="op">~</span> <span class="va">theta</span>,</span>
+<span>                 <span class="va">grid</span><span class="op">[</span><span class="va">grid</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"lle"</span> <span class="op">&amp;</span> <span class="va">grid</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="va">noise</span> <span class="op">&amp;</span></span>
+<span>                      <span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"ok"</span>, <span class="op">]</span>, <span class="va">median</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diff.html">diff</a></span><span class="op">(</span><span class="va">a</span><span class="op">$</span><span class="va">qnx</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">a</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">lle_jump</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>none <span class="op">=</span> <span class="fu">jump</span><span class="op">(</span><span class="st">"none"</span><span class="op">)</span>, outlier <span class="op">=</span> <span class="fu">jump</span><span class="op">(</span><span class="st">"outlier"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The prediction, stated before the figure because a flat curve otherwise reads
+as nothing happening: <strong>these curves should be nearly flat.</strong> Fold angle is a
+difficulty parameter for a method that consumes distance, because folding
+contracts ambient distance and leaves the chart alone (Chapter
+<a href="folding-geometry.html#folding-geometry">2</a>). It is a much weaker difficulty parameter for a method
+that consumes rank order, because within a facet the fold changes no distance
+at all and across a crease it changes ranks only where two facets pass close.
+A method that never trusted global structure has less to lose as the global
+structure degrades.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:nbr-fig-theta"></span>
+<img src="06-neighbor-embeddings_files/figure-html/nbr-fig-theta-1.png" alt="Four line panels, one per method, sharing axes, in the order LLE, Laplacian eigenmaps, t-SNE, UMAP. The horizontal axis is the folding parameter from zero to one and the vertical axis is Procrustes error from zero to about one. LLE starts low and rises steadily, with a band that widens sharply beyond the middle of the range. Laplacian eigenmaps is almost horizontal with a narrow band. t-SNE is roughly horizontal with a band that spans most of the plot at every fold angle. UMAP is almost horizontal with a moderate band. In every panel the dashed grey Isomap line starts far below the band and rises steeply, reaching the lower edge of the band only at the right-hand end." width="90%"><p class="caption">
+Figure 6.3: Procrustes error against the chart across the fold sweep, no noise. The band is the full spread across the twenty benchmark seeds and is the result; the solid line is its median, drawn to locate the band rather than to summarise it. The dashed grey line in each panel is Isomap’s median, for scale.
+</p>
+</div>
+<p>Figure <a href="neighbor.html#fig:nbr-fig-theta">6.3</a> is the prediction met. From flat sheet to
+<span class="math inline">\(\theta =\)</span> 0.95, Isomap’s median error grows by a factor of
+7.9; Laplacian eigenmaps’ by
+1.1, UMAP’s by
+1.3, t-SNE’s by
+1.7. Only LLE behaves like a distance method, at
+5.3, which is what one would expect of a method
+whose weights are least-squares reconstructions in the ambient space.</p>
+<p>Flatness is not a compliment here. Isomap is better than all four at <em>every</em>
+<span class="math inline">\(\theta\)</span> in this regime, including the last one, and it gets there by
+consuming a geometry the crease pattern supplies exactly. A flat curve at a
+mediocre level says the error is dominated by something the fold does not
+touch — the objective mismatch itself — not that the method is robust.</p>
+<p>Where the flatness does buy something is off the clean diagonal. Under the
+outlier noise model at <span class="math inline">\(\theta =\)</span> 0.95, the ordering inverts: t-SNE
+lands at 0.402 and UMAP at
+0.407, against 0.608 for
+Isomap, 0.626 for PCA and
+0.888 for LLE. A handful of displaced points
+lengthens a shortest path through the neighbourhood graph and moves an ambient
+distance; it changes few ranks. The methods that were never reading distances
+are the ones that do not notice.</p>
+<div id="neighbourhood-size-and-where-isomap-breaks" class="section level3" number="6.5.1">
+<h3>
+<span class="header-section-number">6.5.1</span> Neighbourhood size, and where Isomap breaks<a class="anchor" aria-label="anchor" href="#neighbourhood-size-and-where-isomap-breaks"><i class="fas fa-link"></i></a>
+</h3>
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sw</span> <span class="op">&lt;-</span> <span class="va">sweeps</span><span class="op">[</span><span class="va">sweeps</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"ok"</span> <span class="op">&amp;</span> <span class="va">sweeps</span><span class="op">$</span><span class="va">method</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">NBR</span>, <span class="st">"isomap"</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">ks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">method</span> <span class="op">+</span> <span class="va">k_tck</span> <span class="op">+</span> <span class="va">theta</span>, <span class="va">sw</span>, <span class="va">median</span><span class="op">)</span></span>
+<span><span class="va">k_max</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">ks</span><span class="op">$</span><span class="va">k_tck</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">best_k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span><span class="op">(</span><span class="va">ks</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">ks</span><span class="op">$</span><span class="va">method</span>, <span class="va">ks</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">a</span><span class="op">$</span><span class="va">method</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, theta <span class="op">=</span> <span class="va">a</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>                         k_star  <span class="op">=</span> <span class="va">a</span><span class="op">$</span><span class="va">k_tck</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html">which.min</a></span><span class="op">(</span><span class="va">a</span><span class="op">$</span><span class="va">rmse</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>                         penalty <span class="op">=</span> <span class="va">a</span><span class="op">$</span><span class="va">rmse</span><span class="op">[</span><span class="va">a</span><span class="op">$</span><span class="va">k_tck</span> <span class="op">==</span> <span class="va">k_max</span><span class="op">]</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">a</span><span class="op">$</span><span class="va">rmse</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">iso_k</span> <span class="op">&lt;-</span> <span class="va">best_k</span><span class="op">[</span><span class="va">best_k</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"isomap"</span>, <span class="op">]</span></span>
+<span><span class="va">iso_k</span> <span class="op">&lt;-</span> <span class="va">iso_k</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">iso_k</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">nbr_k</span> <span class="op">&lt;-</span> <span class="va">best_k</span><span class="op">[</span><span class="va">best_k</span><span class="op">$</span><span class="va">method</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">NBR</span>, <span class="op">]</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:nbr-fig-ksweep"></span>
+<img src="06-neighbor-embeddings_files/figure-html/nbr-fig-ksweep-1.png" alt="Five line panels, one per method, with a logarithmic horizontal axis for neighbourhood size from 5 to 70. Each panel carries three lines, one per fold angle, distinguished by colour and by line style. In the Isomap panel the three curves are U-shaped and the minimum moves left as the fold angle increases. In the LLE, t-SNE, UMAP and Laplacian panels the curves fall steeply and then flatten, with no rise at the right-hand end." width="90%"><p class="caption">
+Figure 6.4: Procrustes error against neighbourhood size, at three fold angles. Each panel has its own vertical scale, because the levels differ by more than an order of magnitude and the shape of each curve is the point. Isomap has an interior optimum that moves to smaller neighbourhoods as the sheet folds; every neighbour method is still improving at the largest size swept.
+</p>
+</div>
+<p>Figure <a href="neighbor.html#fig:nbr-fig-ksweep">6.4</a> is the sharpest thing in the chapter. Isomap’s
+best neighbourhood size falls from 45 at <span class="math inline">\(\theta =\)</span>
+0.2, to 20 at 0.5, to
+8 at 0.8. That is the short-circuit onset of
+Chapter <a href="geodesic.html#geodesic">5</a> seen from the other side: as the sheet closes, the
+neighbourhood size at which the graph starts bridging between facets comes
+down, and past it Isomap’s error rises. Choosing 70 — an unremarkable
+choice — costs it a factor of 1.68 over its own
+optimum at the tightest fold.</p>
+<p>Not one of the four neighbour methods has an interior optimum anywhere in this
+sweep. Their worst penalty for taking the largest neighbourhood swept is
+1.02, across all twelve method–angle
+combinations; for most of them it is exactly one, because the largest
+neighbourhood <em>is</em> the best. They cannot be short-circuited by a neighbourhood
+that is too large, because they never built a global object out of local ones.
+This is the genuine win, and it is narrow: it is robustness to a tuning
+mistake and to contamination, not accuracy.</p>
+</div>
+<div id="do-they-actually-disagree" class="section level3" number="6.5.2">
+<h3>
+<span class="header-section-number">6.5.2</span> Do they actually disagree?<a class="anchor" aria-label="anchor" href="#do-they-actually-disagree"><i class="fas fa-link"></i></a>
+</h3>
+<p>The chapter’s title asks why t-SNE and UMAP disagree about the same data. On
+this benchmark the honest answer is that mostly they do not, and what looks
+like disagreement is one draw from each of two wide distributions.</p>
+<p>Their median errors differ by 0.048 across the sweep,
+against a t-SNE seed band whose median width is
+0.72. The two bands overlap at
+20 of the 20 fold angles in the grid — all of them.
+Two practitioners running one t-SNE and one UMAP on the same sample will get
+pictures that differ, and will usually be looking at within-method seed
+variation rather than at a difference between the methods. Where the two do
+separate is not in the median but in the spread: UMAP’s band is
+4.9 times narrower
+than t-SNE’s, so a UMAP run is a much better estimate of what UMAP does than a
+t-SNE run is of what t-SNE does.</p>
+</div>
+</div>
+<div id="nbr-diagnostics" class="section level2" number="6.6">
+<h2>
+<span class="header-section-number">6.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#nbr-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<div id="two-conventions-and-which-claim-needs-which" class="section level3" number="6.6.1">
+<h3>
+<span class="header-section-number">6.6.1</span> Two conventions, and which claim needs which<a class="anchor" aria-label="anchor" href="#two-conventions-and-which-claim-needs-which"><i class="fas fa-link"></i></a>
+</h3>
+<p>Every claim above about recovery is made against the <strong>chart</strong> — the answer key
+— using either the Procrustes error or <span class="math inline">\(Q_{NX}\)</span> at <span class="math inline">\(K =\)</span> 20. The grid
+also carries trustworthiness, continuity and <span class="math inline">\(k\)</span>-NN preservation, and those are
+scored at <span class="math inline">\(k =\)</span> 10 against <strong>ambient</strong> distance, which is a
+different question: whether the embedding preserved the neighbourhoods a
+method could actually see. Both are defensible and they are not
+interchangeable. In <code>part2-sweeps.rds</code> the ambient-referenced trio is scored at
+the <em>swept</em> <span class="math inline">\(k\)</span>, so its rows are not comparable with each other; <span class="math inline">\(Q_{NX}\)</span> stays
+pinned at 20 against the chart and is. Every number in this chapter’s
+figures is one of the two chart-referenced ones.</p>
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">Kgrid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fl">400</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">18L</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ref</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">fit</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>pca    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/embed.html">embed</a></span><span class="op">(</span><span class="st">"pca"</span>, <span class="va">cell</span><span class="op">)</span>,</span>
+<span>                     isomap <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/embed.html">embed</a></span><span class="op">(</span><span class="st">"isomap"</span>, <span class="va">cell</span>, k <span class="op">=</span> <span class="va">K_DEFAULT</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ref</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">m</span>, K <span class="op">=</span> <span class="va">Kgrid</span>, rnx <span class="op">=</span> <span class="fu">rnx</span><span class="op">(</span><span class="va">ref</span><span class="op">[[</span><span class="va">m</span><span class="op">]</span><span class="op">]</span>, <span class="va">Dchart</span>, K <span class="op">=</span> <span class="va">Kgrid</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">margin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">Kgrid</span>, <span class="kw">function</span><span class="op">(</span><span class="va">kk</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">a</span> <span class="op">&lt;-</span> <span class="va">rx</span><span class="op">[</span><span class="va">rx</span><span class="op">$</span><span class="va">K</span> <span class="op">==</span> <span class="va">kk</span>, <span class="op">]</span></span>
+<span>  <span class="va">a</span><span class="op">$</span><span class="va">rnx</span><span class="op">[</span><span class="va">a</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"pca"</span><span class="op">]</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">a</span><span class="op">$</span><span class="va">rnx</span><span class="op">[</span><span class="va">a</span><span class="op">$</span><span class="va">method</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">NBR</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="va">rx</span><span class="op">[</span><span class="va">rx</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"tsne"</span>, <span class="op">]</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:nbr-fig-rnx"></span>
+<img src="06-neighbor-embeddings_files/figure-html/nbr-fig-rnx-1.png" alt="A line chart with a logarithmic horizontal axis for neighbourhood size K from 2 to 400 and a vertical axis for corrected rank preservation from about 0.6 to 1. The dashed PCA curve is the highest across the whole range and is nearly flat. The dashed Isomap curve starts below LLE at the smallest K, crosses above it early, and rises to the top by the right-hand end. Four solid curves sit below: LLE is nearly flat and highest of them; t-SNE starts close to LLE at small K and falls steadily to the lowest position at K equals 400; Laplacian eigenmaps and UMAP start lowest and rise together. Each curve is labelled at its right-hand end." width="90%"><p class="caption">
+Figure 6.5: Rank preservation against the chart across every neighbourhood size, on one sample. The two methods that consume distance or geodesics are drawn dashed. No neighbour method reaches PCA at any neighbourhood size, and t-SNE is the only curve that falls as the neighbourhood grows.
+</p>
+</div>
+<p>Figure <a href="neighbor.html#fig:nbr-fig-rnx">6.5</a> puts the global loss on one axis. <span class="math inline">\(R_{NX}(K)\)</span> is
+<span class="math inline">\(Q_{NX}\)</span> corrected for the <span class="math inline">\(K/n\)</span> baseline, so it is comparable across
+neighbourhood sizes <span class="citation">(<a href="references.html#ref-lee2009quality">32</a>)</span>; small <span class="math inline">\(K\)</span> is local structure and large
+<span class="math inline">\(K\)</span> is global. PCA — a shadow, and the weakest thing in Part II by construction
+— sits above all four neighbour methods at <strong>every</strong> <span class="math inline">\(K\)</span> from 2 to
+400, by at least 0.032. There is no neighbourhood
+size at which any of these four is the better description of the chart’s rank
+order.</p>
+<p>Isomap is the exception to note rather than to bury: at the smallest
+neighbourhood it sits below LLE, at 0.858
+against 0.883, and only overtakes it a
+few neighbours later. A geodesic method has no special claim on the very local
+rank order, which is exactly the part LLE is built out of.</p>
+<p>t-SNE is the only curve that falls: 0.848 at <span class="math inline">\(K =\)</span>
+2, 0.685 at <span class="math inline">\(K =\)</span> 400. It
+buys the local structure it is best at by spending the global structure, which
+is the trade its critics describe and its defenders accept
+<span class="citation">(<a href="references.html#ref-chari2023specious">1</a>,<a href="references.html#ref-lause2024elephant">2</a>)</span>. Here the trade is priced exactly,
+because the thing being spent is known.</p>
+</div>
+<div id="what-twenty-seeds-is-and-what-it-is-not" class="section level3" number="6.6.2">
+<h3>
+<span class="header-section-number">6.6.2</span> What twenty seeds is, and what it is not<a class="anchor" aria-label="anchor" href="#what-twenty-seeds-is-and-what-it-is-not"><i class="fas fa-link"></i></a>
+</h3>
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bud</span> <span class="op">&lt;-</span> <span class="va">budget</span><span class="op">$</span><span class="va">budget</span><span class="op">[</span><span class="va">budget</span><span class="op">$</span><span class="va">budget</span><span class="op">$</span><span class="va">method</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">NBR</span>, <span class="op">]</span></span>
+<span><span class="va">bud</span> <span class="op">&lt;-</span> <span class="va">bud</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">bud</span><span class="op">$</span><span class="va">seeds_needed</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"stochastic"</span>, <span class="st">"sd"</span>,</span>
+<span>                                       <span class="st">"seeds_needed"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="va">bud</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, digits <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>             col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"stochastic"</span>, <span class="st">"worst-cell sd"</span>,</span>
+<span>                           <span class="st">"seeds needed"</span><span class="op">)</span>,</span>
+<span>             caption <span class="op">=</span> <span class="st">"Seeds required to resolve a reportable difference, from data/processed/seed-budget.rds."</span><span class="op">)</span></span></code></pre></div>
+<div class="inline-table"><table class="table table-sm">
+<caption>
+<span id="tab:nbr-seed-budget">Table 6.2: </span>Seeds required to resolve a reportable difference, from data/processed/seed-budget.rds.</caption>
+<thead><tr class="header">
+<th align="left">method</th>
+<th align="left">stochastic</th>
+<th align="right">worst-cell sd</th>
+<th align="right">seeds needed</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">tsne</td>
+<td align="left">TRUE</td>
+<td align="right">0.2873</td>
+<td align="right">3241</td>
+</tr>
+<tr class="even">
+<td align="left">lle</td>
+<td align="left">FALSE</td>
+<td align="right">0.2034</td>
+<td align="right">1624</td>
+</tr>
+<tr class="odd">
+<td align="left">laplacian</td>
+<td align="left">FALSE</td>
+<td align="right">0.0446</td>
+<td align="right">79</td>
+</tr>
+<tr class="even">
+<td align="left">umap</td>
+<td align="left">TRUE</td>
+<td align="right">0.0438</td>
+<td align="right">76</td>
+</tr>
+</tbody>
+</table></div>
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">declined</span>  <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">[</span><span class="va">grid</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"laplacian"</span> <span class="op">&amp;</span> <span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"declined"</span>, <span class="op">]</span></span>
+<span><span class="va">dec</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">declined</span><span class="op">$</span><span class="va">noise</span><span class="op">)</span></span>
+<span><span class="va">dec_share</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">declined</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"laplacian"</span><span class="op">)</span></span></code></pre></div>
+<p>Standing rule 1’s floor is twenty seeds. <code>seed-budget.rds</code> measures what that
+floor is worth: for each method it draws 40
+samples per cell at three fold angles and two noise models, takes the
+within-cell standard deviation of excess error over the floor, and inverts the
+two-sample expression for the seeds needed to resolve a difference of
+0.02 at 80% power and the 5% level.</p>
+<p>None of the four passes. t-SNE would need 3241
+seeds, LLE 1624, Laplacian eigenmaps
+79 and UMAP
+76. The floor is between one and two
+orders of magnitude short for the first two. That is why the bands in Figure
+<a href="neighbor.html#fig:nbr-fig-theta">6.3</a> are the result and no mean line is drawn anywhere in
+this chapter: at <span class="math inline">\(\theta =\)</span> 0.4 t-SNE’s twenty seeds span
+0.098 to 0.875, a range of
+0.777 on a metric bounded by one. A mean of that is a number
+with no cell in it.</p>
+<p>Note which methods are on that list. LLE and Laplacian eigenmaps are
+deterministic: the same input gives the same output every time. What varies
+across seeds for them is the <em>sample</em>, redrawn from the same surface, and LLE’s
+sensitivity to it is larger than either stochastic method’s sensitivity to its
+own initialisation. “Seed variance” is two different quantities wearing one
+name, and only for t-SNE and UMAP does it mean what the phrase suggests.</p>
+</div>
+</div>
+<div id="nbr-limits" class="section level2" number="6.7">
+<h2>
+<span class="header-section-number">6.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#nbr-limits"><i class="fas fa-link"></i></a>
+</h2>
+<div id="preserve.seed-and-a-correction-to-the-correction" class="section level3" number="6.7.1">
+<h3>
+<span class="header-section-number">6.7.1</span> <code>preserve.seed</code>, and a correction to the correction<a class="anchor" aria-label="anchor" href="#preserve.seed-and-a-correction-to-the-correction"><i class="fas fa-link"></i></a>
+</h3>
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">small</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">pat</span>, theta <span class="op">=</span> <span class="fl">0.5</span>, n <span class="op">=</span> <span class="fl">200L</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">runs</span>  <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">preserve</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1L</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">BENCH_SEEDS</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span>    <span class="fu">umap</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/umap/man/umap.html">umap</a></span><span class="op">(</span><span class="va">small</span><span class="op">$</span><span class="va">X</span>, n_neighbors <span class="op">=</span> <span class="va">K_DEFAULT</span>, n_epochs <span class="op">=</span> <span class="fl">60L</span>,</span>
+<span>               preserve.seed <span class="op">=</span> <span class="va">preserve</span><span class="op">)</span><span class="op">$</span><span class="va">layout</span><span class="op">[</span><span class="fl">1L</span>, <span class="fl">1L</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">has_arg</span>  <span class="op">&lt;-</span> <span class="st">"preserve.seed"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/formals.html">formals</a></span><span class="op">(</span><span class="fu">umap</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/umap/man/umap.html">umap</a></span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">default</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/formals.html">formals</a></span><span class="op">(</span><span class="fu">umap</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/umap/man/umap.html">umap</a></span><span class="op">)</span><span class="op">$</span><span class="va">preserve.seed</span></span>
+<span><span class="va">distinct</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>kept <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu">runs</span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>              released <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu">runs</span><span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The natural idiom for standing rule 1 is to seed once and loop. With
+<code><a href="https://rdrr.io/pkg/umap/man/umap.html">umap::umap()</a></code> that idiom silently collapses the whole loop into one run. The
+pinned version takes a <code>preserve.seed</code> argument — present:
+TRUE, default: TRUE — and that default is the mechanism.
+Twenty calls with the argument at its default return
+1 distinct answer; the same twenty with it switched off
+return 20. The function restores R’s random state on
+exit, so consecutive calls all start from the same place, and the reported
+seed-to-seed spread of every UMAP result in this book would have been exactly
+zero — a violation of standing rule 1 that produces no warning, no error and
+numbers that look fine.</p>
+<div class="boxreport">
+<p>
+The provenance of this finding needs stating, because the repository
+twice recorded it wrongly and in opposite directions.
+<code>PLAN.md</code> S1-6 predicted the defect and named
+<code>preserve.seed</code> as its cause. <code>R/methods.R</code> and
+<code>tests/testthat/test-methods.R</code> then recorded that the
+prediction had named the wrong mechanism, on the ground that the pinned
+version has no such argument, and asserted the behaviour instead. The
+prediction was right: the argument is present, it defaults to
+<code>TRUE</code>, and switching it off restores the variation — all
+three checked in the chunk above rather than asserted here. The test is
+still a good test, because it pins the behaviour rather than an
+explanation of it; its comment is wrong and the registry’s is too.
+</p>
+</div>
+<p>The registry uses <code><a href="https://jlmelville.github.io/uwot/reference/umap.html">uwot::umap()</a></code> instead, which consumes R’s random stream, so
+a caller who forgets to seed gets visibly different answers rather than twenty
+identical ones. The choice of implementation moves the answer, and it moves it
+by changing what a seed means rather than by changing an algorithm.</p>
+</div>
+<div id="laplacian-eigenmaps-declines-a-whole-noise-model" class="section level3" number="6.7.2">
+<h3>
+<span class="header-section-number">6.7.2</span> Laplacian eigenmaps declines a whole noise model<a class="anchor" aria-label="anchor" href="#laplacian-eigenmaps-declines-a-whole-noise-model"><i class="fas fa-link"></i></a>
+</h3>
+<p><code>embed_laplacian()</code> returned nothing on 400 of the
+1200 cells it was offered, which is
+33% of them, and every one of those cells carries the
+outlier noise model: outlier and nothing else.
+The heat kernel underflows on a spread sample, rows of the weight matrix go to
+zero, the graph disconnects at working precision, and the second eigenvector is
+then read out of a degenerate space where every direction is equally valid. The
+helper detects that and refuses. A refusal is a result and the grid records it
+as one; what it is not is a score, and Chapter <a href="results.html#results">10</a> must not average
+over the cells that are missing.</p>
+</div>
+<div id="lle-under-outliers-stops-being-a-curve" class="section level3" number="6.7.3">
+<h3>
+<span class="header-section-number">6.7.3</span> LLE under outliers stops being a curve<a class="anchor" aria-label="anchor" href="#lle-under-outliers-stops-being-a-curve"><i class="fas fa-link"></i></a>
+</h3>
+<p>LLE never declines a cell, and that is worse than declining one. Under the
+outlier model its median error over the upper half of the fold sweep is
+0.832, second only to the diffusion map,
+and its <span class="math inline">\(Q_{NX}\)</span> against the chart stops behaving like a function of <span class="math inline">\(\theta\)</span>:
+between adjacent grid points it steps <em>upward</em> by as much as
+0.18, against
+0.003 on the clean sweep. Standing rule 2 asks for
+a curve; what this cell array produces is a scatter that happens to be indexed
+by <span class="math inline">\(\theta\)</span>. The reconstruction weights are least-squares fits in the ambient
+space, so one displaced neighbour rewrites a row of the weight matrix, and the
+whole embedding is a null space of that matrix. Nothing in the method notices.</p>
+</div>
+<div id="what-this-chapter-does-not-establish" class="section level3" number="6.7.4">
+<h3>
+<span class="header-section-number">6.7.4</span> What this chapter does not establish<a class="anchor" aria-label="anchor" href="#what-this-chapter-does-not-establish"><i class="fas fa-link"></i></a>
+</h3>
+<p>One pattern family, one tessellation size, one ambient dimension, and
+800 points. The neighbourhood sweep runs to 70, which is
+9% of the sample — the curves are still
+falling there and this chapter cannot say where they stop. Nothing here
+measures whether these methods are good at the task they were built for, which
+is a question about cluster recovery that a folded sheet with no clusters
+cannot ask <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span>.</p>
+</div>
+</div>
+<div id="nbr-reproduce" class="section level2" number="6.8">
+<h2>
+<span class="header-section-number">6.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#nbr-reproduce"><i class="fas fa-link"></i></a>
+</h2>
 <ul>
 <li>
-<code>Rtsne</code> with <code>check_duplicates = TRUE</code>; document the duplicate-row failure mode.</li>
+<code>scripts/run-benchmark-grid.R</code> → <code>data/processed/benchmark-grid.rds</code>, the
+<span class="math inline">\(\theta\)</span> sweep at fixed <span class="math inline">\(k\)</span>.</li>
 <li>
-<code>umap(method = "naive")</code> — the default backend pulls Python <code>umap-learn</code>.</li>
-<li>Perplexity and <code>n_neighbors</code> sweeps.</li>
-<li>All results across <code>BENCH_SEEDS</code>, reported as distributions rather than means.</li>
-<li>Separate real disagreement from seed noise.</li>
+<code>scripts/run-part2-sweeps.R</code> → <code>data/processed/part2-sweeps.rds</code>, the <span class="math inline">\(k\)</span>
+sweep at three fixed <span class="math inline">\(\theta\)</span>.</li>
+<li>
+<code>scripts/measure-seed-budget.R</code> → <code>data/processed/seed-budget.rds</code>.</li>
+<li>
+<code>tests/testthat/test-methods.R</code> asserts the unseeded refusal, the
+seed-to-seed variation of <code>Rtsne</code> and <code>uwot</code>, and the <code><a href="https://rdrr.io/pkg/umap/man/umap.html">umap::umap</a></code>
+behaviour above.</li>
 </ul>
+<p>Each script’s header declares the artefact it writes, and
+<code>scripts/check-artefact-producers.R</code> maps every artefact the book reads back to
+one.</p>
+</div>
+<div id="nbr-reading" class="section level2" number="6.9">
+<h2>
+<span class="header-section-number">6.9</span> Further reading<a class="anchor" aria-label="anchor" href="#nbr-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Roweis and Saul <span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span> and Belkin and Niyogi <span class="citation">(<a href="references.html#ref-belkin2003laplacian">28</a>)</span>
+are the primary sources for the two spectral methods, and both are usually read
+beside Isomap <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>, which Chapter <a href="geodesic.html#geodesic">5</a> covers and
+which is the one method here that consumes a geometry a crease pattern supplies
+exactly. Van der Maaten and Hinton <span class="citation">(<a href="references.html#ref-vandermaaten2008tsne">7</a>)</span> and
+McInnes, Healy and Melville <span class="citation">(<a href="references.html#ref-mcinnes2018umap">8</a>)</span> are the primary sources for the
+other two.</p>
+<p>On what the pictures are worth, Wattenberg, Viégas and Johnson
+<span class="citation">(<a href="references.html#ref-wattenberg2016tsne">31</a>)</span> is the clearest demonstration that the perplexity setting
+manufactures structure; Kobak and Berens <span class="citation">(<a href="references.html#ref-kobak2019art">19</a>)</span> is the practical
+counterpart. Kobak and Linderman <span class="citation">(<a href="references.html#ref-kobak2021initialization">33</a>)</span> show that the
+global structure both methods are accused of losing is substantially a matter
+of initialisation rather than of the objective. Chari and Pachter
+<span class="citation">(<a href="references.html#ref-chari2023specious">1</a>)</span> press the case against reading these embeddings as maps
+and Lause, Berens and Kobak <span class="citation">(<a href="references.html#ref-lause2024elephant">2</a>)</span> answer it. For the rank-based
+criteria used here, Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2009quality">32</a>)</span> is the reference, and
+Machado, Behrisch and Telea <span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span> make the point this
+chapter’s two-metric disagreement illustrates: a projection quality metric is
+necessary and not sufficient.</p>
+
+</div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
@@ -280,7 +878,37 @@
 <div class="next"><a href="autoencoders.html"><span class="header-section-number">7</span> Learned folds</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#neighbor"><span class="header-section-number">6</span> Neighbour embeddings</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#neighbor"><span class="header-section-number">6</span> Neighbour embeddings</a></li>
+<li><a class="nav-link" href="#nbr-question"><span class="header-section-number">6.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#nbr-setup"><span class="header-section-number">6.2</span> Setup</a></li>
+<li><a class="nav-link" href="#nbr-background"><span class="header-section-number">6.3</span> Background</a></li>
+<li>
+<a class="nav-link" href="#nbr-core"><span class="header-section-number">6.4</span> What the methods produce, and what it costs</a><ul class="nav navbar-nav"><li><a class="nav-link" href="#the-deception"><span class="header-section-number">6.4.1</span> The deception</a></li></ul>
+</li>
+<li>
+<a class="nav-link" href="#nbr-results"><span class="header-section-number">6.5</span> Results</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#neighbourhood-size-and-where-isomap-breaks"><span class="header-section-number">6.5.1</span> Neighbourhood size, and where Isomap breaks</a></li>
+<li><a class="nav-link" href="#do-they-actually-disagree"><span class="header-section-number">6.5.2</span> Do they actually disagree?</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#nbr-diagnostics"><span class="header-section-number">6.6</span> Diagnostics</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#two-conventions-and-which-claim-needs-which"><span class="header-section-number">6.6.1</span> Two conventions, and which claim needs which</a></li>
+<li><a class="nav-link" href="#what-twenty-seeds-is-and-what-it-is-not"><span class="header-section-number">6.6.2</span> What twenty seeds is, and what it is not</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#nbr-limits"><span class="header-section-number">6.7</span> Where it fails</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#preserve.seed-and-a-correction-to-the-correction"><span class="header-section-number">6.7.1</span> preserve.seed, and a correction to the correction</a></li>
+<li><a class="nav-link" href="#laplacian-eigenmaps-declines-a-whole-noise-model"><span class="header-section-number">6.7.2</span> Laplacian eigenmaps declines a whole noise model</a></li>
+<li><a class="nav-link" href="#lle-under-outliers-stops-being-a-curve"><span class="header-section-number">6.7.3</span> LLE under outliers stops being a curve</a></li>
+<li><a class="nav-link" href="#what-this-chapter-does-not-establish"><span class="header-section-number">6.7.4</span> What this chapter does not establish</a></li>
+</ul>
+</li>
+<li><a class="nav-link" href="#nbr-reproduce"><span class="header-section-number">6.8</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#nbr-reading"><span class="header-section-number">6.9</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -297,7 +925,7 @@
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

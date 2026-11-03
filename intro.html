@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 1 Introduction | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Why should a crease pattern tell you anything about a gene expression matrix?    Figure 1.1: A flat crease pattern and the same sheet folded. Turning the folded sheet changes which facets you can...">
+<meta name="description" content="Why should a crease pattern tell you anything about a gene expression matrix?  1.1 What this chapter answers It should not, and this book never argues that it does. A gene expression matrix is not...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 1 Introduction | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/intro.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Why should a crease pattern tell you anything about a gene expression matrix?    Figure 1.1: A flat crease pattern and the same sheet folded. Turning the folded sheet changes which facets you can...">
+<meta property="og:description" content="Why should a crease pattern tell you anything about a gene expression matrix?  1.1 What this chapter answers It should not, and this book never argues that it does. A gene expression matrix is not...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 1 Introduction | Folding in R">
-<meta name="twitter:description" content="Why should a crease pattern tell you anything about a gene expression matrix?    Figure 1.1: A flat crease pattern and the same sheet folded. Turning the folded sheet changes which facets you can...">
+<meta name="twitter:description" content="Why should a crease pattern tell you anything about a gene expression matrix?  1.1 What this chapter answers It should not, and this book never argues that it does. A gene expression matrix is not...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -115,7 +115,24 @@
 <span class="header-section-number">1</span> Introduction<a class="anchor" aria-label="anchor" href="#intro"><i class="fas fa-link"></i></a>
 </h1>
 <p><em>Why should a crease pattern tell you anything about a gene expression matrix?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+<div id="intro-question" class="section level2" number="1.1">
+<h2>
+<span class="header-section-number">1.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#intro-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>It should not, and this book never argues that it does. A gene expression matrix
+is not a folded sheet of paper, and no chapter here claims a resemblance between
+them.</p>
+<p>What a crease pattern has is a property no real dataset has. Its correct
+two-dimensional structure is known exactly, in closed form, before a single
+point is sampled. Rigid folding bends a flat sheet along its creases while the
+facets stay flat and unstretched, so the folded surface is isometric to the
+sheet it came from. The flat pattern is not an approximation to the folded
+surface’s intrinsic geometry. It <strong>is</strong> that geometry.</p>
+<p>One thing follows, and the book is built on it: an evaluator can be handed the
+right answer and asked whether it recognises it. A metric that ranks the correct
+embedding below a plainly wrong one where the correct embedding is <em>known</em> has
+not earned trust where it is not. That is a necessary condition rather than a
+resemblance, and it is the only transfer to real data this book asserts.</p>
 <div class="figure" style="text-align:center">
 <span style="display:block;" id="fig:intro-fold-figure"></span>
 <iframe src="fold-figure.html" title="Two panels side by side. Panel A is a flat Miura-ori crease pattern of sixteen parallelogram facets, each in a different colour, with two facets greyed out. Panel B shows the same sheet folded into a corrugated three-dimensional surface, with the facets in matching colours. The greyed facets in A are the ones hidden behind folds in B." loading="lazy" style="width:100%;height:clamp(520px,78vh,940px);border:1px solid rgba(128,128,128,.25);border-radius:8px">
@@ -128,13 +145,289 @@ Figure 1.1: A flat crease pattern and the same sheet folded. Turning the folded 
 how much of it any one view exposes — and a dimension-reduction method sees
 something closer to B than to A. The gap between the two is what the rest of
 this book measures.</p>
-<ul>
-<li>The ground-truth thesis: a rigid crease pattern <em>is</em> the answer key, not a proxy for it.</li>
-<li>What the book claims, and what it explicitly does not claim.</li>
-<li>The Chari &amp; Pachter challenge to 2D embeddings, stated up front as the target.</li>
-<li>Why exact truth lets us evaluate the evaluation metrics, not just the methods.</li>
-<li>Roadmap: fold the sheet (Part I), test the methods (II), build the benchmark (III), change a decision (IV).</li>
-</ul>
+</div>
+<div id="intro-background" class="section level2" number="1.2">
+<h2>
+<span class="header-section-number">1.2</span> The argument this book joins<a class="anchor" aria-label="anchor" href="#intro-background"><i class="fas fa-link"></i></a>
+</h2>
+<p>Chari and Pachter argued that the two-dimensional embeddings on which
+single-cell biology has come to depend distort their data badly enough that
+conclusions drawn from the pictures are unsafe <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>)</span>. The reply
+from Lause, Berens and Kobak was not that the distortion is small. It was that
+the case against the embeddings rested on metrics that “focused on preservation
+of distances, where 2D PCA was unsurprisingly the best” <span class="citation">(<a href="references.html#ref-lause2024elephant">2</a>)</span> —
+that the disagreement had moved from the embeddings to the instruments used to
+judge them.</p>
+<p>That framing is not this book’s, and saying so belongs here rather than in a
+footnote. It is the published position of one of the two parties to the dispute.
+What this book adds is not the position but a measurement of it: how far each
+evaluator sits from an evaluator that has the answer key.</p>
+<p>Machado, Behrisch and Telea supply the other half of the reason to look
+<span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span>. They construct projections that score well on
+trustworthiness and continuity while displaying structure the data does not
+contain. That is the false-<em>positive</em> direction, and it needs no ground truth:
+to show that a bad embedding scores high, it is enough to know the embedding is
+bad. The complement — that the <em>right</em> embedding scores low — cannot be shown
+without an answer key. It is rarely shown for that reason, and it is what
+Chapter <a href="evaluation.html#evaluation">9</a> does.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">audit</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/evaluator-audit.rds"</span>, <span class="st">"d7982cf7eb3afe7d"</span><span class="op">)</span></span>
+<span><span class="va">prov</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html">attr</a></span><span class="op">(</span><span class="va">audit</span>, <span class="st">"provenance"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># knitr rounds an inline numeric to options(digits), which turns 4e-16 into 0.</span></span>
+<span><span class="co"># These return character, so a small number survives the trip into prose.</span></span>
+<span><span class="co"># trimws() because formatC() pads "fg" output to a common width, and a padded</span></span>
+<span><span class="co"># number lands in the prose with its leading spaces intact.</span></span>
+<span><span class="va">fmt</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">d</span> <span class="op">=</span> <span class="fl">3L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html">trimws</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/formatc.html">formatC</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">signif</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">d</span><span class="op">)</span>, format <span class="op">=</span> <span class="st">"fg"</span>, digits <span class="op">=</span> <span class="va">d</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sci</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">d</span> <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/formatc.html">formatC</a></span><span class="op">(</span><span class="va">x</span>, format <span class="op">=</span> <span class="st">"e"</span>, digits <span class="op">=</span> <span class="va">d</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">amb</span> <span class="op">&lt;-</span> <span class="va">audit</span><span class="op">$</span><span class="va">inversions</span><span class="op">[</span><span class="va">audit</span><span class="op">$</span><span class="va">inversions</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"ambient"</span> <span class="op">&amp;</span></span>
+<span>                          <span class="va">audit</span><span class="op">$</span><span class="va">inversions</span><span class="op">$</span><span class="va">n</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">prov</span><span class="op">$</span><span class="va">n</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">inverts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">amb</span><span class="op">$</span><span class="va">inverted</span>, <span class="va">amb</span><span class="op">$</span><span class="va">metric</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">trust_span</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">amb</span><span class="op">$</span><span class="va">truth</span><span class="op">[</span><span class="va">amb</span><span class="op">$</span><span class="va">metric</span> <span class="op">==</span> <span class="st">"trust"</span><span class="op">]</span>,</span>
+<span>                      <span class="va">amb</span><span class="op">$</span><span class="va">pca2</span><span class="op">[</span><span class="va">amb</span><span class="op">$</span><span class="va">metric</span> <span class="op">==</span> <span class="st">"trust"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">perfect</span> <span class="op">&lt;-</span> <span class="va">audit</span><span class="op">$</span><span class="va">scores</span><span class="op">[</span><span class="va">audit</span><span class="op">$</span><span class="va">scores</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"ambient"</span> <span class="op">&amp;</span></span>
+<span>                          <span class="va">audit</span><span class="op">$</span><span class="va">scores</span><span class="op">$</span><span class="va">candidate</span> <span class="op">==</span> <span class="st">"truth"</span> <span class="op">&amp;</span></span>
+<span>                          <span class="va">audit</span><span class="op">$</span><span class="va">scores</span><span class="op">$</span><span class="va">k</span> <span class="op">==</span> <span class="va">K_DEFAULT</span> <span class="op">&amp;</span></span>
+<span>                          <span class="va">audit</span><span class="op">$</span><span class="va">scores</span><span class="op">$</span><span class="va">n</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">prov</span><span class="op">$</span><span class="va">n</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">ceiling</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">knn</span>, <span class="va">qnx</span><span class="op">)</span> <span class="op">~</span> <span class="va">theta</span>, <span class="va">perfect</span>, <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
+<p>The design is one sentence. Hand each evaluator the exact chart as though it
+were a submission, alongside a two-component PCA of the same folded cloud, and
+record which of the two it prefers. Across the audit’s ambient-referenced cells
+at the larger sample size, continuity ranks the wrong answer above the right one
+in 41.8 per cent of them. Trustworthiness almost
+never inverts, and only because it barely moves: over the whole sweep it rates
+every candidate in the audit, the exact chart and the wrong one alike, at
+0.984 or above. At the last fold angle, kNN preservation rates
+the <em>exact</em> unfolding 0.58 and <span class="math inline">\(Q_{NX}\)</span> rates it
+0.714. A reader shown the first of those would call the
+embedding a partial failure. It is the answer.</p>
+<p><strong>The law that chapter set out to state does not exist, and this introduction
+will not promise it.</strong> The plan of record specified a threshold in the fold
+angle: rank metrics are invariant to a monotone contraction of distances until
+neighbour identity changes, so they should invert only past some critical
+<span class="math inline">\(\theta\)</span>. They do invert, and the mechanism is the one predicted. The threshold
+is not. It slides with the neighbourhood size across most of the available range
+(Figure <a href="evaluation.html#fig:eval-fig-threshold">9.6</a>), so there is no threshold in <span class="math inline">\(\theta\)</span>
+alone. What survives is a threshold surface in <span class="math inline">\(\theta\)</span> and the neighbourhood
+<em>fraction</em> <span class="math inline">\(k/n\)</span>, and it survives for continuity only. That is a smaller finding
+than the one budgeted for it, and Chapter <a href="evaluation.html#evaluation">9</a> reports it as the
+smaller thing it is.</p>
+<p>None of this arbitrates the dispute above. Espadoto and colleagues survey what
+dimension-reduction evaluations actually report <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span>; the claim
+in this book is about those reports, and it requires no position on what a
+two-dimensional embedding is for.</p>
+</div>
+<div id="intro-core" class="section level2" number="1.3">
+<h2>
+<span class="header-section-number">1.3</span> The answer key<a class="anchor" aria-label="anchor" href="#intro-core"><i class="fas fa-link"></i></a>
+</h2>
+<p>The construction is one pattern family and it is not new. Miura’s report
+describes the tessellation this book folds as “the isometric transfer of an
+infinite plane subject to biaxial shortening” <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span>, which is the
+whole claim in the words of the person who first wrote it down. Chapter
+<a href="folding-geometry.html#folding-geometry">2</a> derives the folding rather than citing it, because the
+derivation is what makes the answer key exact instead of approximate.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="va">PATTERN_GRID</span><span class="op">$</span><span class="va">miura</span><span class="op">[[</span><span class="st">"nx"</span><span class="op">]</span><span class="op">]</span>, ny <span class="op">=</span> <span class="va">PATTERN_GRID</span><span class="op">$</span><span class="va">miura</span><span class="op">[[</span><span class="st">"ny"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="va">FIG_INTRO_THETA</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>,</span>
+<span>                     seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">iso</span>  <span class="op">&lt;-</span> <span class="fu">facet_isometry_error</span><span class="op">(</span><span class="va">p</span>, <span class="va">FIG_INTRO_THETA</span><span class="op">)</span></span>
+<span><span class="va">pca2</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/prcomp.html">prcomp</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">X</span>, rank. <span class="op">=</span> <span class="va">EMBED_DIM</span><span class="op">)</span><span class="op">$</span><span class="va">x</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="va">EMBED_DIM</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">err</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>chart <span class="op">=</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">truth</span>, <span class="va">m</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span>,</span>
+<span>          pca   <span class="op">=</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">pca2</span>, <span class="va">m</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">qn</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>chart <span class="op">=</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">truth</span>, <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"chart"</span><span class="op">)</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span>,</span>
+<span>          pca   <span class="op">=</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">pca2</span>,    <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"chart"</span><span class="op">)</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Two numbers fix what “answer key” means here. Folding preserves every pairwise
+distance within every facet to 4.4e-16 — floating-point noise on a closed
+form, not a tolerance anyone chose. And handing the chart back as though it were
+a submission scores 1.7e-16 against itself under the book’s
+headline error, where a two-component PCA of the same folded cloud scores
+0.0775.</p>
+<p><strong><span class="math inline">\(\theta\)</span> is a parameter, not an angle.</strong> It runs on the unit interval: zero is
+the flat sheet, one is flat-folded, and the dihedral angle at a crease is
+derived from it rather than being another name for it. Because it is continuous
+and the geometry moves monotonically along it, every result in this book is a
+curve rather than a number — standing rule 2, and the reason a benchmark with
+one fixed geometry cannot produce the observations Part III reports.</p>
+<p><strong>Two headline numbers per cell, and the pair is deliberate.</strong> The first is a
+normalised Procrustes RMSE: the isometry-recovery score, admitting translation,
+rotation, reflection and one isotropic scale, and charging for everything else.
+The second is <span class="math inline">\(Q_{NX}\)</span> computed with the exact chart as its reference geometry,
+which is invariant under any diffeomorphism of the plane and therefore neutral
+between preserving distances and preserving neighbourhoods. On the sample above
+the two disagree about PCA: an error of 0.0775 against a
+<span class="math inline">\(Q_{NX}\)</span> of 0.899, where the exact chart scores
+1 on the second and 1.7e-16 on the first.
+The gap between them, as a function of <span class="math inline">\(\theta\)</span>, is a measurement of how much
+observed error is genuine structural loss and how much is harmless
+reparameterisation. Reporting only the first would build the book’s scoring
+function out of one side of the dispute it claims to measure.</p>
+<p><strong>Folding preserves one kind of distance and destroys the other.</strong> Distances
+along the surface are unchanged, exactly; distances through the surrounding
+space contract by a factor that depends only on the dihedral angle. Every method
+in Part II consumes the second kind and is scored against the first. That
+mismatch is not a flaw in the benchmark, it is the benchmark’s subject — and it
+comes with a cost worth knowing before Part III: a crease has reach exactly
+zero, so the sampling guarantees usually invoked to justify these methods do not
+apply to this book’s manifolds at all — not weakly, not approximately. Chapter
+<a href="folding-geometry.html#folding-geometry">2</a> says what replaces them.</p>
+</div>
+<div id="intro-limits" class="section level2" number="1.4">
+<h2>
+<span class="header-section-number">1.4</span> What is claimed, and what is not<a class="anchor" aria-label="anchor" href="#intro-limits"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>Most of the methods under test never claimed what the headline metric
+measures.</strong> Isomap consumes geodesic distances, and its assumption is satisfied
+exactly on a crease pattern <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>; it is the one method in Part
+II trying to do the thing a Procrustes score scores. t-SNE optimises a
+divergence between neighbour probability distributions <span class="citation">(<a href="references.html#ref-vandermaaten2008tsne">7</a>)</span>,
+UMAP a cross-entropy on a fuzzy simplicial set <span class="citation">(<a href="references.html#ref-mcinnes2018umap">8</a>)</span>, and neither
+claims to reproduce distances at all — a t-SNE embedding’s very extent is a
+function of its perplexity and its iteration count. Local linear embedding, the
+Laplacian eigenmap and an autoencoder are in the same position. Scoring them
+against isometric truth and reporting that they lose is not a finding about
+them; it is a category error dressed as a measurement. The second headline
+number exists so that a method preserving neighbourhoods without preserving
+distances can be seen doing it, and each Part II chapter restates the point for
+the method it covers.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">e1</span>  <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/e1-controlled.rds"</span>, <span class="st">"01d82cfe8f45bb44"</span><span class="op">)</span></span>
+<span><span class="va">ctl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/eval.html">local</a></span><span class="op">(</span><span class="op">{</span>                       <span class="co"># both difficulty axes inside the joint range</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">e1</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html">is.finite</a></span><span class="op">(</span><span class="va">e1</span><span class="op">$</span><span class="va">rmse</span><span class="op">)</span>, <span class="op">]</span>; <span class="va">s</span><span class="op">$</span><span class="va">lg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span></span>
+<span>  <span class="va">s</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">lg</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">lg</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">min</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">s</span><span class="op">$</span><span class="va">lg</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">lg</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">max</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span></span>
+<span>    <span class="va">s</span><span class="op">$</span><span class="va">np</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">np</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">min</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">s</span><span class="op">$</span><span class="va">np</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">np</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">max</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/reshape.html">reshape</a></span><span class="op">(</span><span class="va">ctl</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"kind"</span>, <span class="st">"label"</span>, <span class="st">"seed"</span>, <span class="st">"method"</span>, <span class="st">"rmse"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>             idvar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"kind"</span>, <span class="st">"label"</span>, <span class="st">"seed"</span><span class="op">)</span>, timevar <span class="op">=</span> <span class="st">"method"</span>,</span>
+<span>             direction <span class="op">=</span> <span class="st">"wide"</span><span class="op">)</span></span>
+<span><span class="va">w</span><span class="op">$</span><span class="va">spread</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">rmse.pca</span> <span class="op">-</span> <span class="va">w</span><span class="op">$</span><span class="va">rmse.isomap</span><span class="op">)</span></span>
+<span><span class="va">sp</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">spread</span>, <span class="va">w</span><span class="op">$</span><span class="va">kind</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">ratio</span> <span class="op">&lt;-</span> <span class="va">sp</span><span class="op">[[</span><span class="st">"classic"</span><span class="op">]</span><span class="op">]</span> <span class="op">/</span> <span class="va">sp</span><span class="op">[[</span><span class="st">"crease"</span><span class="op">]</span><span class="op">]</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span>                         <span class="co"># cluster bootstrap, resampling whole settings</span></span>
+<span><span class="va">ci</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="op">{</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span><span class="op">(</span><span class="va">w</span>, <span class="va">w</span><span class="op">$</span><span class="va">kind</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">l</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">label</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">l</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">d</span><span class="op">$</span><span class="va">spread</span><span class="op">[</span><span class="va">d</span><span class="op">$</span><span class="va">label</span> <span class="op">==</span> <span class="va">x</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">r</span><span class="op">[[</span><span class="st">"classic"</span><span class="op">]</span><span class="op">]</span> <span class="op">/</span> <span class="va">r</span><span class="op">[[</span><span class="st">"crease"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">spread</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html">I</a></span><span class="op">(</span><span class="va">kind</span> <span class="op">==</span> <span class="st">"classic"</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">w</span><span class="op">)</span>   <span class="co"># cluster-robust by setting</span></span>
+<span><span class="va">X</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html">model.matrix</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>; <span class="va">u</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/residuals.html">residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>; <span class="va">bread</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/solve.html">solve</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/crossprod.html">crossprod</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">meat</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">label</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="va">w</span><span class="op">$</span><span class="va">label</span> <span class="op">==</span> <span class="va">l</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html">tcrossprod</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/crossprod.html">crossprod</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span><span class="va">i</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>, <span class="va">u</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tval</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="op">(</span><span class="va">bread</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">meat</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">bread</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">pval</span>  <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/TDist.html">pt</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">tval</span><span class="op">)</span>, df <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<p><strong>The Swiss roll discriminates better than this benchmark does.</strong> The claim this
+project set out to make was that a crease pattern is a <em>harder</em> test than the
+classical surfaces. Experiment E1 was run before Chapter <a href="comparison.html#comparison">11</a> was
+drafted, precisely so that the prose could not outlive a refutation, and it
+refuted it. Matched on both axes of difficulty — branch separation and ambient
+non-planarity — over 9 crease
+settings and 5 Swiss rolls,
+the mean gap between PCA and Isomap is 0.574 on the classical
+side against 0.113 on the crease side: a ratio of
+5.06, with a cluster bootstrap interval over settings of
+1.7 to 9.8 and a cluster-robust <span class="math inline">\(p\)</span> of
+0.02. Inside the overlap the rankings are identical — Isomap first
+on both families, the linear methods behind it on both — so nothing flips.
+Crease patterns are not a harder benchmark. They are an easier one that tells
+methods apart about five times less well, and a reader choosing between the two
+for a straight comparison of methods should choose the roll. E1 pre-registered
+three outcomes and none of them occurred; the replacement claim is in this book
+because it fits the evidence, not because its antecedent was met.</p>
+<p><strong>The difficulty axis stops short of the failure it was expected to reach.</strong>
+Folding corrupts the neighbourhood graph a method consumes, and Chapter
+<a href="generative.html#generative">3</a> measures the corruption growing along the whole sweep. What it
+does not find, anywhere on the committed grid, is a single graph edge joining
+facets two or more cells apart — the sheet-to-sheet short circuit that
+classically breaks Isomap <span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span> lives past the end of the
+axis, because the sweep stops before the sheet begins collapsing onto itself.
+This benchmark measures the graded corruption that precedes that failure. It
+does not reach the failure.</p>
+<p><strong>Exactness alone is not the differentiator.</strong> An arc-length-charted Swiss roll
+also has an exact isometric key, and it is published prior art: Schoeneman and
+colleagues noticed that the customary answer key is not the isometric one and
+replaced the Archimedean spiral with a unit-speed one <span class="citation">(<a href="references.html#ref-schoeneman2017error">10</a>)</span>.
+Claiming exact ground truth as the novelty would be wrong. What a crease pattern
+has that theirs does not is reach exactly zero rather than positive, so that it
+sits outside the smoothness theory rather than at its edge; intrinsic dimension
+above two while the chart stays in closed form, which is what makes an
+irreducible-loss bound computable at all; and a difficulty parameter whose
+critical value can be derived rather than found by sweeping and looking.</p>
+<p><strong>One family, and two documented negative results.</strong> Two further pattern
+families were specified and both were withdrawn on evidence, which Chapter
+<a href="benchmarks.html#benchmarks">8</a> reports as results. A benchmark built on one family cannot
+support claims about pattern variety, and none are made.</p>
+</div>
+<div id="intro-roadmap" class="section level2" number="1.5">
+<h2>
+<span class="header-section-number">1.5</span> How the book is organised<a class="anchor" aria-label="anchor" href="#intro-roadmap"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>Part I builds the object.</strong> Chapter <a href="folding-geometry.html#folding-geometry">2</a> derives the
+folding and proves what it preserves and what it destroys, including a
+proposition that an ambient-referenced stress must rank the exact unfolding
+below a two-component PCA — a theorem rather than a simulation. Chapter
+<a href="generative.html#generative">3</a> turns the surface into data: sampling, noise models, and the
+four measures of difficulty that the <span class="math inline">\(\theta\)</span> axis moves.</p>
+<p><strong>Part II tests the methods one family at a time</strong>, each against the same
+answer key. Chapter <a href="linear.html#linear">4</a> takes the linear projections, Chapter
+<a href="geodesic.html#geodesic">5</a> the geodesic methods and the short-circuit failure they are
+prone to, Chapter <a href="neighbor.html#neighbor">6</a> the neighbour embeddings, and Chapter
+<a href="autoencoders.html#autoencoders">7</a> the learned folds — where the honest result is that the
+autoencoder row is declared unavailable rather than quietly dropped.</p>
+<p><strong>Part III is the benchmark.</strong> Chapter <a href="benchmarks.html#benchmarks">8</a> builds the manifolds
+and the irreducible-loss bound that says how much of an error was unavoidable.
+Chapter <a href="evaluation.html#evaluation">9</a> runs the known-answer test on the evaluators
+themselves. Chapter <a href="results.html#results">10</a> reads the full grid, and asks whether the
+benchmark separates methods before asking which method wins. Chapter
+<a href="comparison.html#comparison">11</a> puts the construction against the Swiss roll, the S-curve and
+the severed sphere, and reports that it loses on discrimination.</p>
+<p><strong>Part IV spends the result.</strong> Chapter <a href="application.html#application">12</a> uses the grid to
+choose a method and its settings for a real dataset, under a rule fixed in code
+before the grid existed, and reports what happens.</p>
+<p>Two appendices carry the reference material: <a href="notation.html#notation">A</a> fixes every symbol,
+and <a href="datasets.html#datasets">B</a> documents the committed artefacts. Every artefact is read
+with its digest, so a regenerated run is a build failure rather than a silently
+changed sentence, and the three standing rules the chapters do not restate are
+set out in <em>How to use this book</em>.</p>
+<p>Not every reader wants the whole path. Someone who came for the geometry can
+read Chapters <a href="folding-geometry.html#folding-geometry">2</a> and <a href="generative.html#generative">3</a> and stop; someone
+who came for the numbers can start at Chapter <a href="results.html#results">10</a> and work backwards
+through the two chapters it depends on; and someone deciding whether to use this
+benchmark at all should read Chapter <a href="comparison.html#comparison">11</a> first, because that is
+where the case against it is made.</p>
+</div>
+<div id="intro-reading" class="section level2" number="1.6">
+<h2>
+<span class="header-section-number">1.6</span> Further reading<a class="anchor" aria-label="anchor" href="#intro-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Where to start depends on what you came for. For the origami, Hull’s
+<em>Origametry</em> <span class="citation">(<a href="references.html#ref-hull2020origametry">11</a>)</span> is the single best entry point and covers
+both the classical flat-foldability theorems this book uses as checks. For the
+methods and for the rank metrics Part III audits, Lee and Verleysen
+<span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> is the textbook treatment of everything Part II fits.</p>
+<p>For the dispute, read Chari and Pachter <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>)</span> and the reply from
+Lause, Berens and Kobak <span class="citation">(<a href="references.html#ref-lause2024elephant">2</a>)</span> in that order; they are short, and
+between them they define the question this book answers with measurement rather
+than with argument. Espadoto and colleagues <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey what
+evaluations report in practice, and Machado, Behrisch and Telea
+<span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span> is the direct complement to Chapter <a href="evaluation.html#evaluation">9</a>.
+For the nearest prior benchmark with an exact answer key, Schoeneman and
+colleagues <span class="citation">(<a href="references.html#ref-schoeneman2017error">10</a>)</span> — read alongside Chapter <a href="comparison.html#comparison">11</a>,
+which measures this construction against theirs and reports that theirs
+separates methods better.</p>
+<p>Miura’s own report <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span> is worth finding for the sentence quoted
+above, and each chapter closes with a <em>Further reading</em> section of its own that
+goes deeper on its own subject than this one can.</p>
+
+</div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
@@ -290,7 +583,15 @@ this book measures.</p>
 <div class="next"><a href="folding-geometry.html"><span class="header-section-number">2</span> The geometry of folding</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#intro"><span class="header-section-number">1</span> Introduction</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#intro"><span class="header-section-number">1</span> Introduction</a></li>
+<li><a class="nav-link" href="#intro-question"><span class="header-section-number">1.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#intro-background"><span class="header-section-number">1.2</span> The argument this book joins</a></li>
+<li><a class="nav-link" href="#intro-core"><span class="header-section-number">1.3</span> The answer key</a></li>
+<li><a class="nav-link" href="#intro-limits"><span class="header-section-number">1.4</span> What is claimed, and what is not</a></li>
+<li><a class="nav-link" href="#intro-roadmap"><span class="header-section-number">1.5</span> How the book is organised</a></li>
+<li><a class="nav-link" href="#intro-reading"><span class="header-section-number">1.6</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -307,7 +608,7 @@ this book measures.</p>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

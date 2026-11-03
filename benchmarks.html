@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 8 Building crease-pattern manifolds | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Why there is one family and not three. The Yoshimura and the waterbomb were specified here and...">
+<meta name="description" content="How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to supply four things. Three of them are routine. Data:...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 8 Building crease-pattern manifolds | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/benchmarks.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Why there is one family and not three. The Yoshimura and the waterbomb were specified here and...">
+<meta property="og:description" content="How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to supply four things. Three of them are routine. Data:...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 8 Building crease-pattern manifolds | Folding in R">
-<meta name="twitter:description" content="How do you build a manifold whose true geometry you already know? The helper API in R/, end to end. Why there is one family and not three. The Yoshimura and the waterbomb were specified here and...">
+<meta name="twitter:description" content="How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to supply four things. Three of them are routine. Data:...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -115,19 +115,536 @@
 <span class="header-section-number">8</span> Building crease-pattern manifolds<a class="anchor" aria-label="anchor" href="#benchmarks"><i class="fas fa-link"></i></a>
 </h1>
 <p><em>How do you build a manifold whose true geometry you already know?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
-<ul>
-<li>The helper API in <code>R/</code>, end to end.</li>
-<li>Why there is one family and not three. The Yoshimura and the waterbomb were
-specified here and both were withdrawn: no rigid folding of the Yoshimura is
-certified in which all three crease families fold, and the waterbomb’s is an
-open question (PLAN.md R1-1 and E2). Both stay in the chapter as documented
-negative results, which is a stronger section than a list of families would
-have been – it says what it takes for a pattern to qualify.</li>
-<li>Product constructions: intrinsic dimension <span class="math inline">\(2k\)</span> in ambient <span class="math inline">\(3k\)</span>, ground truth still exact.</li>
-<li>Random linear lift to arbitrary ambient dimension <span class="math inline">\(D\)</span>.</li>
-<li>Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark.</li>
-</ul>
+<div id="bench-question" class="section level2" number="8.1">
+<h2>
+<span class="header-section-number">8.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#bench-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>A benchmark for dimension reduction has to supply four things. Three of them are
+routine. Data: points in an ambient space that a method can be handed. A
+difficulty axis: some parameter that makes the same object harder without making
+it a different object. An answer key: the coordinates the method should have
+recovered. The Swiss roll and its relatives supply all three, and so does every
+folded sheet in this book.</p>
+<p>The fourth is the one that is almost never supplied, and it is what this chapter
+builds. <strong>How much of the error was unavoidable?</strong> A method that scores an error
+of one half on a dataset has either thrown away most of the structure or reached
+the limit of what two dimensions can hold, and the score alone does not say
+which. Without that number a benchmark can rank methods against each other but
+cannot say whether any of them did well, and a ranking with no scale under it is
+how a survey ends up reporting that every method is mediocre on every dataset
+<span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span>.</p>
+<p>The number exists and is computable in closed form, but computing it needs a
+manifold whose intrinsic dimension exceeds the target. That is this chapter’s
+argument: the constructions in <code>R/constructions.R</code> exist to raise intrinsic
+dimension while keeping the answer key exact, because a chart of dimension two
+embedded into dimension two has an irreducible loss of exactly zero and nothing
+to say.</p>
+<p>The chapter also records what the benchmark does <em>not</em> contain. Two pattern
+families were specified for it and both were withdrawn on evidence, and they are
+reported here as results — what it takes for a pattern to qualify is worth more
+to a reader than a list of the ones that did.</p>
+</div>
+<div id="bench-setup" class="section level2" number="8.2">
+<h2>
+<span class="header-section-number">8.2</span> Setup<a class="anchor" aria-label="anchor" href="#bench-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/product-grid.rds"</span>, <span class="st">"bb8ade76d88b95a3"</span><span class="op">)</span></span>
+<span><span class="va">fac_a</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span><span class="fl">4L</span>, <span class="fl">4L</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">fac_b</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span><span class="fl">3L</span>, <span class="fl">5L</span>, b <span class="op">=</span> <span class="fl">1.4</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
+<p><code>grid</code> is the product suite, 12960 rows produced by
+<code>scripts/run-product-grid.R</code>; <code>fac_a</code> and <code>fac_b</code> are the two factors it is
+built from. Everything else this chapter calls is in <code>R/</code>, sourced when the book
+renders.</p>
+</div>
+<div id="bench-background" class="section level2" number="8.3">
+<h2>
+<span class="header-section-number">8.3</span> Background<a class="anchor" aria-label="anchor" href="#bench-background"><i class="fas fa-link"></i></a>
+</h2>
+<div id="four-objects-four-verbs" class="section level3" number="8.3.1">
+<h3>
+<span class="header-section-number">8.3.1</span> Four objects, four verbs<a class="anchor" aria-label="anchor" href="#four-objects-four-verbs"><i class="fas fa-link"></i></a>
+</h3>
+<p>The helper API is small on purpose. Three S3 classes carry everything between
+files, each a plain list, and <code>R/README.md</code> states the contract field by field.</p>
+<p>A <strong><code>crease_pattern</code></strong> is a flat, unfolded pattern: vertices in the plane,
+facets as vertex-index cycles, and a crease table carrying a
+mountain/valley/boundary assignment. Its <code>vertices</code> matrix is the ground truth —
+not an approximation of the correct two-dimensional embedding, the embedding
+itself.</p>
+<p>A <strong><code>folded_pattern</code></strong> is the same pattern placed in <span class="math inline">\(\mathbb{R}^3\)</span> at folding
+parameter <span class="math inline">\(\theta\)</span>, with one dihedral angle per crease derived from the
+placement rather than assumed.</p>
+<p>A <strong><code>manifold_sample</code></strong> is <span class="math inline">\(n\)</span> points drawn from a folded pattern: <code>X</code> in the
+ambient space, <code>truth</code> in the chart, row-aligned. <code>X[i, ]</code> and <code>truth[i, ]</code> are
+the same point seen two ways, and every measurement in this book compares an
+embedding of the first against the second. The verbs run one line each.</p>
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p</span>  <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">s</span>  <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0.6</span>, n <span class="op">=</span> <span class="fl">400L</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">Y</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/embed.html">embed</a></span><span class="op">(</span><span class="st">"isomap"</span>, <span class="va">s</span>, d <span class="op">=</span> <span class="va">EMBED_DIM</span>, k <span class="op">=</span> <span class="va">K_DEFAULT</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>vertices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">vertices</span><span class="op">)</span>, creases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">creases</span><span class="op">)</span>,</span>
+<span>           points <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">)</span>, ambient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">)</span>, chart <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span>,</span>
+<span>           error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">Y</span>, <span class="va">s</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code>#&gt;   vertices creases points ambient chart  error
+#&gt; 1       49      84    400       3     2 0.0551</code></pre>
+<p>Four things about that call are load-bearing and easy to get wrong.</p>
+<p><span class="math inline">\(\theta\)</span> <strong>is a parameter of the folding map, not an angle.</strong> It runs on
+<span class="math inline">\([0, 1]\)</span>, zero being the flat sheet and one the flat-folded state, and <code>fold()</code>
+refuses anything outside it; the dihedral angles are derived from it. Chapter
+<a href="folding-geometry.html#folding-geometry">2</a> gives the derivation.</p>
+<p><code><a href="https://rdrr.io/r/stats/embed.html">embed()</a></code> <strong>takes the sample object, not a matrix.</strong> The registry holds
+9 entries and
+8
+of them run: the autoencoder declares itself unavailable rather than failing at
+fit time, and <code>method_table()</code> prints the registry with what each method
+consumes.</p>
+<p><strong>Stochastic methods refuse to run unseeded.</strong> Standing rule 1 reports every
+stochastic result across <code>BENCH_SEEDS</code>, and an unseeded fit cannot be one of
+them, so <code><a href="https://rdrr.io/r/stats/embed.html">embed()</a></code> errors rather than quietly producing an anecdote.</p>
+<p><strong>Sampling trims the boundary by default.</strong> The chart is the geodesic only while
+the straight chart segment between two points stays on the paper, and a Miura
+unfolds to a region with a zigzag edge. <code>boundary = FALSE</code> is not tidiness — it
+is the condition under which the answer key is the answer.</p>
+</div>
+</div>
+<div id="bench-core" class="section level2" number="8.4">
+<h2>
+<span class="header-section-number">8.4</span> Constructions that keep the answer key<a class="anchor" aria-label="anchor" href="#bench-core"><i class="fas fa-link"></i></a>
+</h2>
+<div id="one-pattern-family-and-two-honest-gaps" class="section level3" number="8.4.1">
+<h3>
+<span class="header-section-number">8.4.1</span> One pattern family, and two honest gaps<a class="anchor" aria-label="anchor" href="#one-pattern-family-and-two-honest-gaps"><i class="fas fa-link"></i></a>
+</h3>
+<p>The book ships one family that folds. That is fewer than were specified, and the
+two that were withdrawn were withdrawn for different reasons, both of which are
+worth more than the families would have been.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:bench-fig-families"></span>
+<img src="08-building-benchmarks_files/figure-html/bench-fig-families-1.png" alt="Two side-by-side panels of flat crease patterns drawn in the plane. The left panel is a Miura-ori: a grid of congruent parallelograms whose transverse crease lines zigzag, with a jagged left and right edge. The right panel is a Yoshimura diamond tessellation: rows of triangles with horizontal, slanted and diagonal creases meeting six to a vertex. Both use two colours and two line styles for mountain and valley creases and a solid grey line for the sheet boundary." width="90%"><p class="caption">
+Figure 8.1: Two valid flat crease patterns. Only the left one has a certified rigid folding; the right one is drawn here and never folded anywhere in this book. Mountain and valley are distinguished by colour and by line style together.
+</p>
+</div>
+<p>Figure <a href="benchmarks.html#fig:bench-fig-families">8.1</a> shows the Miura beside the Yoshimura. Both
+panels are legitimate crease patterns. <code>yoshimura()</code> returns a <code>crease_pattern</code>
+like any other, its facets are congruent, and its interior vertices satisfy
+Kawasaki’s condition — the alternating sum of the sector angles vanishes — to
+numerical noise. What it does not have is a folding.</p>
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">yo</span> <span class="op">&lt;-</span> <span class="fu">yoshimura</span><span class="op">(</span><span class="fl">6L</span>, <span class="fl">6L</span><span class="op">)</span></span>
+<span><span class="va">kaw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu">interior_vertices</span><span class="op">(</span><span class="va">yo</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">a</span> <span class="op">&lt;-</span> <span class="fu">sector_angles</span><span class="op">(</span><span class="va">yo</span>, <span class="va">v</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">FALSE</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">first_line</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">sub</a></span><span class="op">(</span><span class="st">"\\. See .*"</span>, <span class="st">"."</span>, <span class="fu"><a href="https://rdrr.io/r/base/conditions.html">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">refusals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span></span>
+<span>  yoshimura <span class="op">=</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="fu">fold</span><span class="op">(</span><span class="va">yo</span>, theta <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>, error <span class="op">=</span> <span class="va">first_line</span><span class="op">)</span>,</span>
+<span>  waterbomb <span class="op">=</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="fu">waterbomb</span><span class="op">(</span><span class="op">)</span>, error <span class="op">=</span> <span class="va">first_line</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strwrap.html">strwrap</a></span><span class="op">(</span><span class="va">refusals</span>, width <span class="op">=</span> <span class="fl">76</span>, prefix <span class="op">=</span> <span class="st">"  "</span>, initial <span class="op">=</span> <span class="st">""</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div>
+<pre><code>#&gt; no rigid folding of the Yoshimura pattern is certified in which all three
+#&gt;   crease families fold. Two were derived and each leaves one family flat,
+#&gt;   which makes the folded object a parallelogram tessellation rather than a
+#&gt;   diamond one -- a Miura in this pattern's clothing.
+#&gt;   waterbomb() is not implemented: whether this tessellation admits a
+#&gt;   one-parameter rigid folding is an open question in this project, not a
+#&gt;   coding task.</code></pre>
+<p>Kawasaki’s alternating sum is satisfied at all
+25 interior vertices of that patch, worst
+departure 1.8e-15, and that buys
+nothing. Kawasaki is a necessary condition for flat-foldability at a vertex; it
+is not sufficient, and
+flat-foldability of a pattern is not the same question as the existence of a
+one-parameter rigid folding of a tessellation <span class="citation">(<a href="references.html#ref-hull2020origametry">11</a>,<a href="references.html#ref-demaine2007folding">14</a>)</span>.</p>
+<p><strong>The Yoshimura.</strong> Two rigid foldings of the planar patch were derived,
+implemented and verified in this repository. Each of them is exact — facet
+isometry at the same order as the Miura’s, flat at <span class="math inline">\(\theta = 0\)</span> — and each
+leaves one of the three crease families entirely unfolded, at a dihedral angle
+of <span class="math inline">\(\pi\)</span> along its whole length. A folding that leaves a crease family flat is a
+folding of a coarser pattern: fuse the facets across the creases that never
+move, and what remains is a parallelogram tessellation. It is a Miura wearing
+the Yoshimura’s crease lines. Shipping it as a second, independent family would
+have been a claim about pattern variety that the geometry does not support, so
+<code>fold()</code> refuses it and says why.</p>
+<p><strong>The waterbomb.</strong> <code>waterbomb()</code> stops before building anything. A degree-six
+vertex with sectors of forty-five, forty-five and ninety degrees repeated
+satisfies Kawasaki and is flat-foldable <em>as an isolated vertex</em>, which does not
+imply that the tessellation admits a one-parameter rigid folding. Whether it
+does is an open question in this project, not a coding task. A continuation
+moved it only under an imposed symmetry, and three things disqualified that
+result: the embedding is unproved, the fold amplitude is not monotone in
+<span class="math inline">\(\theta\)</span>, and degrees of freedom remain on the free boundary, so <span class="math inline">\(\theta\)</span> does
+not determine the configuration.</p>
+<p>Both withdrawals share one moral and it generalises well past origami. <strong>A test
+that a correct implementation passes is not the same as a test that a wrong one
+fails.</strong> An isometry check cannot tell a fold from a pleat, because a pleat is a
+rigid folding and passes perfectly. A first-order flex at the flat state proves
+nothing either: at <span class="math inline">\(\theta = 0\)</span> every <span class="math inline">\(z\)</span> column of the rigidity Jacobian
+vanishes, so the count of non-trivial infinitesimal flexes is
+<span class="math inline">\(V - 3 = 46\)</span> for a pattern of this size and for <em>any</em>
+planar pattern whatsoever, foldable or not. Each trap here was sprung, and each
+was caught only by a second, independent check.</p>
+</div>
+<div id="the-isometry-certificate" class="section level3" number="8.4.2">
+<h3>
+<span class="header-section-number">8.4.2</span> The isometry certificate<a class="anchor" aria-label="anchor" href="#the-isometry-certificate"><i class="fas fa-link"></i></a>
+</h3>
+<p>What a family has to produce, then, is a closed form, a fold that reaches every
+crease family, and an isometry that is exact rather than converged. The third is
+certified by measurement, not by the derivation that produced it.</p>
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">alphas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">MIURA_ALPHA_RANGE</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="va">MIURA_ALPHA_RANGE</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span>, length.out <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span></span>
+<span><span class="va">thetas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">cert</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">alphas</span>, <span class="kw">function</span><span class="op">(</span><span class="va">al</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">q</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span><span class="fl">4L</span>, <span class="fl">4L</span>, alpha <span class="op">=</span> <span class="va">al</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="va">al</span> <span class="op">*</span> <span class="fl">180</span> <span class="op">/</span> <span class="va">pi</span><span class="op">)</span>, theta <span class="op">=</span> <span class="va">thetas</span>,</span>
+<span>             err <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">thetas</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fu">facet_isometry_error</span><span class="op">(</span><span class="va">q</span>, <span class="va">t</span><span class="op">)</span>,</span>
+<span>                          <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">worst</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">cert</span><span class="op">$</span><span class="va">err</span><span class="op">)</span></span></code></pre></div>
+<p><code>facet_isometry_error()</code> compares <strong>all pairwise distances</strong> between a facet’s
+vertices, folded against flat, and not merely its edges: a placement that
+preserved every edge of a parallelogram while shearing it would pass an edge
+test and would not be a rigid folding. Over the whole <span class="math inline">\(\theta\)</span> sweep and the
+full <span class="math inline">\(\alpha\)</span> range the worst departure is
+1.1e-15, against a contract of
+1e-10. That is floating-point noise on a
+closed form, not a tolerance anyone chose, and it is the certificate the product
+construction below inherits.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:bench-fig-certificate"></span>
+<img src="08-building-benchmarks_files/figure-html/bench-fig-certificate-1.png" alt="A line chart with a logarithmic vertical axis. The horizontal axis is the folding parameter from zero to one. Six nearly flat curves, one per opening angle and distinguished by colour, sit together in a narrow band around ten to the power minus fifteen. A horizontal dashed line far above them at ten to the power minus ten marks the contract tolerance." width="90%"><p class="caption">
+Figure 8.2: Worst within-facet distance error across the folding sweep, at six opening angles spanning the range the contract asserts. The dashed line is the contract; every curve sits five orders of magnitude below it and shows no trend in either the folding parameter or the opening angle.
+</p>
+</div>
+<p>Figure <a href="benchmarks.html#fig:bench-fig-certificate">8.2</a> is that measurement across the sweep.
+The flatness matters as much as the level: an error growing with <span class="math inline">\(\theta\)</span> would
+mean the closed form was an approximation that happened to be good near the flat
+state, which is what a derivation by facet rotation tends to produce.</p>
+</div>
+<div id="products-raising-intrinsic-dimension-without-losing-truth" class="section level3" number="8.4.3">
+<h3>
+<span class="header-section-number">8.4.3</span> Products: raising intrinsic dimension without losing truth<a class="anchor" aria-label="anchor" href="#products-raising-intrinsic-dimension-without-losing-truth"><i class="fas fa-link"></i></a>
+</h3>
+<p>A folded sheet has intrinsic dimension two and every embedding in this book has
+target dimension two. That is a benchmark with no headroom, and the product
+construction supplies some.</p>
+<p><code>product_manifold(a, b)</code> takes two samples of the same size and pairs them
+row-wise: the ambient coordinates concatenate to <span class="math inline">\(\mathbb{R}^{3+3}\)</span>, the charts
+to <span class="math inline">\(\mathbb{R}^{2+2}\)</span>. Nothing is fitted and nothing approximated, for a reason
+worth stating because everything downstream rests on it.</p>
+<p><strong>A product of isometries is an isometry.</strong> In a Riemannian product the squared
+distances add: for points <span class="math inline">\((u, v)\)</span> and <span class="math inline">\((u', v')\)</span>,
+<span class="math inline">\(d^2 = d_1(u, u')^2 + d_2(v, v')^2\)</span>, and the same identity holds in the ambient
+product because concatenating coordinate blocks adds squared differences. Each
+factor map preserves its own term by construction, so the product map preserves
+the sum. The chart of the product is therefore the product of the charts, exactly, and
+its intrinsic dimension is the sum of the factors’ — <span class="math inline">\(2k\)</span> in ambient <span class="math inline">\(3k\)</span> for
+<span class="math inline">\(k\)</span> sheets.</p>
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sa</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">fac_a</span>, theta <span class="op">=</span> <span class="fl">0.55</span>, n <span class="op">=</span> <span class="fl">400L</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">sb</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">fac_b</span>, theta <span class="op">=</span> <span class="fl">0.60</span>, n <span class="op">=</span> <span class="fl">400L</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="fl">500L</span><span class="op">)</span></span>
+<span><span class="va">pr</span> <span class="op">&lt;-</span> <span class="fu">product_manifold</span><span class="op">(</span><span class="va">sa</span>, <span class="va">sb</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">pythag</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">pr</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span></span>
+<span>                  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">sa</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">sb</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">floors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="fu">irreducible_loss</span><span class="op">(</span><span class="va">pr</span>, <span class="va">d</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>ambient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">pr</span><span class="op">$</span><span class="va">X</span><span class="op">)</span>, chart <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">pr</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span>,</span>
+<span>           pythagoras <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/formatc.html">formatC</a></span><span class="op">(</span><span class="va">pythag</span>, format <span class="op">=</span> <span class="st">"e"</span>, digits <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>           one_sheet_floor <span class="op">=</span> <span class="fu">irreducible_loss</span><span class="op">(</span><span class="va">sa</span>, <span class="fl">2L</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code>#&gt;   ambient chart pythagoras one_sheet_floor
+#&gt; 1       6     4    8.9e-16               0</code></pre>
+<p>The Pythagorean identity holds to 8.9e-16 across all pairs, which
+is the numerical form of the argument above. The last entry is the sentence the
+whole construction exists to escape: a single folded sheet has a chart of
+dimension two, and the smallest error any two-dimensional embedding of it could
+achieve is 0. Exactly zero, in every cell, at every
+<span class="math inline">\(\theta\)</span>, under every noise model.</p>
+<p><strong>The bound.</strong> For an <span class="math inline">\(n \times p\)</span> chart <span class="math inline">\(U\)</span> and the normalised Procrustes error
+of <code>R/metrics.R</code> — which optimises over translation, rotation, reflection and
+isotropic scale <span class="citation">(<a href="references.html#ref-gower1975procrustes">24</a>,<a href="references.html#ref-schonemann1966procrustes">34</a>)</span> — every
+<span class="math inline">\(n \times d\)</span> configuration <span class="math inline">\(Z\)</span> satisfies</p>
+<p><span class="math display">\[\mathrm{err}(Z, U) \;\ge\; \mathrm{floor}(d) \;=\; \sqrt{\frac{\sum_{i &gt; d}\lambda_i}{\sum_i \lambda_i}},\]</span></p>
+<p>where the <span class="math inline">\(\lambda_i\)</span> are the classical-MDS eigenvalues of the chart
+<span class="citation">(<a href="references.html#ref-torgerson1952mds">22</a>)</span>, equivalently the squared singular values of its centred
+coordinates. The proof is Eckart–Young <span class="citation">(<a href="references.html#ref-eckart1936approximation">18</a>)</span> and it is
+short. As <span class="math inline">\(Z\)</span> ranges over all configurations and the similarity group ranges
+over its elements, the fitted matrix ranges over exactly the centred <span class="math inline">\(n \times p\)</span>
+matrices of rank at most <span class="math inline">\(d\)</span>; the best such matrix is the rank-<span class="math inline">\(d\)</span> truncated
+singular value decomposition; its residual is the tail sum of squared singular
+values; normalising gives the expression above.</p>
+<p>It is exact, it depends on the data alone, and no method appears anywhere in it.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:bench-fig-spectrum"></span>
+<img src="08-building-benchmarks_files/figure-html/bench-fig-spectrum-1.png" alt="Two panels. Panel A is a bar chart of four bars, decreasing from about 0.43 to about 0.06, labelled as shares of chart variance. Panel B is a line falling from about 0.75 at target dimension one, through 0.53 and 0.25, to zero at target dimension four; black cross markers sit exactly on the line at all four points." width="90%"><p class="caption">
+Figure 8.3: The chart spectrum of one product cell, and the bound it produces. Panel A: the four eigenvalues of the four-dimensional chart, as shares of its variance. Panel B: the bound at each target dimension, as a line, with the rank-d projection of the chart drawn on top of it as crosses. The tail of A is the square of B.
+</p>
+</div>
+<p>Figure <a href="benchmarks.html#fig:bench-fig-spectrum">8.3</a> shows why it is a bound rather than a
+guess: <strong>it is attained.</strong> The crosses in panel B are the chart projected onto
+its own top <span class="math inline">\(d\)</span> principal directions, scored by the same function every method
+in the book is scored by. They sit on the line, to
+7.4e-16. A minimum, not an infimum — which also
+makes clear what the bound is not. The minimiser is constructed from the answer
+key, so nothing that has not been given the answer can be expected to reach it.</p>
+<p>The floor depends on the chart and on nothing else. That is the property that
+makes it useful rather than a limitation: it does not move with <span class="math inline">\(\theta\)</span>, with
+the noise model or with the sample’s difficulty, so “every method landed within
+a few per cent of the floor” is a statement about a regime rather than about a
+lucky draw.</p>
+</div>
+<div id="lifting-to-arbitrary-ambient-dimension" class="section level3" number="8.4.4">
+<h3>
+<span class="header-section-number">8.4.4</span> Lifting to arbitrary ambient dimension<a class="anchor" aria-label="anchor" href="#lifting-to-arbitrary-ambient-dimension"><i class="fas fa-link"></i></a>
+</h3>
+<p>Real data does not arrive in three dimensions, and a method that only works when
+the ambient dimension is small should be caught by that rather than flattered by
+it. <code>lift()</code> maps a sample into <span class="math inline">\(\mathbb{R}^D\)</span> through a random orthonormal
+matrix.</p>
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lf</span> <span class="op">&lt;-</span> <span class="fu">lift</span><span class="op">(</span><span class="va">pr</span>, D <span class="op">=</span> <span class="fl">50L</span>, seed <span class="op">=</span> <span class="fl">20260901L</span><span class="op">)</span></span>
+<span><span class="va">dist_change</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">lf</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">pr</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>ambient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">lf</span><span class="op">$</span><span class="va">X</span><span class="op">)</span>,</span>
+<span>           dist_change <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/formatc.html">formatC</a></span><span class="op">(</span><span class="va">dist_change</span>, format <span class="op">=</span> <span class="st">"e"</span>, digits <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>           floor_before <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu">irreducible_loss</span><span class="op">(</span><span class="va">pr</span>, <span class="fl">2L</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span>,</span>
+<span>           floor_after  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu">irreducible_loss</span><span class="op">(</span><span class="va">lf</span>, <span class="fl">2L</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code>#&gt;   ambient dist_change floor_before floor_after
+#&gt; 1      50     2.2e-15         0.53        0.53</code></pre>
+<p>Orthonormality is load-bearing and <code>lift()</code> asserts it rather than assuming it:
+a merely random matrix would distort distances and invalidate the answer key
+silently. Because <span class="math inline">\(Q^\top Q = I\)</span> the map is exactly distance-preserving — the
+worst change over all
+79800 pairs is
+2.2e-15 — and the
+chart is untouched, so the floor is the same number before and after.</p>
+<p>That decoupling is the point. Ambient dimension and intrinsic difficulty are two
+axes, and a benchmark that moves them together cannot say which a method is
+responding to. <code>lift()</code> moves the first alone.</p>
+</div>
+</div>
+<div id="bench-results" class="section level2" number="8.5">
+<h2>
+<span class="header-section-number">8.5</span> Results<a class="anchor" aria-label="anchor" href="#bench-results"><i class="fas fa-link"></i></a>
+</h2>
+<p>The product suite is 12960 rows: two arms, each swept over nine values
+of its own difficulty parameter, 20 seeds, four target
+dimensions and 9 registry entries at
+<span class="math inline">\(n = 400\)</span>.</p>
+<p>The second arm is a concession turned into a finding. <code>PROJECT_CONCEPT.md</code>
+listed crease-specificity among the book’s differentiators, and
+<code>product_manifold()</code> imposes no family constraint: two isometric Swiss rolls
+give intrinsic dimension four, an exact chart and a computable floor exactly as
+two Miura sheets do. The differentiator as written is refuted, and reporting
+both arms side by side is the stronger statement. What crease-specificity rests
+on afterwards is zero reach <span class="citation">(<a href="references.html#ref-federer1959curvature">15</a>,<a href="references.html#ref-niyogi2008homology">16</a>)</span> and an
+answer key that is not smooth, not the bound.</p>
+<div id="the-floor-bites-and-nothing-goes-under-it" class="section level3" number="8.5.1">
+<h3>
+<span class="header-section-number">8.5.1</span> The floor bites, and nothing goes under it<a class="anchor" aria-label="anchor" href="#the-floor-bites-and-nothing-goes-under-it"><i class="fas fa-link"></i></a>
+</h3>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:bench-fig-dimension"></span>
+<img src="08-building-benchmarks_files/figure-html/bench-fig-dimension-1.png" alt="Two panels sharing a vertical axis of normalised Procrustes error from zero to one. In each, a heavy grey line falls with target dimension one to four and the area beneath it is shaded. In the left panel, labelled crease product, three curves for ambient, geodesic and neighbourhood methods run just above the shaded region at dimensions one and two and separate from it at three and four. In the right panel, labelled roll product, the same three curves run flat near 0.95 across all four dimensions, far above a bound that falls quickly to near zero." width="90%"><p class="caption">
+Figure 8.4: Achieved error against target dimension, by what each method consumes, with the irreducible-loss bound as the heavy line and the region below it shaded. Both arms have a four-dimensional chart, so the bound reaches zero at target dimension four. The shaded region is unreachable by any configuration whatsoever.
+</p>
+</div>
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">ok</span><span class="op">)</span></span>
+<span><span class="va">under</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">ok</span><span class="op">$</span><span class="va">excess</span> <span class="op">&lt;</span> <span class="op">-</span><span class="fl">1e-9</span><span class="op">)</span></span>
+<span><span class="va">crease2</span> <span class="op">&lt;-</span> <span class="va">ok</span><span class="op">[</span><span class="va">ok</span><span class="op">$</span><span class="va">d</span> <span class="op">==</span> <span class="fl">2L</span> <span class="op">&amp;</span> <span class="va">ok</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"crease"</span>, <span class="op">]</span></span>
+<span><span class="va">roll2</span>   <span class="op">&lt;-</span> <span class="va">ok</span><span class="op">[</span><span class="va">ok</span><span class="op">$</span><span class="va">d</span> <span class="op">==</span> <span class="fl">2L</span> <span class="op">&amp;</span> <span class="va">ok</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"roll"</span>, <span class="op">]</span></span>
+<span><span class="va">by_con</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">excess</span> <span class="op">~</span> <span class="va">consumes</span>, <span class="va">crease2</span>, <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
+<p>Across all 11160 fits in the suite, the number that went under the floor is
+0. That is a regression check and not evidence, and the distinction
+matters: the bound is
+<em>proved</em>, so a method that beat it would mean the implementation is wrong, not
+that the claim is. It is the assertion the producer exits non-zero on, and it
+should be read the way a failing test is read, not the way a corroborated
+conjecture is.</p>
+<p>Figure <a href="benchmarks.html#fig:bench-fig-dimension">8.4</a> is what the bound buys. At target
+dimension two the crease arm’s floor is
+0.517: the best configuration that exists still
+leaves a residual half the size of the chart’s own spread, before any method is
+chosen. Isomap’s raw error there averages
+0.536, which against
+zero reads as failure and against the floor is an excess of
+0.019 — it gives away
+3.9 per
+cent of the range actually available to it. <strong>That contrast is this book’s
+thesis in one sentence.</strong> Read the first way the table says everything failed;
+read the second it says the loss belongs to the data.</p>
+<p>Excess sorts by what a method consumes. On the crease arm at target dimension
+two the mean is 0.019 for
+the one geodesic method,
+0.041 for the ambient ones
+and 0.113 for the
+neighbourhood ones. Isomap consumes exactly what a crease pattern supplies
+exactly <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>, and it is the method closest to the bound. That
+ordering is measured over the whole sweep and all 20
+seeds. The provisional version of it came from two values of <span class="math inline">\(\theta\)</span> in a
+quick run that was never saved and put the ambient methods first — which is
+exactly the reading standing rule 2 exists to prevent.</p>
+</div>
+<div id="excess-as-a-curve" class="section level3" number="8.5.2">
+<h3>
+<span class="header-section-number">8.5.2</span> Excess as a curve<a class="anchor" aria-label="anchor" href="#excess-as-a-curve"><i class="fas fa-link"></i></a>
+</h3>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:bench-fig-excess"></span>
+<img src="08-building-benchmarks_files/figure-html/bench-fig-excess-1.png" alt="Two panels with independent axes. The left panel, crease product, plots excess over the floor against the folding parameter: three nearly flat curves for ambient, geodesic and neighbourhood methods sit between 0.01 and 0.10 until the folding parameter passes 0.8, where the ambient curve turns sharply upward and the geodesic one bends up more gently. The right panel, roll product, plots excess against the number of turns: three curves rise steadily together from about 0.72 to about 0.92 and stay within a hair of each other throughout." width="90%"><p class="caption">
+Figure 8.5: Mean excess over the floor at target dimension two, against each family’s own difficulty parameter — the folding parameter on the left, the number of turns on the right. The vertical scales differ between panels and the two arms are matched on nothing, so this is a statement about the construction and not about which family is harder.
+</p>
+</div>
+<p>Figure <a href="benchmarks.html#fig:bench-fig-excess">8.5</a> is the whole sweep.</p>
+<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">crease_curve</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">excess</span>, <span class="va">floor</span><span class="op">)</span> <span class="op">~</span> <span class="va">par</span>, <span class="va">crease2</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">roll_curve</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">excess</span>, <span class="va">floor</span><span class="op">)</span> <span class="op">~</span> <span class="va">par</span>, <span class="va">roll2</span>, <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
+<p>Two things read off it. On the crease arm the floor is
+0.517 at every one of the nine folding
+parameters — spread across the sweep exactly
+0 — while the excess climbs from
+0.062 to
+0.146, almost all of it in the last two cells.
+The bound is a property of the answer key and folding does not touch it; the
+difficulty is entirely in the recovery. On the roll arm the floor <em>does</em> move,
+from 0.168 down to
+0.068, because winding more turns lengthens the
+roll’s arc-length coordinate and elongates its chart. Two arms, two different
+relationships between difficulty and the bound, and neither is a defect.</p>
+</div>
+<div id="why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark" class="section level3" number="8.5.3">
+<h3>
+<span class="header-section-number">8.5.3</span> Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark<a class="anchor" aria-label="anchor" href="#why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark"><i class="fas fa-link"></i></a>
+</h3>
+<p>Everything above is unavailable on the book’s main grid, and the reason is one
+line of arithmetic. That grid’s chart is two-dimensional and its target is
+two-dimensional, so the <code>floor</code> column in it is identically zero — as
+<code>irreducible_loss(sa, 2L)</code> returned above, for the same reason, in closed form.</p>
+<p>That is not a defect in the grid and it is worth one sentence rather than a
+footnote: <strong>on the main grid every error is loss the method is responsible
+for.</strong> It is the cleanest possible reading, and it is available precisely
+because the construction has no headroom in it.</p>
+<p>But a benchmark that <em>only</em> ever has no headroom cannot ask the question this
+chapter opened with. It cannot distinguish a method that discarded structure
+from one that ran out of room, because there is never any room to run out of. It
+cannot show what Figure <a href="benchmarks.html#fig:bench-fig-dimension">8.4</a> shows — the crease arm’s
+methods hugging the bound at target dimensions one and two and pulling away from
+it at three and four, which says where each method’s loss comes from rather than
+how large it is. And it cannot report a result as a ratio, because a ratio needs
+both ends fixed and one end is nailed to zero.</p>
+<p>The classical benchmarks are all in this position. A Swiss roll, an S-curve, a
+severed sphere: two-dimensional charts, two-dimensional targets, floor zero
+everywhere <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span>. Raising intrinsic dimension is the one move that
+makes the bound bite, and doing it while keeping the answer key exact is what
+<code>product_manifold()</code> is for. The product suite, not the main grid, carries the
+argument.</p>
+</div>
+</div>
+<div id="bench-diagnostics" class="section level2" number="8.6">
+<h2>
+<span class="header-section-number">8.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#bench-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>Do not read the two arms as a difficulty comparison.</strong> The crease arm is swept
+over the folding parameter and the roll arm over turns; the two are matched on
+nothing, and their floors differ by a factor of about
+5 for reasons about how each
+chart is parameterised rather than about how hard each object is. What the pair
+supports is that the floor exists, is computable, is attained and is not beaten,
+in both families. A claim that one family is harder needs matched difficulty and
+does not live here.</p>
+<p><strong>Rows that did not run are results.</strong> Of the 12960 rows,
+1440 are the autoencoder declaring itself
+unavailable and 360 are t-SNE refusing target
+dimension four — the Barnes–Hut implementation accepts one, two or three, and
+the <code>reason</code> column says so. Both are recorded rather than dropped, because a
+missing row and a refused row look identical in an aggregate and mean opposite
+things.</p>
+<p><strong>The bound has no opinion about rank metrics.</strong> <code>metric_floor()</code> bounds the
+normalised Procrustes error and nothing else. Trustworthiness, continuity and
+<span class="math inline">\(Q_{NX}\)</span> read rank order rather than distance, and an embedding sitting on this
+floor may score better or worse on any of them than one well above it. That is
+Chapter <a href="evaluation.html#evaluation">9</a>’s subject, not a defect here.</p>
+<p><strong>One stale message.</strong> <code>waterbomb()</code>’s error text still says the book ships two
+families plus one negative result; it predates the Yoshimura’s withdrawal and
+was never revised. The count in this chapter is the correct one — one family,
+two negative results — and the discrepancy is left visible rather than quietly
+patched, because it is exactly the kind of stale count a registry keyed by
+family name is supposed to catch and did not.</p>
+</div>
+<div id="bench-limits" class="section level2" number="8.7">
+<h2>
+<span class="header-section-number">8.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#bench-limits"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>A product is not a curved four-manifold.</strong> <code>product_manifold()</code> gives
+intrinsic dimension four with an exact chart, and it gives it in the easiest
+possible way: the factors are independent, their metrics do not interact, and
+the chart’s four coordinates come in two decoupled pairs. Nothing here models a
+manifold whose curvature entangles its directions. The construction is for the
+bound, and the bound needs only a chart of dimension greater than the target.</p>
+<p><strong>The lift is linear.</strong> What makes it a clean axis is also its limit. A random
+orthonormal lift adds no correlated nuisance structure, no heteroscedastic noise
+and no nearly redundant coordinates — none of the pathologies that make real
+high-dimensional data hard <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>,<a href="references.html#ref-lause2024elephant">2</a>)</span>. A method
+that survives <code>lift()</code> has been shown insensitive to ambient dimension alone.</p>
+<p><strong>The chart must be Euclidean.</strong> The bound is an Eckart–Young residual and
+needs the doubly-centred squared-distance matrix to be positive semi-definite.
+It is here, by construction. A distance matrix handed in from elsewhere may not
+be, and <code>chart_spectrum()</code> refuses that case rather than reporting a tail sum
+that bounds nothing.</p>
+<p><strong>The answer key is the chart only inside the paper.</strong> Chart distance equals
+geodesic distance only while the straight segment between two chart points stays
+on the sheet, and a Miura’s outline is not convex. The producer asserts a
+chart-exit fraction of zero on every cell rather than trusting the sampling
+default; where that assertion fails the answer key is wrong in the direction
+that flatters every method.</p>
+<p><strong>One family.</strong> A benchmark built on a single pattern family cannot support
+claims about pattern variety, and this book makes none. It can support claims
+about a construction, and the suite’s two arms are the evidence that the
+construction is what the claims are about.</p>
+</div>
+<div id="bench-reproduce" class="section level2" number="8.8">
+<h2>
+<span class="header-section-number">8.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#bench-reproduce"><i class="fas fa-link"></i></a>
+</h2>
+<p>To add a family, write the constructor in <code>R/patterns.R</code> and the folding map in
+<code>R/folding.R</code>, and let <code>tests/testthat/test-folding.R</code> decide whether it
+qualifies: within-facet pairwise distances preserved to
+1e-10 across the sweep, flatness at
+<span class="math inline">\(\theta = 0\)</span>, an independent identity that was not built into the derivation,
+and a mountain/valley assignment derived from the folded geometry rather than
+asserted. A family that leaves a crease family flat fails the last of those,
+which is how the Yoshimura was caught.</p>
+<p>To build a product of your own, hand <code>product_manifold()</code> two <code>manifold_sample</code>
+objects of equal size — they need not come from the same family, or from a
+crease pattern at all — and score against <code>irreducible_loss()</code> rather than
+against zero. <code>against_floor()</code> returns error, floor, excess and ratio together,
+which is the form every result in Part III is reported in.</p>
+<p>The suite itself is <code>scripts/run-product-grid.R</code>, which is run neither in CI nor
+at render time: run it locally, commit the <code>.rds</code>, and let <code>read_run()</code> refuse
+any chapter whose prose was written against a different one.</p>
+</div>
+<div id="bench-reading" class="section level2" number="8.9">
+<h2>
+<span class="header-section-number">8.9</span> Further reading<a class="anchor" aria-label="anchor" href="#bench-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Miura’s report <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span> introduces the one family this benchmark
+folds, and Schenk and Guest <span class="citation">(<a href="references.html#ref-schenk2013geometry">20</a>)</span> give the mechanics of folded
+shells. Hull <span class="citation">(<a href="references.html#ref-hull2020origametry">11</a>)</span> is the reference for what Kawasaki’s and
+Maekawa’s conditions do and do not guarantee, Demaine and O’Rourke
+<span class="citation">(<a href="references.html#ref-demaine2007folding">14</a>)</span> for rigid foldability as a computational question, and
+Lang <span class="citation">(<a href="references.html#ref-lang2011origami">13</a>)</span> for the design side this chapter does not need.</p>
+<p>On the measurement side, Eckart and Young <span class="citation">(<a href="references.html#ref-eckart1936approximation">18</a>)</span> is the
+approximation theorem the bound instantiates, Schönemann
+<span class="citation">(<a href="references.html#ref-schonemann1966procrustes">34</a>)</span> and Gower <span class="citation">(<a href="references.html#ref-gower1975procrustes">24</a>)</span> fix the alignment
+group it is stated over, and Torgerson <span class="citation">(<a href="references.html#ref-torgerson1952mds">22</a>)</span> is where the chart
+spectrum comes from. Balasubramanian and Schwartz <span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span>
+state the failure mode the folding parameter drives, and Lee and Verleysen
+<span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> is the textbook treatment of the methods being measured.
+Espadoto and colleagues <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey the benchmarking practice
+this chapter argues with, and Machado and colleagues <span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span>
+make the case for evaluating the evaluators, which Chapter <a href="evaluation.html#evaluation">9</a>
+takes up.</p>
+
+</div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
@@ -283,7 +800,33 @@ have been – it says what it takes for a pattern to qualify.</li>
 <div class="next"><a href="evaluation.html"><span class="header-section-number">9</span> Ground truth and the evaluators</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#benchmarks"><span class="header-section-number">8</span> Building crease-pattern manifolds</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#benchmarks"><span class="header-section-number">8</span> Building crease-pattern manifolds</a></li>
+<li><a class="nav-link" href="#bench-question"><span class="header-section-number">8.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#bench-setup"><span class="header-section-number">8.2</span> Setup</a></li>
+<li>
+<a class="nav-link" href="#bench-background"><span class="header-section-number">8.3</span> Background</a><ul class="nav navbar-nav"><li><a class="nav-link" href="#four-objects-four-verbs"><span class="header-section-number">8.3.1</span> Four objects, four verbs</a></li></ul>
+</li>
+<li>
+<a class="nav-link" href="#bench-core"><span class="header-section-number">8.4</span> Constructions that keep the answer key</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#one-pattern-family-and-two-honest-gaps"><span class="header-section-number">8.4.1</span> One pattern family, and two honest gaps</a></li>
+<li><a class="nav-link" href="#the-isometry-certificate"><span class="header-section-number">8.4.2</span> The isometry certificate</a></li>
+<li><a class="nav-link" href="#products-raising-intrinsic-dimension-without-losing-truth"><span class="header-section-number">8.4.3</span> Products: raising intrinsic dimension without losing truth</a></li>
+<li><a class="nav-link" href="#lifting-to-arbitrary-ambient-dimension"><span class="header-section-number">8.4.4</span> Lifting to arbitrary ambient dimension</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#bench-results"><span class="header-section-number">8.5</span> Results</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#the-floor-bites-and-nothing-goes-under-it"><span class="header-section-number">8.5.1</span> The floor bites, and nothing goes under it</a></li>
+<li><a class="nav-link" href="#excess-as-a-curve"><span class="header-section-number">8.5.2</span> Excess as a curve</a></li>
+<li><a class="nav-link" href="#why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark"><span class="header-section-number">8.5.3</span> Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark</a></li>
+</ul>
+</li>
+<li><a class="nav-link" href="#bench-diagnostics"><span class="header-section-number">8.6</span> Diagnostics</a></li>
+<li><a class="nav-link" href="#bench-limits"><span class="header-section-number">8.7</span> Where it fails</a></li>
+<li><a class="nav-link" href="#bench-reproduce"><span class="header-section-number">8.8</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#bench-reading"><span class="header-section-number">8.9</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -300,7 +843,7 @@ have been – it says what it takes for a pattern to qualify.</li>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

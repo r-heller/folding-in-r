@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 3 Folding as a generative model | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="How do you turn one pattern into a family of test problems? The Miura-ori parameterisation \((a, b, \alpha, \theta)\). Uniform sampling on facets, and why naive vertex sampling biases the density....">
+<meta name="description" content="How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease pattern whose flat chart is its exact two-dimensional...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 3 Folding as a generative model | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/generative.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="How do you turn one pattern into a family of test problems? The Miura-ori parameterisation \((a, b, \alpha, \theta)\). Uniform sampling on facets, and why naive vertex sampling biases the density....">
+<meta property="og:description" content="How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease pattern whose flat chart is its exact two-dimensional...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 3 Folding as a generative model | Folding in R">
-<meta name="twitter:description" content="How do you turn one pattern into a family of test problems? The Miura-ori parameterisation \((a, b, \alpha, \theta)\). Uniform sampling on facets, and why naive vertex sampling biases the density....">
+<meta name="twitter:description" content="How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease pattern whose flat chart is its exact two-dimensional...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -115,14 +115,533 @@
 <span class="header-section-number">3</span> Folding as a generative model<a class="anchor" aria-label="anchor" href="#generative"><i class="fas fa-link"></i></a>
 </h1>
 <p><em>How do you turn one pattern into a family of test problems?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+<div id="gen-question" class="section level2" number="3.1">
+<h2>
+<span class="header-section-number">3.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#gen-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>Chapter <a href="folding-geometry.html#folding-geometry">2</a> established one object: a crease pattern whose
+flat chart is its exact two-dimensional structure. One object is not a
+benchmark. A benchmark is a <em>family</em> of problems ordered by difficulty, and this
+chapter is where the single sheet becomes that family.</p>
+<p>The generative model has four scalars and three switches. Three of the scalars
+— the cell sides <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> and the acute angle <span class="math inline">\(\alpha\)</span> — fix the chart. The
+fourth, <span class="math inline">\(\theta\)</span>, moves the sheet through space and does not touch the chart at
+all. The switches are the sample size, the noise model and the seed. Every row
+of every artefact this book ships is one setting of those seven things, and
+every curve in Parts II and III is a sweep over the fourth scalar with the other
+six held.</p>
+<p>This chapter is the reference for that model. It derives the folded placement in
+closed form and verifies the derivation here rather than citing one; it says
+exactly how points are drawn and what a careless draw would do to the density;
+it names the three noise models and no others; and it measures what <span class="math inline">\(\theta\)</span>
+does to the <span class="math inline">\(k\)</span>-nearest-neighbour graph a method actually consumes. Chapter
+<a href="benchmarks.html#benchmarks">8</a> builds constructions on top of this model, and every chapter
+from <a href="linear.html#linear">4</a> onward reads an artefact produced by it.</p>
+</div>
+<div id="gen-setup" class="section level2" number="3.2">
+<h2>
+<span class="header-section-number">3.2</span> Setup<a class="anchor" aria-label="anchor" href="#gen-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p</span>  <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span>, a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">1</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">th</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">THETA_GRID</span><span class="op">)</span></span>
+<span><span class="va">s</span>  <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="va">th</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="fl">1001L</span><span class="op">)</span></span></code></pre></div>
+<p><code>p</code> is the pattern the benchmark grid uses — <code>PATTERN_GRID</code> names its size and
+<code>R/constants.R</code> explains why there is one entry — <code>th</code> the largest fold the grid
+reaches, and <code>s</code> a sample of 800 points drawn from the sheet at that
+fold. Nothing in this chapter reads a committed artefact; every number below is
+computed while the page is built. The <a href="notation.html#notation">notation appendix</a> fixes the
+symbols.</p>
+</div>
+<div id="gen-background" class="section level2" number="3.3">
+<h2>
+<span class="header-section-number">3.3</span> Background<a class="anchor" aria-label="anchor" href="#gen-background"><i class="fas fa-link"></i></a>
+</h2>
+<p>Dimension reduction is usually benchmarked against a <em>collection</em>: a fixed list
+of datasets, some real and some synthetic, each scored once and averaged over
+<span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span>. The synthetic members of such a collection — the Swiss
+roll, the S-curve, the severed sphere — are already generative in the weak sense
+that they come with a parameterisation, so a ground-truth chart exists
+<span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>,<a href="references.html#ref-lee2007nonlinear">12</a>)</span>. What they mostly lack is a knob: a
+continuous parameter that makes the <em>same</em> problem harder while leaving the
+answer exactly where it was.</p>
+<p>A generative model that can carry a benchmark has to supply four things.</p>
+<p><strong>An exact chart.</strong> Not a low-dimensional summary that scores well, but the
+coordinates the data were generated from. A rigid folding gives this for free,
+which is the whole reason the book uses one.</p>
+<p><strong>A difficulty axis that moves the ambient geometry and nothing else.</strong> Folding
+moves every point in <span class="math inline">\(\mathbb{R}^3\)</span> and moves no point of the chart. That is the
+property <span class="math inline">\(\theta\)</span> has and a dataset collection does not: two cells of the grid
+can differ in difficulty while their answer keys are literally the same matrix.</p>
+<p><strong>A noise model that is not confounded with the axis.</strong> This one is easy to get
+wrong. A noise scale keyed to the folded object would shrink as the sheet
+closes, so a fixed setting would become a rising noise level along the <span class="math inline">\(\theta\)</span>
+sweep and the two axes could not be separated afterwards. The scale here is a
+fraction of the <em>chart</em> diameter, which does not move.</p>
+<p><strong>A seed, and a sampler that respects it.</strong> Every stochastic result in this book
+is reported across 20 seeds (standing rule 1), which requires a sampler
+whose draw is a function of its seed and whose call does not disturb the
+caller’s random stream.</p>
+<p>One thing the model cannot supply is a sampling guarantee. The theory that says
+how many points are enough to recover a submanifold is stated in terms of its
+reach <span class="citation">(<a href="references.html#ref-niyogi2008homology">16</a>)</span>, and Chapter <a href="folding-geometry.html#folding-geometry">2</a> established
+that a crease has reach exactly zero. Nothing here is covered by that theory, so
+sampling adequacy is <em>measured</em> on every sample instead — which is what
+<code>gen-results</code> does.</p>
+</div>
+<div id="gen-core" class="section level2" number="3.4">
+<h2>
+<span class="header-section-number">3.4</span> The Miura-ori in four scalars<a class="anchor" aria-label="anchor" href="#gen-core"><i class="fas fa-link"></i></a>
+</h2>
+<p>Four scalars go in and four come out, and the two sets are not the same four.</p>
+<p>Going in are <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span>, <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\theta\)</span>. The first three fix the flat
+pattern: vertex <span class="math inline">\((i, j)\)</span> of the tessellation sits at</p>
+<p><span class="math display">\[x = i\,a + (j \bmod 2)\, b \cos\alpha, \qquad y = j\, b \sin\alpha,\]</span></p>
+<p>which is Miura’s parallelogram tessellation <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span> and is all of
+<code>miura_ori()</code>. The counts <span class="math inline">\(n_x\)</span> and <span class="math inline">\(n_y\)</span> set how many cells there are, not what
+shape they have. <span class="math inline">\(\theta\)</span> appears nowhere in that expression, and that absence is
+the model’s load-bearing property.</p>
+<p>Coming out are the four metric constants of the folded placement. Chapter
+<a href="folding-geometry.html#folding-geometry">2</a> derived them; the derivation is repeated here in one
+line because this chapter is where a reader is sent to find it. Posit a folded
+placement of the same combinatorial form,</p>
+<p><span class="math display">\[x = i L_x + (j \bmod 2)\, d_x, \qquad y = j L_y, \qquad z = (i \bmod 2)\, H,\]</span></p>
+<p>and impose isometry on one facet. Its two side vectors are
+<span class="math inline">\(e_1 = (L_x, 0, \pm H)\)</span> of flat length <span class="math inline">\(a\)</span> and <span class="math inline">\(e_2 = (\pm d_x, L_y, 0)\)</span> of flat
+length <span class="math inline">\(b\)</span>, so preserving both lengths and the angle between them gives</p>
+<p><span class="math display">\[L_x^2 + H^2 = a^2, \qquad d_x^2 + L_y^2 = b^2, \qquad L_x d_x = ab\cos\alpha .\]</span></p>
+<p>Three equations, four unknowns, one free parameter. Writing <span class="math inline">\(L_x = a\cos\varphi\)</span>
+and <span class="math inline">\(H = a\sin\varphi\)</span> solves the first identically and leaves
+<span class="math inline">\(d_x = b\cos\alpha/\cos\varphi\)</span> and
+<span class="math inline">\(L_y = b\sqrt{1 - \cos^2\alpha/\cos^2\varphi}\)</span>. That <span class="math inline">\(L_y\)</span> is real only while
+<span class="math inline">\(\varphi \le \alpha\)</span> and vanishes at <span class="math inline">\(\varphi = \alpha\)</span>, which is the
+flat-folded state — so <span class="math inline">\(\varphi\)</span> runs on <span class="math inline">\([0, \alpha]\)</span> and <span class="math inline">\(\theta = \varphi/\alpha\)</span>
+is the normalised parameter <code>fold()</code> takes.</p>
+<div id="the-derivation-checked" class="section level3" number="3.4.1">
+<h3>
+<span class="header-section-number">3.4.1</span> The derivation, checked<a class="anchor" aria-label="anchor" href="#the-derivation-checked"><i class="fas fa-link"></i></a>
+</h3>
+<p>Those three conditions are what the placement was built to satisfy, so testing
+them on the formula would be circular. What is not circular is reading the four
+constants back <em>out</em> of the coordinates <code>fold()</code> returns and testing the
+conditions on those.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scalars_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">pattern</span>, <span class="va">theta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">r</span>   <span class="op">&lt;-</span> <span class="va">pattern</span><span class="op">$</span><span class="va">params</span></span>
+<span>  <span class="va">vid</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">i</span>, <span class="va">j</span><span class="op">)</span> <span class="va">j</span> <span class="op">*</span> <span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">nx</span> <span class="op">+</span> <span class="fl">1L</span><span class="op">)</span> <span class="op">+</span> <span class="va">i</span> <span class="op">+</span> <span class="fl">1L</span>        <span class="co"># (i, j) -&gt; vertex row</span></span>
+<span>  <span class="va">V</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html">unname</a></span><span class="op">(</span><span class="fu">fold</span><span class="op">(</span><span class="va">pattern</span>, <span class="va">theta</span><span class="op">)</span><span class="op">$</span><span class="va">vertices3</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>Lx <span class="op">=</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">0L</span><span class="op">)</span>, <span class="fl">1L</span><span class="op">]</span> <span class="op">-</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">0L</span><span class="op">)</span>, <span class="fl">1L</span><span class="op">]</span>,</span>
+<span>    H  <span class="op">=</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">0L</span><span class="op">)</span>, <span class="fl">3L</span><span class="op">]</span> <span class="op">-</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">0L</span><span class="op">)</span>, <span class="fl">3L</span><span class="op">]</span>,</span>
+<span>    dx <span class="op">=</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">1L</span><span class="op">)</span>, <span class="fl">1L</span><span class="op">]</span> <span class="op">-</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">0L</span><span class="op">)</span>, <span class="fl">1L</span><span class="op">]</span>,</span>
+<span>    Ly <span class="op">=</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">1L</span><span class="op">)</span>, <span class="fl">2L</span><span class="op">]</span> <span class="op">-</span> <span class="va">V</span><span class="op">[</span><span class="fu">vid</span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">0L</span><span class="op">)</span>, <span class="fl">2L</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">pattern</span>, <span class="va">theta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="va">pattern</span><span class="op">$</span><span class="va">params</span></span>
+<span>  <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">scalars_of</span><span class="op">(</span><span class="va">pattern</span>, <span class="va">theta</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">z</span><span class="op">[[</span><span class="st">"Lx"</span><span class="op">]</span><span class="op">]</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">z</span><span class="op">[[</span><span class="st">"H"</span><span class="op">]</span><span class="op">]</span><span class="op">^</span><span class="fl">2</span>  <span class="op">-</span> <span class="va">r</span><span class="op">$</span><span class="va">a</span><span class="op">^</span><span class="fl">2</span>,</span>
+<span>    <span class="va">z</span><span class="op">[[</span><span class="st">"dx"</span><span class="op">]</span><span class="op">]</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="va">z</span><span class="op">[[</span><span class="st">"Ly"</span><span class="op">]</span><span class="op">]</span><span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="va">r</span><span class="op">$</span><span class="va">b</span><span class="op">^</span><span class="fl">2</span>,</span>
+<span>    <span class="va">z</span><span class="op">[[</span><span class="st">"Lx"</span><span class="op">]</span><span class="op">]</span> <span class="op">*</span> <span class="va">z</span><span class="op">[[</span><span class="st">"dx"</span><span class="op">]</span><span class="op">]</span>     <span class="op">-</span> <span class="va">r</span><span class="op">$</span><span class="va">a</span> <span class="op">*</span> <span class="va">r</span><span class="op">$</span><span class="va">b</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">cos</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">alpha</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">alphas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">MIURA_ALPHA_RANGE</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="va">MIURA_ALPHA_RANGE</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span>, length.out <span class="op">=</span> <span class="fl">14L</span><span class="op">)</span></span>
+<span><span class="va">worst</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">alphas</span>, <span class="kw">function</span><span class="op">(</span><span class="va">A</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">pa</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span><span class="fl">4L</span>, <span class="fl">4L</span>, a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">1.3</span>, alpha <span class="op">=</span> <span class="va">A</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">THETA_GRID</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fu">conditions</span><span class="op">(</span><span class="va">pa</span>, <span class="va">t</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ends</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span>flat <span class="op">=</span> <span class="fu">scalars_of</span><span class="op">(</span><span class="va">p</span>, <span class="fl">0</span><span class="op">)</span>, folded <span class="op">=</span> <span class="fu">scalars_of</span><span class="op">(</span><span class="va">p</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Over fourteen opening angles spanning <code>MIURA_ALPHA_RANGE</code> and the whole
+<span class="math inline">\(\theta\)</span> grid, the worst violation of any of the three conditions is
+6.7e-16 — floating-point noise on a
+closed form, not a solver tolerance. The endpoints behave too: at <span class="math inline">\(\theta = 0\)</span>
+the four constants are
+1, 0, 0.5, 0.866, which is the flat pattern
+recovered exactly rather than in a limit, and at <span class="math inline">\(\theta = 1\)</span> they are
+0.5, 0.866, 1, 0 — <span class="math inline">\(L_y\)</span> has gone to zero
+and the sheet has no extent in <span class="math inline">\(y\)</span> at all.</p>
+<p>The four constants also say what folding does to the sheet as an object. <span class="math inline">\(L_x\)</span>
+and <span class="math inline">\(L_y\)</span> both fall while <span class="math inline">\(H\)</span> and <span class="math inline">\(d_x\)</span> rise, so the sheet’s overall extent
+shrinks in <em>both</em> in-plane directions at once while it gains depth in the third
+— the auxetic behaviour the Miura is usually presented for, arriving here as a
+consequence of the three conditions rather than as a design goal. Nothing else
+in the model depends on <span class="math inline">\(n_x\)</span> and <span class="math inline">\(n_y\)</span> beyond the count of cells: a larger
+tessellation is a larger sheet made of the same cell, which is why crease count
+is a difficulty knob in its own right and is swept separately rather than folded
+into <span class="math inline">\(\theta\)</span>.</p>
+<div class="boxreport">
+<p>
+<strong>This derivation is not quoted from anywhere.</strong> Schenk
+and Guest <span class="citation"><span class="citation">(<a href="references.html#ref-schenk2013geometry">20</a>)</span></span> give
+unit-cell quantities for the Miura under a different angle convention,
+and their parameterisation and this one are <em>related work rather than
+the same statement</em>. No map between the two is asserted here,
+because none has been verified in this repository, and a reconciliation
+asserted without one would be exactly the citation-by-osmosis this book
+is trying to avoid. The algebra above stands on the check in
+<code>gen-scalars</code> and on
+<code>tests/testthat/test-folding.R</code>, and on nothing else.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:gen-fig-family"></span>
+<img src="03-generative-model_files/figure-html/gen-fig-family-1.png" alt="Six panels in two rows of three, each showing a folded Miura-ori sheet drawn in projection. The top row uses a shallow opening angle and the bottom row a steep one, so the two rows have visibly different cell shapes. Left to right within each row the sheet goes from flat, through half folded, to nearly collapsed, contracting in both directions as it goes. Mountain and valley creases are drawn in two colours and two line styles." width="90%"><p class="caption">
+Figure 3.1: The generative family. Rows are two opening angles <span class="math inline">\(\alpha\)</span>; columns are three values of the folding parameter. The chart differs between rows and is identical along each row: <span class="math inline">\(\theta\)</span> moves the sheet and never the answer key.
+</p>
+</div>
+<p>Figure <a href="generative.html#fig:gen-fig-family">3.1</a> is the family. Reading down a column changes the
+chart; reading across a row does not change it by one coordinate. A benchmark
+cell is a position in that array.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:gen-fig-scalars"></span>
+<img src="03-generative-model_files/figure-html/gen-fig-scalars-1.png" alt="Four small line charts side by side, one for each constant. Reading left to right: the horizontal edge projection falls from one to about 0.55, the corrugation height rises from zero to about 0.84, the zigzag offset rises from one half to about 0.92, and the row spacing falls from about 0.87 to about 0.4. All four bend most towards the right-hand end. Measured points lie on every line." width="90%"><p class="caption">
+Figure 3.2: The four metric constants of the folded placement against the folding parameter, for the pattern of <code>gen-setup</code>. Lines are the closed form; points are the same constants read back out of the coordinates <code>fold()</code> returns.
+</p>
+</div>
+<p>Figure <a href="generative.html#fig:gen-fig-scalars">3.2</a> is the one-parameter family written out. Two
+features of it matter downstream. The constants are smooth and monotone in
+<span class="math inline">\(\theta\)</span>, so difficulty is ordered; and they are markedly <em>not</em> linear in it, so
+the last fifth of the sweep does most of the geometric work. Both facts turn up
+again in <code>gen-results</code>.</p>
+</div>
+</div>
+<div id="gen-sampling" class="section level2" number="3.5">
+<h2>
+<span class="header-section-number">3.5</span> Sampling and noise<a class="anchor" aria-label="anchor" href="#gen-sampling"><i class="fas fa-link"></i></a>
+</h2>
+<p>The chart is the sample space. <code>sample_manifold()</code> draws points in the flat
+pattern, records them as <code>truth</code>, and carries each one into <span class="math inline">\(\mathbb{R}^3\)</span>
+through the rigid motion of the facet it landed on to give <code>X</code>. The two matrices
+are the same points seen twice, and nothing is interpolated between folded
+vertices — the per-facet map is built from a frame and then <em>checked</em> against the
+corners, so a folding that stopped being rigid would fail rather than quietly
+return positions no point of the surface occupies.</p>
+<p>Drawing in the chart means drawing uniformly over area, and that is where a
+naive implementation goes wrong. <code>.fan_triangles()</code> splits every facet into a
+fan from its first vertex and returns the area of each triangle; the fan is
+checked rather than assumed, since it tiles a convex polygon and not a
+re-entrant one. <code>.draw_chart_points()</code> then picks a triangle with probability
+proportional to its area and maps a pair of uniforms into it — with a square
+root on the first.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tri</span> <span class="op">&lt;-</span> <span class="fu">.fan_triangles</span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">vertices</span>, <span class="va">p</span><span class="op">$</span><span class="va">facets</span><span class="op">)</span>          <span class="co"># internal: see R/sampling.R</span></span>
+<span><span class="va">draw_chart</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">root</span><span class="op">)</span> <span class="op">{</span>                    <span class="co"># root = FALSE is the naive draw</span></span>
+<span>  <span class="va">k</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample.int</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">tri</span><span class="op">$</span><span class="va">idx</span><span class="op">)</span>, <span class="va">m</span>, replace <span class="op">=</span> <span class="cn">TRUE</span>, prob <span class="op">=</span> <span class="va">tri</span><span class="op">$</span><span class="va">area</span><span class="op">)</span></span>
+<span>  <span class="va">va</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">$</span><span class="va">vertices</span><span class="op">[</span><span class="va">tri</span><span class="op">$</span><span class="va">idx</span><span class="op">[</span><span class="va">k</span>, <span class="fl">1L</span><span class="op">]</span>, <span class="op">]</span></span>
+<span>  <span class="va">vb</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">$</span><span class="va">vertices</span><span class="op">[</span><span class="va">tri</span><span class="op">$</span><span class="va">idx</span><span class="op">[</span><span class="va">k</span>, <span class="fl">2L</span><span class="op">]</span>, <span class="op">]</span></span>
+<span>  <span class="va">vc</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">$</span><span class="va">vertices</span><span class="op">[</span><span class="va">tri</span><span class="op">$</span><span class="va">idx</span><span class="op">[</span><span class="va">k</span>, <span class="fl">3L</span><span class="op">]</span>, <span class="op">]</span></span>
+<span>  <span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span>; <span class="kw">if</span> <span class="op">(</span><span class="va">root</span><span class="op">)</span> <span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="va">r1</span><span class="op">)</span></span>
+<span>  <span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>u <span class="op">=</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">r1</span><span class="op">)</span> <span class="op">*</span> <span class="va">va</span> <span class="op">+</span> <span class="op">(</span><span class="va">r1</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">r2</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="va">vb</span> <span class="op">+</span> <span class="op">(</span><span class="va">r1</span> <span class="op">*</span> <span class="va">r2</span><span class="op">)</span> <span class="op">*</span> <span class="va">vc</span>, r1 <span class="op">=</span> <span class="va">r1</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">cell_cv</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">u</span>, <span class="va">bins</span> <span class="op">=</span> <span class="fl">36L</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cut.html">cut</a></span><span class="op">(</span><span class="va">u</span><span class="op">[</span>, <span class="fl">1L</span><span class="op">]</span>, <span class="va">bins</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/cut.html">cut</a></span><span class="op">(</span><span class="va">u</span><span class="op">[</span>, <span class="fl">2L</span><span class="op">]</span>, <span class="va">bins</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">n</span><span class="op">[</span><span class="va">n</span> <span class="op">&gt;</span> <span class="fl">0L</span><span class="op">]</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">n</span><span class="op">[</span><span class="va">n</span> <span class="op">&gt;</span> <span class="fl">0L</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">7L</span><span class="op">)</span></span>
+<span><span class="va">good</span> <span class="op">&lt;-</span> <span class="fu">draw_chart</span><span class="op">(</span><span class="fl">20000L</span>, root <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">bad</span>  <span class="op">&lt;-</span> <span class="fu">draw_chart</span><span class="op">(</span><span class="fl">20000L</span>, root <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">apex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>area <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">good</span><span class="op">$</span><span class="va">r1</span> <span class="op">&lt;=</span> <span class="fl">0.5</span><span class="op">)</span>, naive <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">bad</span><span class="op">$</span><span class="va">r1</span> <span class="op">&lt;=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cv</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>area <span class="op">=</span> <span class="fu">cell_cv</span><span class="op">(</span><span class="va">good</span><span class="op">$</span><span class="va">u</span><span class="op">)</span>,      naive <span class="op">=</span> <span class="fu">cell_cv</span><span class="op">(</span><span class="va">bad</span><span class="op">$</span><span class="va">u</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">area_spread</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html">diff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/range.html">range</a></span><span class="op">(</span><span class="va">tri</span><span class="op">$</span><span class="va">area</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tri</span><span class="op">$</span><span class="va">area</span><span class="op">)</span></span></code></pre></div>
+<p>Without the square root, the radial coordinate is uniform where the area element
+is not: the fraction of a triangle within half-scale of its apex is one quarter
+by area, and the naive draw puts 0.502 of its points
+there against 0.251 for the corrected one. The apex of
+every fan is a <em>vertex of the crease pattern</em>, so the naive draw piles density
+onto exactly the features the benchmark is about. Counted on a square grid over
+the chart, the cell-count coefficient of variation is
+0.855 against 0.283 — a density
+gradient roughly 3 times as strong, and
+every neighbourhood metric in Part II reads a density gradient as structure.</p>
+<p>The area weighting itself is a different correction and on this family it does
+nothing: every Miura facet is congruent, so the spread of triangle areas is
+1.2e-15, and area-proportional
+and facet-uniform draws coincide. That is a fact about the pattern, not about the sampler, and it is
+listed in <code>gen-limits</code> as something this book does not test.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:gen-fig-density"></span>
+<img src="03-generative-model_files/figure-html/gen-fig-density-1.png" alt="Two square scatter panels of chart points over the same region of a Miura pattern. Panel A on the left is an even wash of points with no visible structure. Panel B on the right shows the same region with distinctly darker clusters arranged on a regular lattice, one at the corner vertex of every cell, and lighter gaps between them." width="90%"><p class="caption">
+Figure 3.3: The same triangles, drawn from twice. Panel A is the sampler’s draw, uniform over area. Panel B is the naive barycentric draw without the square root, which concentrates points at the fan apex of every triangle — that is, at the crease-pattern vertices.
+</p>
+</div>
+<p><code>boundary = FALSE</code>, which is the default and what every committed artefact uses,
+keeps only points at least half a median crease length from the sheet edge, by
+rejection from the same uniform draw. Rejection rather than re-triangulation is
+deliberate: survivors of a uniform draw are uniform over whatever region
+survives, however awkward its shape.</p>
+<p>Then noise, and there are exactly three models. <code>"none"</code> leaves <code>X</code> alone.
+<code>"ambient"</code> adds isotropic Gaussian displacement in <span class="math inline">\(\mathbb{R}^3\)</span>, applied
+<em>after</em> folding so that it moves points off the surface. <code>"outlier"</code> throws a
+fixed fraction of the points a fixed distance off it. There is no on-manifold
+noise model: displacement inside the chart is a reparameterisation of the same
+surface rather than measurement error, and <code>sample_manifold()</code> rejects any type
+it does not know.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">NOISE</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>none    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"none"</span>,    sd <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
+<span>              ambient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"ambient"</span>, sd <span class="op">=</span> <span class="fl">0.02</span><span class="op">)</span>,</span>
+<span>              outlier <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"outlier"</span>, sd <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">theta_lo</span> <span class="op">&lt;-</span> <span class="va">THETA_GRID</span><span class="op">[</span><span class="fl">3L</span><span class="op">]</span></span>
+<span><span class="va">theta_hi</span> <span class="op">&lt;-</span> <span class="va">THETA_GRID</span><span class="op">[</span><span class="fl">19L</span><span class="op">]</span></span>
+<span><span class="va">noise_at</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">theta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">base</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, <span class="va">theta</span>, <span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="fl">1001L</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">NOISE</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, <span class="va">theta</span>, <span class="va">N_DEFAULT</span>, noise <span class="op">=</span> <span class="va">NOISE</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>, seed <span class="op">=</span> <span class="fl">1001L</span><span class="op">)</span></span>
+<span>    <span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowSums</a></span><span class="op">(</span><span class="op">(</span><span class="va">z</span><span class="op">$</span><span class="va">X</span> <span class="op">-</span> <span class="va">base</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>theta <span class="op">=</span> <span class="va">theta</span>, noise <span class="op">=</span> <span class="va">nm</span>, moved <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">d</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span>,</span>
+<span>               rms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">d</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span>, worst <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span>,</span>
+<span>               truth_fixed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html">identical</a></span><span class="op">(</span><span class="va">z</span><span class="op">$</span><span class="va">truth</span>, <span class="va">base</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span>,</span>
+<span>               extent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">base</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">nz</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span><span class="fu">noise_at</span><span class="op">(</span><span class="va">theta_lo</span><span class="op">)</span>, <span class="fu">noise_at</span><span class="op">(</span><span class="va">theta_hi</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">11L</span><span class="op">)</span>; <span class="va">before</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">11L</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/invisible.html">invisible</a></span><span class="op">(</span><span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, <span class="va">th</span>, <span class="fl">200L</span>, seed <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">after</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">stream_kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html">identical</a></span><span class="op">(</span><span class="va">before</span>, <span class="va">after</span><span class="op">)</span></span></code></pre></div>
+<p>The <code>ambient</code> row moves all 800 points; the
+<code>outlier</code> row moves 40 of them, by exactly
+3.97 each, which is half the chart
+diameter. <code>truth</code> is byte-identical to the clean draw in every row — the answer
+key does not move when the data get worse.</p>
+</div>
+<div id="gen-results" class="section level2" number="3.6">
+<h2>
+<span class="header-section-number">3.6</span> Results: what theta does<a class="anchor" aria-label="anchor" href="#gen-results"><i class="fas fa-link"></i></a>
+</h2>
+<p><span class="math inline">\(\theta\)</span> changes no chart coordinate. What it changes is the graph a method
+builds before it does anything else.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">k</span> <span class="op">&lt;-</span> <span class="va">K_DEFAULT</span></span>
+<span><span class="va">graph_at</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">theta</span>, <span class="va">n</span> <span class="op">=</span> <span class="va">N_DEFAULT</span>, <span class="va">seed</span> <span class="op">=</span> <span class="fl">1001L</span>, <span class="va">pattern</span> <span class="op">=</span> <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">z</span>  <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">pattern</span>, <span class="va">theta</span>, <span class="va">n</span>, seed <span class="op">=</span> <span class="va">seed</span><span class="op">)</span></span>
+<span>  <span class="va">dA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">z</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span>;     <span class="fu"><a href="https://rdrr.io/r/base/diag.html">diag</a></span><span class="op">(</span><span class="va">dA</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="cn">Inf</span></span>
+<span>  <span class="va">dU</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">z</span><span class="op">$</span><span class="va">truth</span><span class="op">)</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/diag.html">diag</a></span><span class="op">(</span><span class="va">dU</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="cn">Inf</span></span>
+<span>  <span class="va">nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">dA</span>, <span class="fl">1L</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="va">k</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">rk</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">dU</span>, <span class="fl">1L</span>, <span class="va">rank</span>, ties.method <span class="op">=</span> <span class="st">"first"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">i</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="va">k</span><span class="op">)</span></span>
+<span>  <span class="va">j</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html">as.vector</a></span><span class="op">(</span><span class="va">nn</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>sample <span class="op">=</span> <span class="va">z</span>, i <span class="op">=</span> <span class="va">i</span>, j <span class="op">=</span> <span class="va">j</span>, chart_rank <span class="op">=</span> <span class="va">rk</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">i</span>, <span class="va">j</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">sweep_theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">THETA_GRID</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">graph_at</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>theta <span class="op">=</span> <span class="va">t</span>,</span>
+<span>             false_nb   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">chart_rank</span> <span class="op">&gt;</span> <span class="va">k</span><span class="op">)</span>,</span>
+<span>             worst_rank <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">chart_rank</span><span class="op">)</span>,</span>
+<span>             sci        <span class="op">=</span> <span class="fu">short_circuit_index</span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">sample</span><span class="op">)</span>,</span>
+<span>             gs         <span class="op">=</span> <span class="fu">branch_gap</span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">sample</span><span class="op">)</span><span class="op">$</span><span class="va">ratio</span>,</span>
+<span>             clearance  <span class="op">=</span> <span class="fu">facet_gap</span><span class="op">(</span><span class="va">p</span>, <span class="va">t</span><span class="op">)</span><span class="op">$</span><span class="va">gap</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">top</span>  <span class="op">&lt;-</span> <span class="fu">graph_at</span><span class="op">(</span><span class="va">th</span><span class="op">)</span></span>
+<span><span class="va">U</span>    <span class="op">&lt;-</span> <span class="va">top</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">truth</span></span>
+<span><span class="va">fls</span>  <span class="op">&lt;-</span> <span class="va">top</span><span class="op">$</span><span class="va">chart_rank</span> <span class="op">&gt;</span> <span class="va">k</span></span>
+<span><span class="va">fcol</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">facet</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html">%%</a></span> <span class="va">p</span><span class="op">$</span><span class="va">params</span><span class="op">$</span><span class="va">nx</span>     <span class="co"># facet column and row</span></span>
+<span><span class="va">frow</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">facet</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html">%/%</a></span> <span class="va">p</span><span class="op">$</span><span class="va">params</span><span class="op">$</span><span class="va">nx</span></span>
+<span><span class="va">wider</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">U</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">i</span>, <span class="fl">1L</span><span class="op">]</span> <span class="op">-</span> <span class="va">U</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">j</span>, <span class="fl">1L</span><span class="op">]</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">U</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">i</span>, <span class="fl">2L</span><span class="op">]</span> <span class="op">-</span> <span class="va">U</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">j</span>, <span class="fl">2L</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">mistakes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span></span>
+<span>  n_false    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">fls</span><span class="op">)</span>,</span>
+<span>  n_same     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">facet</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">i</span><span class="op">]</span> <span class="op">==</span> <span class="va">top</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">facet</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">j</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="va">fls</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  n_one_cell <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">fcol</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">fcol</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">j</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">1L</span> <span class="op">&amp;</span></span>
+<span>                    <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">frow</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">frow</span><span class="op">[</span><span class="va">top</span><span class="op">$</span><span class="va">j</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">1L</span><span class="op">)</span><span class="op">[</span><span class="va">fls</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  across_f   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">wider</span><span class="op">[</span><span class="va">fls</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  across_h   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">wider</span><span class="op">[</span><span class="op">!</span><span class="va">fls</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Four quantities, all computed on the same samples, all monotone, and none of
+them linear.</p>
+<p><strong>The graph acquires false neighbours.</strong> An ambient <span class="math inline">\(k\)</span>-nearest-neighbour edge
+is <em>false</em> when its far endpoint is not among the point’s <span class="math inline">\(k\)</span> nearest neighbours
+in the chart. At <span class="math inline">\(\theta = 0\)</span> the ambient and chart graphs are identical and the
+false fraction is 0. At <span class="math inline">\(\theta = 0.95\)</span> it is
+0.302: about three edges in ten of the graph a
+method consumes join points that are not neighbours on the paper. The worst
+single edge joins a point to its 168th chart
+neighbour.</p>
+<p><strong>Edges contract.</strong> <code>short_circuit_index()</code> is the median ambient
+nearest-neighbour distance over the median true intrinsic distance between the
+same pairs, so it is one on a faithful graph. It falls from
+1 to 0.787.</p>
+<p><strong>Distant sheets approach, but not far enough.</strong> Balasubramanian and Schwartz’s
+ratio <span class="math inline">\(g/s\)</span> — the closest approach between surface-distant sampled points, in
+units of the median nearest-neighbour spacing — is the quantity that predicts
+Isomap’s topological instability <span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span>. It falls from
+20.4 to 5.84, which
+is a large fall and still leaves the sheets nearly six sample spacings apart.</p>
+<p>The false-neighbour count above is measured at <code>K_DEFAULT</code> against the <em>chart</em>,
+and it is worth saying so because the book uses two other pairings and they are
+easy to conflate. <span class="math inline">\(Q_{NX}\)</span> is scored at <code>K_QNX</code> against the chart, because that
+is the answer key and the co-ranking measure is noisy at small <span class="math inline">\(K\)</span>;
+trustworthiness, continuity and kNN preservation are scored at <code>K_DEFAULT</code>
+against <em>ambient</em> distance, because they ask whether an embedding preserved the
+neighbourhoods a method could actually see. Three combinations of neighbourhood
+size and reference geometry, each answering a different question, all named in
+<code>R/constants.R</code> so that they cannot drift.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:gen-fig-difficulty"></span>
+<img src="03-generative-model_files/figure-html/gen-fig-difficulty-1.png" alt="Four line charts in a two by two arrangement, each against the folding parameter from zero to 0.95. Top left, the false-neighbour fraction rises from zero, slowly at first and then sharply, to about 0.3. Top right, the short-circuit index falls from one to about 0.79. Bottom left, the branch-gap ratio falls from about 20 to about 6. Bottom right, the minimum facet clearance falls from about 0.87 to about 0.4. Every curve bends most in its rightmost quarter." width="90%"><p class="caption">
+Figure 3.4: Four difficulty measures over the benchmark grid’s <span class="math inline">\(\theta\)</span> sweep, computed on one seed at <span class="math inline">\(n = 800\)</span>. All four are monotone and none is linear: the last quarter of the axis does most of the work.
+</p>
+</div>
+<p>Figure <a href="generative.html#fig:gen-fig-difficulty">3.4</a> is why standing rule 2 exists. A single
+number reported at one <span class="math inline">\(\theta\)</span> can be read off any point of those curves, and
+the curves are shallow over the first half of the axis and steep over the last
+quarter. Averaging over <span class="math inline">\(\theta\)</span> would compress the only axis the benchmark has;
+Chapter <a href="results.html#results">10</a> reports a case where two method families change places
+partway along it, which no summary at a fixed geometry can show.</p>
+<p>Where the false edges sit is as informative as how many there are.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:gen-fig-graph"></span>
+<img src="03-generative-model_files/figure-html/gen-fig-graph-1.png" alt="Two panels showing the flat Miura chart with short line segments drawn over it. In panel A the segments form a dense, even mesh filling the facets, with visible gaps running along the zigzag crease lines. In panel B the segments are longer and lie almost entirely in narrow zigzag bands that follow those same crease lines, leaving the interiors of the facets empty." width="90%"><p class="caption">
+Figure 3.5: The ambient <span class="math inline">\(k\)</span>-nearest-neighbour graph at the grid’s largest fold, drawn on the chart it should have respected. Panel A holds the edges that are also chart neighbours; panel B holds the false ones. The false edges are not scattered over the sheet — they trace the crease lines, and every one of them straddles a fold.
+</p>
+</div>
+<p>Figure <a href="generative.html#fig:gen-fig-graph">3.5</a> draws both halves of that graph on the chart, and
+the two halves occupy different parts of it. Honest edges fill the facets and
+thin out along the creases; false edges do the reverse and lie in narrow bands on
+the crease lines. Of the 2416 false edges,
+0 have both endpoints in the same facet — inside a facet,
+ambient distance <em>is</em> chart distance — so every false neighbour straddles a
+fold. The mistakes are also strictly local: all
+2416 of them join facets no more than one cell apart in
+either direction. There is a mild directional tilt on top of that,
+62% of false edges being longer across the corrugation
+than along it against 49% of honest ones, but the
+localisation is the dominant fact and the direction is not.</p>
+<p>That localisation is why difficulty here is not simply “more noise”. Additive
+noise degrades every neighbourhood alike; folding leaves the interior of every
+facet exact and corrupts a codimension-one set of neighbourhoods completely.
+That is a structured failure, and whether a method is robust to it is a
+different question from whether it tolerates noise — which is why the benchmark
+grid crosses the two axes instead of collapsing them.</p>
+</div>
+<div id="gen-diagnostics" class="section level2" number="3.7">
+<h2>
+<span class="header-section-number">3.7</span> Diagnostics<a class="anchor" aria-label="anchor" href="#gen-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong><span class="math inline">\(\theta\)</span> is not a dihedral angle.</strong> It is the fraction of the way to
+flat-folded, on <span class="math inline">\([0, 1]\)</span>, and <code>fold()</code> refuses anything outside that. The
+dihedral angles are derived and returned in <code>rho</code>; at <span class="math inline">\(\theta = 0.95\)</span> the
+creases of <code>p</code> span 0.504 to
+3.14 radians, the upper end being the boundary
+edges, which do not fold at all. A flat sheet has <span class="math inline">\(\rho = \pi\)</span>, not zero.
+Conflating the two is an error this project made once and corrected in three
+places.</p>
+<p><strong><code>noise$sd</code> is a fraction of the chart diameter.</strong> Not of the folded object.
+The <code>ambient</code> row displaces points by an RMS of
+0.272 at <span class="math inline">\(\theta = 0.1\)</span> and
+0.272 at <span class="math inline">\(\theta = 0.9\)</span> — the
+same number — while the folded cloud’s own extent falls from
+6.19 to
+3.93. Had the scale been keyed to
+the folded object, the noise axis and the fold axis would move together and no
+result could be attributed to either.</p>
+<p><strong>In the <code>outlier</code> row, <code>sd</code> is a contamination fraction.</strong> The grid passes
+<code>sd = 0.05</code> there and means five per cent of the points, not a standard
+deviation; the displacement magnitude is fixed, not random. This is a genuine
+trap in the interface and it is documented in <code>R/sampling.R</code> rather than fixed,
+because the artefacts were computed under it.</p>
+<p><strong>A seed reproduces a draw without costing the caller their stream.</strong>
+<code>sample_manifold()</code> saves <code>.Random.seed</code>, replaces it, and restores it on exit,
+so drawing a sample inside a loop does not silently re-align the loop’s own
+randomness. Two draws from one stream, with a sample taken between them, agree:
+TRUE. Called without a seed it touches <code><a href="https://rdrr.io/r/base/Random.html">set.seed()</a></code>
+not at all and records <code>NA</code>, so a returned object never claims a seed that would
+not reproduce it.</p>
+</div>
+<div id="gen-limits" class="section level2" number="3.8">
+<h2>
+<span class="header-section-number">3.8</span> Where it fails<a class="anchor" aria-label="anchor" href="#gen-limits"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>The classical short circuit lives past the end of the grid.</strong> <code>gen-results</code>
+found no edge joining facets more than one cell apart anywhere on <code>THETA_GRID</code>.
+That is not because folding cannot produce one.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cells_apart</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">g</span>, <span class="va">pattern</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">cl</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">facet</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html">%%</a></span>  <span class="va">pattern</span><span class="op">$</span><span class="va">params</span><span class="op">$</span><span class="va">nx</span></span>
+<span>  <span class="va">rw</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">sample</span><span class="op">$</span><span class="va">facet</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html">%/%</a></span> <span class="va">pattern</span><span class="op">$</span><span class="va">params</span><span class="op">$</span><span class="va">nx</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">cl</span><span class="op">[</span><span class="va">g</span><span class="op">$</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">cl</span><span class="op">[</span><span class="va">g</span><span class="op">$</span><span class="va">j</span><span class="op">]</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">rw</span><span class="op">[</span><span class="va">g</span><span class="op">$</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">rw</span><span class="op">[</span><span class="va">g</span><span class="op">$</span><span class="va">j</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">beyond</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">THETA_GRID</span><span class="op">)</span>, <span class="fl">0.99</span>, <span class="fl">0.999</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">graph_at</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>theta <span class="op">=</span> <span class="va">t</span>,</span>
+<span>             gs    <span class="op">=</span> <span class="fu">branch_gap</span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">sample</span><span class="op">)</span><span class="op">$</span><span class="va">ratio</span>,</span>
+<span>             sci   <span class="op">=</span> <span class="fu">short_circuit_index</span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">sample</span><span class="op">)</span>,</span>
+<span>             jumps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu">cells_apart</span><span class="op">(</span><span class="va">g</span>, <span class="va">p</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">2L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Past the grid the ratio <span class="math inline">\(g/s\)</span> collapses — 5.84 at
+<span class="math inline">\(\theta = 0.95\)</span>, 1.37 at
+<span class="math inline">\(\theta = 0.999\)</span> — and edges joining facets two or more cells
+apart appear: 0 of the graph at the grid’s edge,
+0.174 at the last value. The grid stops at
+0.95 because past it the sheet is collapsing onto itself and the cell measures a degenerate object rather than
+a harder instance of the same one. The consequence is worth stating plainly:
+<strong>this benchmark’s difficulty axis does not reach the regime that classically
+breaks Isomap.</strong> What it measures instead is the graded corruption of the
+neighbourhood graph that precedes it.</p>
+<p><strong>Area weighting is correct and untested by this family.</strong> Every Miura facet is
+congruent, so area-proportional and facet-uniform sampling agree to
+1.2e-15 and no result in this
+book distinguishes them. The weighting is there because a family with unequal facets would need it, and this
+book ships no such family — see Chapter <a href="folding-geometry.html#folding-geometry">2</a> on the two that
+were withdrawn.</p>
+<p><strong>Trimming the boundary changes the region, not just the count.</strong> With
+<code>boundary = FALSE</code> the facets nearest the sheet edge keep a small share of their
+points: across the 36 facets of <code>p</code> the occupancy of <code>s</code> runs
+from 3 to
+40. The survivors are uniform
+over the region that survives, which is the guarantee that was wanted, but that
+region is not the whole sheet.</p>
+<p><strong>Three scalars are a cell, not a family of patterns.</strong> Varying <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span> and
+<span class="math inline">\(\alpha\)</span> changes the cell shape and never the combinatorics: the same
+49 vertices and 36 facets, connected the
+same way. This model produces a one-parameter deformation of one tessellation,
+so nothing here supports a claim about pattern variety.</p>
+<p><strong>The chart is the geodesic only inside a convex region.</strong> The caveat is
+Chapter <a href="folding-geometry.html#folding-geometry">2</a>’s and it applies to every sample drawn here;
+<code>boundary = FALSE</code> is what keeps it negligible, and <code>chart_exit_fraction()</code> is
+what measures it rather than assuming it.</p>
+</div>
+<div id="gen-reproduce" class="section level2" number="3.9">
+<h2>
+<span class="header-section-number">3.9</span> Reproduce this<a class="anchor" aria-label="anchor" href="#gen-reproduce"><i class="fas fa-link"></i></a>
+</h2>
+<p>Every claim above is an assertion in the suite, which runs on every push:</p>
 <ul>
-<li>The Miura-ori parameterisation <span class="math inline">\((a, b, \alpha, \theta)\)</span>.</li>
-<li>Uniform sampling on facets, and why naive vertex sampling biases the density.</li>
-<li>Noise models: ambient Gaussian, on-manifold, and outliers.</li>
-<li>What <span class="math inline">\(\theta\)</span> does to the <span class="math inline">\(k\)</span>-nearest-neighbour graph, and where short-circuits appear.</li>
-<li>Why every result downstream is a curve over <span class="math inline">\(\theta\)</span> rather than a single number.</li>
+<li>
+<code>tests/testthat/test-sampling.R</code> — area-uniformity against an independent
+shoelace computation, points lying in the facet they claim and on the folded
+surface, seed reproducibility, and the RNG-stream restore.</li>
+<li>
+<code>tests/testthat/test-folding.R</code> — facet isometry over the <span class="math inline">\(\theta\)</span> sweep and
+the <span class="math inline">\(\alpha\)</span> range, the derived dihedral contract, and the absence of
+self-intersection.</li>
+<li>
+<code>tests/testthat/test-patterns.R</code> — congruence, Kawasaki and Maekawa.</li>
 </ul>
+<p>Run them with <code>Rscript tests/testthat.R</code> from the repository root. Every figure
+and every number in this chapter is recomputed at render time from <code>R/</code> alone,
+so a change to the sampler or the folding map shows up here as a changed page
+rather than as a stale one.</p>
+<p>The model’s settings are not scattered: <code>THETA_GRID</code>, <code>N_DEFAULT</code>,
+<code>PATTERN_GRID</code>, <code>MIURA_ALPHA_RANGE</code>, <code>K_DEFAULT</code> and <code>K_QNX</code> are all in
+<code>R/constants.R</code>, and <code>scripts/run-benchmark-grid.R</code> is the producer that turns
+them into <code>data/processed/benchmark-grid.rds</code>. Chapter <a href="linear.html#linear">4</a> opens by
+reading that artefact with its digest, and Appendix <a href="datasets.html#datasets">B</a> is its
+codebook.</p>
+</div>
+<div id="gen-reading" class="section level2" number="3.10">
+<h2>
+<span class="header-section-number">3.10</span> Further reading<a class="anchor" aria-label="anchor" href="#gen-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Miura’s original report <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span> introduces the tessellation; Schenk
+and Guest <span class="citation">(<a href="references.html#ref-schenk2013geometry">20</a>)</span> treat the folded sheet as a mechanical
+metamaterial and are the natural next step for a reader who wants the unit-cell
+geometry from the engineering side. Hull’s <em>Origametry</em> <span class="citation">(<a href="references.html#ref-hull2020origametry">11</a>)</span> is
+the reference for flat-foldability and for why a pattern folds at all.</p>
+<p>On the benchmarking side, Espadoto and colleagues <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey
+how dimension reduction is usually evaluated and make the case for scale that
+this book answers with a difficulty axis instead; Machado and colleagues
+<span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span> argue that projection quality metrics are necessary and
+not sufficient, which is the question Chapter <a href="evaluation.html#evaluation">9</a> takes up with an
+exact answer key in hand. Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> remains the
+textbook treatment of the methods Part II tests against this model.</p>
+
+</div>
 </div>
 
 
@@ -132,7 +651,21 @@
 <div class="next"><a href="linear.html"><span class="header-section-number">4</span> Linear projections and where they break</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#generative"><span class="header-section-number">3</span> Folding as a generative model</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#generative"><span class="header-section-number">3</span> Folding as a generative model</a></li>
+<li><a class="nav-link" href="#gen-question"><span class="header-section-number">3.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#gen-setup"><span class="header-section-number">3.2</span> Setup</a></li>
+<li><a class="nav-link" href="#gen-background"><span class="header-section-number">3.3</span> Background</a></li>
+<li>
+<a class="nav-link" href="#gen-core"><span class="header-section-number">3.4</span> The Miura-ori in four scalars</a><ul class="nav navbar-nav"><li><a class="nav-link" href="#the-derivation-checked"><span class="header-section-number">3.4.1</span> The derivation, checked</a></li></ul>
+</li>
+<li><a class="nav-link" href="#gen-sampling"><span class="header-section-number">3.5</span> Sampling and noise</a></li>
+<li><a class="nav-link" href="#gen-results"><span class="header-section-number">3.6</span> Results: what theta does</a></li>
+<li><a class="nav-link" href="#gen-diagnostics"><span class="header-section-number">3.7</span> Diagnostics</a></li>
+<li><a class="nav-link" href="#gen-limits"><span class="header-section-number">3.8</span> Where it fails</a></li>
+<li><a class="nav-link" href="#gen-reproduce"><span class="header-section-number">3.9</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#gen-reading"><span class="header-section-number">3.10</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -302,7 +835,7 @@
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

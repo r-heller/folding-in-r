@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 10 Benchmark results | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Which method survives? The full method \(\times\) \(\theta\) \(\times\) noise grid, at least 20 seeds per cell. There is no pattern axis: one family folds, so a pattern factor with a single level...">
+<meta name="description" content="Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one configuration at a time. This chapter fits all of them to the...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 10 Benchmark results | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/results.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Which method survives? The full method \(\times\) \(\theta\) \(\times\) noise grid, at least 20 seeds per cell. There is no pattern axis: one family folds, so a pattern factor with a single level...">
+<meta property="og:description" content="Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one configuration at a time. This chapter fits all of them to the...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 10 Benchmark results | Folding in R">
-<meta name="twitter:description" content="Which method survives? The full method \(\times\) \(\theta\) \(\times\) noise grid, at least 20 seeds per cell. There is no pattern axis: one family folds, so a pattern factor with a single level...">
+<meta name="twitter:description" content="Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one configuration at a time. This chapter fits all of them to the...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -114,18 +114,494 @@
 <h1>
 <span class="header-section-number">10</span> Benchmark results<a class="anchor" aria-label="anchor" href="#results"><i class="fas fa-link"></i></a>
 </h1>
-<p><em>Which method survives?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
-<ul>
-<li>The full method <span class="math inline">\(\times\)</span> <span class="math inline">\(\theta\)</span> <span class="math inline">\(\times\)</span> noise grid, at least 20 seeds per cell.
-There is no pattern axis: one family folds, so a pattern factor with a single
-level is not a factor. Crease count varies instead, which is the knob E1’s
-arm B swept and the one that carries the question.</li>
-<li>Distributions, not means.</li>
-<li>State explicitly how much between-method variation falls inside within-method seed variance.</li>
-<li>Where Isomap wins, where it breaks, and the crossover.</li>
-<li>Grid is precomputed by <code>scripts/run-benchmark-grid.R</code> and committed; the script is the provenance record.</li>
-</ul>
+<p><em>Which method survives — and can the benchmark tell?</em></p>
+<div id="results-question" class="section level2" number="10.1">
+<h2>
+<span class="header-section-number">10.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#results-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>Part II fitted each method to a folded sheet one configuration at a time. This
+chapter fits all of them to the whole sweep at once — every method against every
+fold angle under every noise model, twenty seeds deep — and reads the table.</p>
+<p>It asks two questions, in a fixed order, and the order is the argument. The
+first is whether the benchmark can tell the methods apart at all: whether the
+spread <em>across</em> methods exceeds the spread across repeated runs <em>within</em> one
+method. Only if it does is the second question — which method wins — about
+methods rather than about seeds. A benchmark that answers the second without
+checking the first publishes a ranking of its own noise.</p>
+<p>The short answer to the first is yes, everywhere on this grid, by a margin that
+narrows sharply where the sheet is most folded. The answer to the second is that
+it depends on <span class="math inline">\(\theta\)</span> and on the noise model, so that “method X is best” is not
+a well-formed sentence here unless both are stated. The rest is those two
+answers with their conditions attached, and a rule — fixed in code before the
+grid existed — for turning them into a decision.</p>
+</div>
+<div id="results-setup" class="section level2" number="10.2">
+<h2>
+<span class="header-section-number">10.2</span> Setup<a class="anchor" aria-label="anchor" href="#results-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/benchmark-grid.rds"</span>, <span class="st">"2483a468d82d4d64"</span><span class="op">)</span></span>
+<span><span class="va">prov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html">attr</a></span><span class="op">(</span><span class="va">grid</span>, <span class="st">"provenance"</span><span class="op">)</span></span>
+<span><span class="va">ok</span>   <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">[</span><span class="va">grid</span><span class="op">$</span><span class="va">ran</span>, <span class="op">]</span></span></code></pre></div>
+<p>The grid is committed, not computed at render time. <code>read_run()</code> refuses any
+file whose contents differ from the run these numbers were read off, so a
+regenerated artefact is a build failure rather than a silently changed sentence.
+Producing it took 4.9 hours of wall clock across
+4 forked workers — 19.6
+core-hours for 9,199 fits, or about
+59
+core-seconds per sampled cell, metrics included.</p>
+<p><code>grid</code> keeps every row the producer wrote, including the ones with no metrics;
+<code>ok</code> is the subset that fitted. Both are used below, and which one a number came
+from is stated, because the difference between them is itself a result.</p>
+</div>
+<div id="results-background" class="section level2" number="10.3">
+<h2>
+<span class="header-section-number">10.3</span> What the grid holds<a class="anchor" aria-label="anchor" href="#results-background"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">step</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diff.html">diff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
+<span>  Factor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"pattern"</span>, <span class="st">"$\\theta$"</span>, <span class="st">"noise"</span>, <span class="st">"method"</span>, <span class="st">"seed"</span>, <span class="st">"cells"</span>, <span class="st">"rows"</span><span class="op">)</span>,</span>
+<span>  Levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">pattern</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">method</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">seed</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"pattern"</span>, <span class="st">"theta"</span>, <span class="st">"noise"</span>, <span class="st">"seed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  Value  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">pattern</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"%s to %s in steps of %s"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span>, <span class="va">step</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span><span class="op">)</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">method</span><span class="op">)</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span>,</span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"%d to %d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">seed</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">seed</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             <span class="st">"pattern $\\times$ $\\theta$ $\\times$ noise $\\times$ seed"</span>,</span>
+<span>             <span class="st">"one per method per cell"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="va">design</span>, align <span class="op">=</span> <span class="st">"lrl"</span>, caption <span class="op">=</span> <span class="st">"The benchmark grid, read off the artefact rather than asserted."</span><span class="op">)</span></span></code></pre></div>
+<div class="inline-table"><table class="table table-sm">
+<caption>
+<span id="tab:results-design">Table 10.1: </span>The benchmark grid, read off the artefact rather than asserted.</caption>
+<colgroup>
+<col width="10%">
+<col width="8%">
+<col width="81%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Factor</th>
+<th align="right">Levels</th>
+<th align="left">Value</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">pattern</td>
+<td align="right">1</td>
+<td align="left">miura</td>
+</tr>
+<tr class="even">
+<td align="left"><span class="math inline">\(\theta\)</span></td>
+<td align="right">20</td>
+<td align="left">0 to 0.95 in steps of 0.05</td>
+</tr>
+<tr class="odd">
+<td align="left">noise</td>
+<td align="right">3</td>
+<td align="left">ambient, none, outlier</td>
+</tr>
+<tr class="even">
+<td align="left">method</td>
+<td align="right">9</td>
+<td align="left">autoencoder, diffusion, isomap, laplacian, lle, mds, pca, tsne, umap</td>
+</tr>
+<tr class="odd">
+<td align="left">seed</td>
+<td align="right">20</td>
+<td align="left">1001 to 1020</td>
+</tr>
+<tr class="even">
+<td align="left">cells</td>
+<td align="right">1200</td>
+<td align="left">pattern <span class="math inline">\(\times\)</span> <span class="math inline">\(\theta\)</span> <span class="math inline">\(\times\)</span> noise <span class="math inline">\(\times\)</span> seed</td>
+</tr>
+<tr class="odd">
+<td align="left">rows</td>
+<td align="right">10800</td>
+<td align="left">one per method per cell</td>
+</tr>
+</tbody>
+</table></div>
+<p>There is no pattern axis. One family folds (Chapter <a href="benchmarks.html#benchmarks">8</a>), and a
+factor with a single level is not a factor. The three noise conditions are a
+clean sheet, isotropic ambient jitter, and a sparse outlier contamination; the
+<span class="math inline">\(\theta\)</span> sweep stops short of the flat-folded state, where the sheet has no
+extent in one direction and every method is embedding a degenerate object.</p>
+<div class="sourceCode" id="cb74"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">n_unavail</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"unavailable"</span><span class="op">)</span></span>
+<span><span class="va">n_declined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"declined"</span><span class="op">)</span></span>
+<span><span class="va">run_rate</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">ran</span>, <span class="va">grid</span><span class="op">$</span><span class="va">method</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">fate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="op">!</span><span class="va">grid</span><span class="op">$</span><span class="va">ran</span>,</span>
+<span>                      <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"unavailable"</span>, <span class="st">"declared unavailable"</span>,</span>
+<span>                             <span class="st">"declined the cell"</span><span class="op">)</span>,</span>
+<span>                      <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">tuning</span><span class="op">)</span>, <span class="st">"ran as asked"</span>, <span class="st">"ran after retuning"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>               levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"ran as asked"</span>, <span class="st">"ran after retuning"</span>,</span>
+<span>                          <span class="st">"declined the cell"</span>, <span class="st">"declared unavailable"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">max_floor</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">floor</span><span class="op">)</span></span></code></pre></div>
+<p>Of 10,800 rows, 9,199
+carry metrics. The remaining 1,601
+are results, not gaps: 1,200 autoencoder rows
+declared unavailable by the registry until Chapter <a href="autoencoders.html#autoencoders">7</a>, and
+401 rows where a method was offered a cell and returned nothing.
+<code>report_failures()</code> prints the same accounting from the producer.</p>
+<p>The <code>floor</code> column is 0 in every row. The irreducible loss of a
+<span class="math inline">\(p\)</span>-dimensional chart embedded in <span class="math inline">\(d\)</span> dimensions is the tail of the chart’s
+spectrum, and here the chart is two-dimensional and <span class="math inline">\(d\)</span> is 2, so
+there is no tail. Every error reported below is therefore loss the method is
+responsible for, and “scored against what was achievable” and “scored in
+absolute terms” coincide on this grid. They do not coincide on the product
+construction of Chapter <a href="benchmarks.html#benchmarks">8</a>, which is the artefact built to make
+the floor positive.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:results-fig-status"></span>
+<img src="10-benchmark-results_files/figure-html/results-fig-status-1.png" alt="Three panels, one per noise condition, each a horizontal bar per method showing 400 fits. Under no noise and under ambient noise every method except the autoencoder ran as asked, and the autoencoder bar is entirely 'declared unavailable'. Under outlier noise the Laplacian eigenmaps bar is entirely 'declined the cell', the diffusion map bar is almost entirely 'ran after retuning' with a single declined fit, and the rest ran as asked." width="90%"><p class="caption">
+Figure 10.1: What happened to every fit, by method and noise condition. Counts are printed on each segment that is not a clean run, so nothing here is carried by colour alone.
+</p>
+</div>
+<p>Figure <a href="results.html#fig:results-fig-status">10.1</a> shows where the losses sit, and they are
+structured rather than scattered. Laplacian eigenmaps declined every outlier
+cell; the diffusion map ran under outliers only after widening its own kernel
+bandwidth, which the <code>tuning</code> column records.</p>
+</div>
+<div id="results-core" class="section level2" number="10.4">
+<h2>
+<span class="header-section-number">10.4</span> Where the benchmark has resolving power<a class="anchor" aria-label="anchor" href="#results-core"><i class="fas fa-link"></i></a>
+</h2>
+<p>A ranking is worth reading only if the differences it orders are larger than the
+noise it was measured through. <code>R/selection.R</code> names that quantity and fixes it
+in code:</p>
+<p><span class="math display">\[R \;=\; \frac{\text{spread across methods}}{\text{spread within a method, across seeds}},\]</span></p>
+<p>with both spreads taken of the same quantity — excess over the irreducible floor
+— so that <span class="math inline">\(R\)</span> is dimensionless. The numerator is the standard deviation of the
+per-method means in a regime; the denominator is the median, over cells, of the
+seed-wise standard deviation inside one cell. Above one, the methods differ by
+more than a rerun of the same method does. At or below one, any ordering read
+off the grid is seed noise with a rank imposed on it.</p>
+<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nz</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">THETA_GRID</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">select_method</span><span class="op">(</span><span class="va">grid</span>, theta <span class="op">=</span> <span class="va">t</span>, noise <span class="op">=</span> <span class="va">nz</span><span class="op">)</span><span class="op">$</span><span class="va">resolving</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>noise <span class="op">=</span> <span class="va">nz</span>, theta <span class="op">=</span> <span class="va">t</span>, R <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">R</span>, between <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">between</span>, within <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">within</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">worst</span>     <span class="op">&lt;-</span> <span class="va">rp</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html">which.min</a></span><span class="op">(</span><span class="va">rp</span><span class="op">$</span><span class="va">R</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">pooled_sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">ok</span><span class="op">$</span><span class="va">rmse</span>, <span class="fu"><a href="https://rdrr.io/r/base/interaction.html">interaction</a></span><span class="op">(</span><span class="va">ok</span><span class="op">$</span><span class="va">method</span>, <span class="va">ok</span><span class="op">$</span><span class="va">theta</span>, <span class="va">ok</span><span class="op">$</span><span class="va">noise</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>                    <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">)</span></span>
+<span><span class="va">ends</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">nz</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="va">rp</span><span class="op">$</span><span class="va">R</span><span class="op">[</span><span class="va">rp</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="va">nz</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">THETA_GRID</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p>Three details of that definition earn their keep. The denominator is <em>within a
+cell</em>, not within a method across the regime, because a method’s variation from
+one fold angle to the next is difficulty and belongs in the numerator. It is a
+<strong>median</strong> rather than a mean, because one wildly unstable method would
+otherwise set the noise level for all eight — the pooled within-cell spread on
+this grid has a median of 0.019 and a maximum of
+0.31, and the gap between those two is t-SNE. And it
+is computed on excess over the floor rather than on raw error, which on this
+grid changes nothing because the floor is 0, and on Chapter
+<a href="benchmarks.html#benchmarks">8</a>’s product suite changes a great deal.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:results-fig-resolving"></span>
+<img src="10-benchmark-results_files/figure-html/results-fig-resolving-1.png" alt="A line chart with the folding parameter on the horizontal axis and resolving power on a logarithmic vertical axis. Three lines, distinguished by colour, line style and point shape. The outlier line sits highest, near fifteen, falling gently to about nine at the right. The clean and ambient-noise lines run between three and seven across most of the range and fall towards the right-hand end, the ambient line reaching about one and a third at the largest fold angle. A dotted horizontal line marks one; no line touches it." width="90%"><p class="caption">
+Figure 10.2: Resolving power against the folding parameter, one line per noise condition, on a logarithmic scale. The dotted line is the pre-registered floor below which the selection rule declines to rank anything.
+</p>
+</div>
+<p><span class="math inline">\(R\)</span> is above the floor of 1 in all
+60 regimes of Figure <a href="results.html#fig:results-fig-resolving">10.2</a>. The chapter was
+specified to report <span class="math inline">\(R &lt; 1\)</span> wherever it held, and on this grid it holds nowhere;
+that is the finding, and it is a more comfortable one than the specification
+expected. The weakest cell is ambient noise at <span class="math inline">\(\theta = 0.95\)</span>, where
+<span class="math inline">\(R = 1.33\)</span> — the between-method spread of
+0.031 against a within-method spread of
+0.023. Two ticks of <span class="math inline">\(\theta\)</span> earlier the same condition
+resolves twice as well. The outlier condition resolves best of the three, by an
+order of magnitude, and that is not a compliment to the benchmark: it separates
+the methods there because one of them fails completely, which is a wide gap
+rather than an informative one.</p>
+<p>The trend across the sweep is the part worth carrying forward. Every condition
+loses resolution as the sheet closes — from 6.5 to
+2.3 on the clean sheet, 4.3 to
+1.3 under ambient noise, 15.6 to
+9.3 under outliers — so the benchmark is least able to
+discriminate exactly where its geometry is most distinctive. That is not a
+paradox: at large <span class="math inline">\(\theta\)</span> every method is failing, and methods that are all
+failing look alike. It does mean that a regime chosen for being difficult is a
+regime chosen for weak resolving power, and Chapter <a href="application.html#application">12</a> has to
+pick one knowing that.</p>
+<p>The number to resist is the seed count. <span class="math inline">\(R\)</span> is a ratio of two spreads and
+neither is a standard error, so running forty seeds instead of twenty estimates
+both more precisely and moves the ratio nowhere; <code>tests/testthat/test-selection.R</code>
+demonstrates exactly that. Raising the seed budget until something separates
+would be the same abuse as raising it until a <span class="math inline">\(p\)</span>-value falls, with the
+advantage of looking like diligence. The budget was fixed in advance and is
+reported in the design table above.</p>
+<p>Two things this section does <strong>not</strong> establish. It does not show that a crease
+pattern discriminates better than a classical benchmark: Chapter
+<a href="comparison.html#comparison">11</a> measures that directly and finds the opposite, which is why
+this book’s spine is the irreducible-loss bound and not the claim that folded
+sheets are a harder test. And <span class="math inline">\(R\)</span> is a property of a regime, not of the
+generator — it is computed here at fixed <span class="math inline">\(n\)</span>, fixed <span class="math inline">\(k\)</span> and one pattern size,
+and each of those moves it.</p>
+</div>
+<div id="results-results" class="section level2" number="10.5">
+<h2>
+<span class="header-section-number">10.5</span> Results<a class="anchor" aria-label="anchor" href="#results-results"><i class="fas fa-link"></i></a>
+</h2>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:results-fig-headline"></span>
+<img src="10-benchmark-results_files/figure-html/results-fig-headline-1.png" alt="Three panels labelled linear, geodesic and neighbour, each plotting reconstruction error against the folding parameter from zero to nearly one. In the linear panel a single visible curve rises smoothly from zero to about a fifth, with a very narrow band. In the geodesic panel Isomap runs almost flat near zero until roughly two-thirds of the way along and then rises, while the diffusion map sits near a fifth throughout. In the neighbour panel LLE rises from below a tenth to above four tenths, Laplacian eigenmaps and UMAP run flat near a quarter, and t-SNE sits highest with a very wide seed band." width="90%"><p class="caption">
+Figure 10.3: Normalised Procrustes reconstruction error against the folding parameter on the clean sheet, grouped by what each method consumes. The line is the mean over twenty seeds; the band is the full seed range. PCA and classical MDS coincide exactly and plot on top of each other.
+</p>
+</div>
+<div class="sourceCode" id="cb76"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">method</span> <span class="op">+</span> <span class="va">theta</span> <span class="op">+</span> <span class="va">noise</span>, <span class="va">ok</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">mm</span><span class="op">$</span><span class="va">rank</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/ave.html">ave</a></span><span class="op">(</span><span class="va">mm</span><span class="op">$</span><span class="va">rmse</span>, <span class="va">mm</span><span class="op">$</span><span class="va">theta</span>, <span class="va">mm</span><span class="op">$</span><span class="va">noise</span>, FUN <span class="op">=</span> <span class="va">rank</span><span class="op">)</span></span>
+<span><span class="va">mm</span><span class="op">$</span><span class="va">label</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">mm</span><span class="op">$</span><span class="va">method</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="va">METHOD_REGISTRY</span><span class="op">[[</span><span class="va">m</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">label</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">lead</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span><span class="op">(</span><span class="va">mm</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">mm</span><span class="op">$</span><span class="va">theta</span>, <span class="va">mm</span><span class="op">$</span><span class="va">noise</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>theta <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, noise <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">noise</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, best <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">method</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html">which.min</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">rmse</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cross</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">lead</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">lead</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"none"</span> <span class="op">&amp;</span> <span class="va">lead</span><span class="op">$</span><span class="va">best</span> <span class="op">==</span> <span class="st">"isomap"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">at</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">i</span>, <span class="va">nz</span> <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">mm</span><span class="op">$</span><span class="va">rmse</span><span class="op">[</span><span class="va">mm</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="va">m</span> <span class="op">&amp;</span> <span class="va">mm</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="va">nz</span> <span class="op">&amp;</span> <span class="va">mm</span><span class="op">$</span><span class="va">theta</span> <span class="op">==</span> <span class="va">THETA_GRID</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">iso_rank</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">rank</span><span class="op">[</span><span class="va">mm</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"isomap"</span> <span class="op">&amp;</span> <span class="va">mm</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"outlier"</span> <span class="op">&amp;</span></span>
+<span>                    <span class="va">mm</span><span class="op">$</span><span class="va">theta</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">THETA_GRID</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">THETA_GRID</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">qq</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">qnx</span> <span class="op">~</span> <span class="va">method</span> <span class="op">+</span> <span class="va">theta</span>, <span class="va">ok</span><span class="op">[</span><span class="va">ok</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"none"</span>, <span class="op">]</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">qq</span> <span class="op">&lt;-</span> <span class="va">qq</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">qq</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">q_cross</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">qq</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">qq</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"isomap"</span><span class="op">]</span><span class="op">[</span></span>
+<span>  <span class="va">qq</span><span class="op">$</span><span class="va">qnx</span><span class="op">[</span><span class="va">qq</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"isomap"</span><span class="op">]</span> <span class="op">&gt;</span> <span class="va">qq</span><span class="op">$</span><span class="va">qnx</span><span class="op">[</span><span class="va">qq</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"pca"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">sd_by</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">ok</span><span class="op">[</span><span class="va">ok</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="va">m</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/median.html">median</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">rmse</span>, <span class="fu"><a href="https://rdrr.io/r/base/interaction.html">interaction</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">theta</span>, <span class="va">s</span><span class="op">$</span><span class="va">noise</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>Figure <a href="results.html#fig:results-fig-headline">10.3</a> is the headline on the clean sheet.
+At <span class="math inline">\(\theta = 0\)</span> the sheet <em>is</em> the chart, and the linear pair
+recovers it to 4.9e-16 while Isomap — which consumes
+geodesics it must first estimate — pays 0.024 for the
+estimation <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>,<a href="references.html#ref-torgerson1952mds">22</a>)</span>. The linear error then
+climbs monotonically with the fold, because folding is a strict ambient
+contraction and a linear map cannot undo one, while Isomap’s stays nearly flat:
+its assumption is satisfied exactly on a rigid folding, and the geodesics it
+estimates do not change as the sheet closes.</p>
+<p>The two curves cross. Isomap takes the lead at <span class="math inline">\(\theta = 0.4\)</span> —
+0.025 against 0.024 one step
+earlier, 0.026 against 0.031 at the
+crossing — and holds it to the end of the sweep, finishing at
+0.188 against 0.212. Averaging
+over <span class="math inline">\(\theta\)</span> would name the linear pair, because
+8 of the
+20 fold angles fall on the flat side of the crossing and the
+errors there are small. That average is a statement about the grid’s design, not
+about the methods.</p>
+<p><strong>The crossing moves when the metric does.</strong> This book reports two headline
+numbers per cell, deliberately: Procrustes RMSE asks whether the embedding <em>is</em>
+the chart, and chart-referenced <span class="math inline">\(Q_{NX}\)</span> asks only whether it has the chart’s
+neighbourhoods, which any diffeomorphism of the plane preserves. Read against
+<span class="math inline">\(Q_{NX}\)</span>, Isomap does not pass the linear pair until <span class="math inline">\(\theta = 0.6\)</span> —
+0.920 against
+0.917 — four steps of
+the sweep later than under RMSE. The gap between the two crossings is the
+distance between “the linear projection is still the better <em>map</em>” and “it is
+still the better <em>neighbour list</em>”, and naming a winner without naming the
+metric hides it.</p>
+<p>The other five methods break rather than cross. LLE <span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span> starts
+respectably at 0.077 and ends at
+0.439, worse than anything else on the clean sheet at the
+deepest fold: its local weights are fitted to neighbourhoods that folding has
+brought into contact across facets. The diffusion map and Laplacian eigenmaps
+are flat and mediocre throughout, averaging
+0.204 and
+0.236,
+which is roughly what a method that recovers the chart up to an unknown
+nonlinear warping scores against a metric permitting only similarity. And t-SNE
+averages 0.387
+and is last at every fold angle — not a finding about t-SNE, which was never
+built to reproduce distances, but the clearest case on this grid of a method
+scored against a target it does not consume.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:results-fig-order"></span>
+<img src="10-benchmark-results_files/figure-html/results-fig-order-1.png" alt="Three panels, one per noise condition, with the folding parameter on the horizontal axis and rank from one at the top to eight at the bottom; the outlier panel has seven ranks because Laplacian eigenmaps produced no embedding there. Under no noise and under ambient noise PCA and classical MDS alternate between ranks one and two at small fold angles and Isomap takes rank one from roughly two-fifths of the way along. Under outlier noise UMAP holds rank one across the whole sweep, the diffusion map is last throughout, and Isomap climbs only from fourth place to third at large fold angles." width="90%"><p class="caption">
+Figure 10.4: Rank by mean reconstruction error against the folding parameter, one panel per noise condition. Rank one is at the top. The leader changes with the fold angle under two conditions and is a different method entirely under the third.
+</p>
+</div>
+<p>Figure <a href="results.html#fig:results-fig-order">10.4</a> puts the three noise conditions side by side,
+and the third one breaks the story the first two tell. Under sparse outliers
+UMAP <span class="citation">(<a href="references.html#ref-mcinnes2018umap">8</a>)</span> leads at every fold angle, at
+0.353 against
+0.422 for the
+linear pair, while the diffusion map <span class="citation">(<a href="references.html#ref-coifman2006diffusion">27</a>)</span> sits at
+0.999 —
+which is the score of an embedding that explains none of the chart’s variance —
+and Laplacian eigenmaps <span class="citation">(<a href="references.html#ref-belkin2003laplacian">28</a>)</span> does not produce one at all.
+Isomap’s advantage at large <span class="math inline">\(\theta\)</span> survives as a climb from
+4th place to 3rd, but UMAP leads at all
+20 fold angles and Isomap
+never reaches the top under this contamination.</p>
+<p>So the ordering is not a property of the methods. It is a property of
+(method, <span class="math inline">\(\theta\)</span>, noise), and any of the three sentences “the linear methods
+win”, “Isomap wins” and “UMAP wins” can be read off this one grid.</p>
+</div>
+<div id="results-diagnostics" class="section level2" number="10.6">
+<h2>
+<span class="header-section-number">10.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#results-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:results-fig-metrics"></span>
+<img src="10-benchmark-results_files/figure-html/results-fig-metrics-1.png" alt="A line chart with the folding parameter on the horizontal axis and the spread across methods on a logarithmic vertical axis. Procrustes RMSE, chart-referenced Q-NX and kNN preservation all run between about two-tenths and four-tenths across the whole range. Trustworthiness and continuity run two orders of magnitude lower, near three thousandths, and trustworthiness rises steeply only beyond about two-thirds of the way along." width="90%"><p class="caption">
+Figure 10.5: How far apart the metrics place the eight methods, on the clean sheet: the range of the per-method means at each fold angle, on a logarithmic scale.
+</p>
+</div>
+<p>Four things in the table are worth naming before anyone reads a ranking off it.</p>
+<p><strong>PCA and classical MDS are the same map here.</strong> Their reconstruction errors
+differ by at most 2.8e-15
+across the grid and their <span class="math inline">\(Q_{NX}\)</span> scores are bit-identical, because classical
+MDS of a Euclidean distance matrix <em>is</em> the principal-component projection
+<span class="citation">(<a href="references.html#ref-torgerson1952mds">22</a>)</span>. Their alternation between ranks one and two in Figure
+<a href="results.html#fig:results-fig-order">10.4</a> is floating-point tie-breaking, not a result.</p>
+<p><strong>Two of the five metrics cannot separate anything.</strong> Figure
+<a href="results.html#fig:results-fig-metrics">10.5</a> is the spread across methods, metric by metric.
+Trustworthiness and continuity, scored at <span class="math inline">\(k = 10\)</span> against <em>ambient</em>
+distance <span class="citation">(<a href="references.html#ref-kaski2003trustworthiness">36</a>)</span>, place the eight methods within a median
+range of 0.003, while
+Procrustes RMSE spreads them over
+0.35. Chart-referenced
+<span class="math inline">\(Q_{NX}\)</span> at <span class="math inline">\(K = 20\)</span> <span class="citation">(<a href="references.html#ref-lee2009quality">32</a>)</span> sits between the two. This is the
+optimism Chapter <a href="evaluation.html#evaluation">9</a> quantifies; here it is enough to note that
+trustworthiness only begins to move at all beyond about two-thirds of the sweep.</p>
+<p><strong>t-SNE’s seed spread swallows most of the field.</strong> Its median within-cell
+standard deviation across seeds is 0.26, against
+0.003 for the linear pair and
+0.004 for Isomap — a single t-SNE run on this grid is
+an anecdote
+<span class="citation">(<a href="references.html#ref-vandermaaten2008tsne">7</a>)</span>, and the band in Figure <a href="results.html#fig:results-fig-headline">10.3</a>
+is why the book reports twenty.</p>
+<p><strong>Isomap never needed graph repair.</strong> <code>k_effective</code> equals the requested
+<span class="math inline">\(k = 10\)</span> in all 1200 fits, so the
+neighbourhood graph was connected everywhere in the sweep. That is not the same
+as saying no short circuit occurred <span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span>: a shortcut edge
+between facets connects the graph rather than breaking it, and it is the rise in
+Isomap’s error past <span class="math inline">\(\theta = 0.4\)</span> that would carry it.</p>
+</div>
+<div id="results-limits" class="section level2" number="10.7">
+<h2>
+<span class="header-section-number">10.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#results-limits"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb77"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">armB</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/e1-armB.rds"</span>, <span class="st">"cbf9ce13782a556d"</span><span class="op">)</span></span>
+<span><span class="va">cc</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">creases</span> <span class="op">+</span> <span class="va">method</span>, <span class="va">armB</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">iso_range</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html">diff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/range.html">range</a></span><span class="op">(</span><span class="va">cc</span><span class="op">$</span><span class="va">rmse</span><span class="op">[</span><span class="va">cc</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="st">"isomap"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The grid varies four things and holds a great many fixed, and the fixed ones
+bound every sentence above.</p>
+<p><strong>One pattern, at one size.</strong> A single Miura at
+6 by 6 cells. Crease count is not
+an axis here; it was swept separately by Chapter <a href="comparison.html#comparison">11</a>’s second arm,
+which found Isomap ahead of the linear pair at all
+3 crease counts tested at matched branch
+separation, with Isomap’s own error moving by 0.01 across a
+sixteen-fold change in creases. That is a reason for holding it fixed, not a
+licence to generalise from one size.</p>
+<p><strong>One sample size, one neighbourhood, one target dimension.</strong> Every fit used
+<span class="math inline">\(n = 800\)</span>, <span class="math inline">\(k = 10\)</span> and <span class="math inline">\(d = 2\)</span>. Chapter
+<a href="evaluation.html#evaluation">9</a> sweeps <span class="math inline">\(k\)</span>; nothing here does, and a <span class="math inline">\(k\)</span>-sensitive method
+<span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span> is being reported at one setting of it.</p>
+<p><strong>No autoencoder.</strong> 1,200 rows of the grid are a
+declaration rather than a measurement, and every comparison above is over eight
+methods, not nine.</p>
+<p><strong>Two noise models, both synthetic.</strong> Isotropic ambient jitter and sparse
+outliers are the two failure modes easiest to write down, not the two most
+common in data. Neither is structured, correlated with position on the sheet, or
+heteroscedastic, and the outlier result — a complete reordering of the field —
+is a warning that the noise model may matter more than the geometry does.</p>
+<p><strong>A floor of 0.</strong> Reporting against what was achievable is
+informative only when something was unachievable, and on a two-dimensional chart
+in two dimensions nothing is.</p>
+<p><strong>Only one pattern family folds at all</strong>, which is Chapter
+<a href="benchmarks.html#benchmarks">8</a>’s subject. This grid cannot support any claim about variety
+across families, and none is made.</p>
+</div>
+<div id="results-rule" class="section level2" number="10.8">
+<h2>
+<span class="header-section-number">10.8</span> The pre-registered selection rule<a class="anchor" aria-label="anchor" href="#results-rule"><i class="fas fa-link"></i></a>
+</h2>
+<p>Chapter <a href="application.html#application">12</a> has to pick a method with this grid. The value of that
+choice rests entirely on the rule having been fixed before the answer was known,
+so it is committed as code — <code>select_method()</code> in <code>R/selection.R</code>, a total
+function of the grid’s columns, registered before the grid it reads had ever
+been generated. Prose can be read generously afterwards; a function cannot.</p>
+<p>Three thresholds, and nowhere else: a run-rate floor of 0.9, below
+which a method is not a candidate however well it scores; a reportable
+difference of 0.02 normalised RMSE, below which a lead is a tie;
+and a resolving-power floor of 1, below which the rule declines
+and the chapter reports a null result.</p>
+<div class="sourceCode" id="cb78"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">window</span> <span class="op">&lt;-</span> <span class="va">THETA_GRID</span><span class="op">[</span><span class="va">THETA_GRID</span> <span class="op">&gt;=</span> <span class="va">THETA_GRID</span><span class="op">[</span><span class="fl">13</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">r_none</span> <span class="op">&lt;-</span> <span class="fu">select_method</span><span class="op">(</span><span class="va">grid</span>, theta <span class="op">=</span> <span class="va">window</span>, noise <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span>
+<span><span class="va">r_amb</span>  <span class="op">&lt;-</span> <span class="fu">select_method</span><span class="op">(</span><span class="va">grid</span>, theta <span class="op">=</span> <span class="va">window</span>, noise <span class="op">=</span> <span class="st">"ambient"</span><span class="op">)</span></span>
+<span><span class="va">r_all</span>  <span class="op">&lt;-</span> <span class="fu">select_method</span><span class="op">(</span><span class="va">grid</span>, theta <span class="op">=</span> <span class="va">THETA_GRID</span>, noise <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">noise</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">class_excess</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">ok</span><span class="op">$</span><span class="va">rmse</span> <span class="op">-</span> <span class="va">ok</span><span class="op">$</span><span class="va">floor</span>, <span class="va">ok</span><span class="op">$</span><span class="va">consumes</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The rule does not choose the regime; that is Chapter <a href="application.html#application">12</a>’s
+argument to make from its data, before it fits anything. Applied here to a
+deep-fold window as an illustration, it selects <strong>isomap</strong> on the
+clean sheet, by 0.037 at
+<span class="math inline">\(R = 3.44\)</span>. Under ambient noise, in the same window,
+the leading margin falls to
+0.003 — inside the reportable
+threshold — so the rule declares a tie of 3 methods and
+breaks it on failures, then on assuming least, and returns
+<strong>mds</strong> instead. Pooled over the whole grid it excludes
+autoencoder and laplacian on the run-rate floor and returns
+<strong>mds</strong> again. Three regimes, three defensible answers, one rule:
+which is the point, and the reason the regime must be argued for in the open.</p>
+<p>One clause needs a caveat. Ties break toward the method that <em>assumes least</em> —
+ambient, then geodesic, then neighbourhood — which is an argument about
+assumptions, not a prediction about scores. The grid ranks the classes the other
+way: mean excess over the floor is 0.22
+for the geodesic class,
+0.30 for ambient and
+0.32 for neighbourhood,
+in that order and in every noise condition
+separately, and Chapter <a href="benchmarks.html#benchmarks">8</a> measures the same ordering on the
+product suite. The tie-break stands, because it applies only where the benchmark
+<em>cannot separate</em> — but it is not this book’s estimate of which class does
+better.</p>
+<p>The declining branch did not fire anywhere on this grid. It was written to fire
+and is tested to fire, and a rule that could not have declined would have
+established nothing by not declining.</p>
+</div>
+<div id="results-reproduce" class="section level2" number="10.9">
+<h2>
+<span class="header-section-number">10.9</span> Reproduce this<a class="anchor" aria-label="anchor" href="#results-reproduce"><i class="fas fa-link"></i></a>
+</h2>
+<p>The grid is regenerated with
+<code>Rscript scripts/run-benchmark-grid.R --cores 4</code> from the repository root, and
+<code>--shard i/n</code> followed by <code>--merge</code> spreads it over machines. That script is the
+provenance record for <code>data/processed/benchmark-grid.rds</code> and the only thing
+that writes it; it refuses to merge shards built from different versions of
+<code>R/</code>, and <code>--quick</code> writes to a different filename so a smoke test can never be
+mistaken for the book’s evidence. The cell itself is <code>grid_cell()</code> in
+<code>R/grid.R</code>, shared with the Part II sweeps and the classical grid so that three
+producers cannot drift apart. <code>tests/testthat/test-selection.R</code> asserts that
+each of the three thresholds changes the decision, and that raising the seed
+count does not.</p>
+</div>
+<div id="results-reading" class="section level2" number="10.10">
+<h2>
+<span class="header-section-number">10.10</span> Further reading<a class="anchor" aria-label="anchor" href="#results-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Espadoto and colleagues <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey the projection-quality
+literature this chapter’s metrics come from, and Lee and Verleysen
+<span class="citation">(<a href="references.html#ref-lee2009quality">32</a>)</span> give the co-ranking framework behind <span class="math inline">\(Q_{NX}\)</span>; Kaski and
+colleagues <span class="citation">(<a href="references.html#ref-kaski2003trustworthiness">36</a>)</span> are the source of trustworthiness and
+continuity, including the scaling constant. For the methods themselves, the
+original papers remain the clearest statements of what each one consumes
+<span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>–<a href="references.html#ref-mcinnes2018umap">8</a>,<a href="references.html#ref-coifman2006diffusion">27</a>,<a href="references.html#ref-belkin2003laplacian">28</a>,<a href="references.html#ref-roweis2000lle">30</a>)</span>, which is the
+property that predicts the regime changes above better than any of the scores
+does. What none of them supplies is a scale against which a score can be called
+good; that is Chapter <a href="benchmarks.html#benchmarks">8</a>’s subject, and it is why this chapter’s
+floor column is a placeholder rather than a measurement.</p>
+
+</div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
@@ -281,7 +757,19 @@ arm B swept and the one that carries the question.</li>
 <div class="next"><a href="comparison.html"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#results"><span class="header-section-number">10</span> Benchmark results</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#results"><span class="header-section-number">10</span> Benchmark results</a></li>
+<li><a class="nav-link" href="#results-question"><span class="header-section-number">10.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#results-setup"><span class="header-section-number">10.2</span> Setup</a></li>
+<li><a class="nav-link" href="#results-background"><span class="header-section-number">10.3</span> What the grid holds</a></li>
+<li><a class="nav-link" href="#results-core"><span class="header-section-number">10.4</span> Where the benchmark has resolving power</a></li>
+<li><a class="nav-link" href="#results-results"><span class="header-section-number">10.5</span> Results</a></li>
+<li><a class="nav-link" href="#results-diagnostics"><span class="header-section-number">10.6</span> Diagnostics</a></li>
+<li><a class="nav-link" href="#results-limits"><span class="header-section-number">10.7</span> Where it fails</a></li>
+<li><a class="nav-link" href="#results-rule"><span class="header-section-number">10.8</span> The pre-registered selection rule</a></li>
+<li><a class="nav-link" href="#results-reproduce"><span class="header-section-number">10.9</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#results-reading"><span class="header-section-number">10.10</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -298,7 +786,7 @@ arm B swept and the one that carries the question.</li>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 11 Crease patterns vs. the Swiss roll | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. What separates the benchmarks is the SPREAD between methods at matched...">
+<meta name="description" content="Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim under test was that a crease pattern is a harder...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/comparison.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. What separates the benchmarks is the SPREAD between methods at matched...">
+<meta property="og:description" content="Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim under test was that a crease pattern is a harder...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
-<meta name="twitter:description" content="Does the new benchmark actually add anything? Head-to-head against Swiss roll and S-curve, same methods and same metrics. What separates the benchmarks is the SPREAD between methods at matched...">
+<meta name="twitter:description" content="Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim under test was that a crease pattern is a harder...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -115,19 +115,536 @@
 <span class="header-section-number">11</span> Crease patterns vs. the Swiss roll<a class="anchor" aria-label="anchor" href="#comparison"><i class="fas fa-link"></i></a>
 </h1>
 <p><em>Does the new benchmark actually add anything?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
-<ul>
-<li>Head-to-head against Swiss roll and S-curve, same methods and same metrics.</li>
-<li>What separates the benchmarks is the SPREAD between methods at matched
-difficulty, not a flip in their order. E1 looked for a flip and found none; it
-found a separation, with an interval from a cluster bootstrap over settings and
-a p-value from cluster-robust regression. A benchmark earns its keep by telling
-methods apart, and that is the statistic the chapter reports – read from
-<code>e1-controlled.rds</code> through an inline <code>r</code> expression, ratio and interval
-together, never the ratio alone.</li>
-<li>What the crease-pattern family surfaces that a single fixed geometry hides.</li>
-<li>An honest answer to “why not just use the Swiss roll?”</li>
-</ul>
+<div id="comp-question" class="section level2" number="11.1">
+<h2>
+<span class="header-section-number">11.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#comp-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>Yes — and not the thing this book set out to claim.</p>
+<p>The claim under test was that a crease pattern is a <em>harder</em> benchmark than the
+Swiss roll: that folding reaches difficulty the classical surfaces cannot.
+Experiment E1 was run before this chapter was drafted, precisely so that the
+prose could not outlive a refutation, and it refuted it. At matched difficulty a
+folded Miura is <strong>easier</strong> than a Swiss roll, and it tells the methods apart
+about five times less well.</p>
+<p>What survives is narrower and better founded. The Swiss roll is one fixed
+geometry, and the answer key usually shipped with it is not its isometric chart.
+The severed sphere has no exact answer key and, by Gauss’s theorem, cannot have
+one. A crease pattern is a whole family indexed by <span class="math inline">\(\theta\)</span> whose chart is exact
+at every point of it. The contribution is the answer key and the axis, not the
+difficulty — which is why Chapters <a href="benchmarks.html#benchmarks">8</a> and <a href="evaluation.html#evaluation">9</a> are
+where it pays, and this chapter is where it does not.</p>
+</div>
+<div id="comp-setup" class="section level2" number="11.2">
+<h2>
+<span class="header-section-number">11.2</span> Setup<a class="anchor" aria-label="anchor" href="#comp-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb79"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/classic-grid.rds"</span>,   <span class="st">"d71fb3ba0ad5de68"</span><span class="op">)</span></span>
+<span><span class="va">crease</span>  <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/benchmark-grid.rds"</span>, <span class="st">"2483a468d82d4d64"</span><span class="op">)</span></span>
+<span><span class="va">e1</span>      <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/e1-controlled.rds"</span>,  <span class="st">"01d82cfe8f45bb44"</span><span class="op">)</span></span>
+<span><span class="va">armB</span>    <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/e1-armB.rds"</span>,        <span class="st">"cbf9ce13782a556d"</span><span class="op">)</span></span></code></pre></div>
+<p><code>classic-grid.rds</code> is the Swiss roll, the S-curve and the severed sphere scored
+through the same <code>grid_cell()</code> the crease grid uses: same methods, same metrics,
+same floor. Nothing on either side is special-cased. The two E1 artefacts are the
+controlled arm and the crease-count arm of the experiment that decided this
+chapter’s claim, and <code>scripts/experiment-e1.R</code> produced both before it was
+drafted.</p>
+</div>
+<div id="comp-background" class="section level2" number="11.3">
+<h2>
+<span class="header-section-number">11.3</span> Background<a class="anchor" aria-label="anchor" href="#comp-background"><i class="fas fa-link"></i></a>
+</h2>
+<div id="the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped" class="section level3" number="11.3.1">
+<h3>
+<span class="header-section-number">11.3.1</span> The Swiss roll has an exact chart, and it is usually not the one shipped<a class="anchor" aria-label="anchor" href="#the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped"><i class="fas fa-link"></i></a>
+</h3>
+<p>A Swiss roll is a rectangle of paper wound onto a spiral. It arrived with Isomap
+<span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>, appeared the same year in the LLE paper beside the
+S-curve <span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span>, and has been the first figure of the subject ever
+since <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span>.</p>
+<p>It is developable, so it <em>does</em> have an isometric chart, and the chart is cheap:
+arc length along the spiral paired with height. For the Archimedean spiral
+<span class="math inline">\(r = at\)</span> the arc length is closed form,</p>
+<p><span class="math display">\[s(t) = \frac{a}{2}\left[\,t\sqrt{1+t^{2}} + \operatorname{asinh} t\,\right],\]</span></p>
+<p>which is <code>archimedean_arclength()</code> in <code>R/baselines.R</code>. So the Swiss roll is not
+short of ground truth. What it is usually short of is the <em>right</em> ground truth:
+the key shipped with it is the generating angle, and arc length is not
+proportional to angle.</p>
+<div class="sourceCode" id="cb80"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">roll_ang</span> <span class="op">&lt;-</span> <span class="fu">swiss_roll</span><span class="op">(</span><span class="va">N_DEFAULT</span>, turns <span class="op">=</span> <span class="fl">2</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>                       isometric <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">eul_ang</span>  <span class="op">&lt;-</span> <span class="fu">swiss_roll</span><span class="op">(</span><span class="va">N_DEFAULT</span>, turns <span class="op">=</span> <span class="fl">2</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>                       isometric <span class="op">=</span> <span class="cn">FALSE</span>, spiral <span class="op">=</span> <span class="st">"euler"</span><span class="op">)</span></span>
+<span><span class="va">key_gap</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>archimedean <span class="op">=</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">roll_ang</span><span class="op">$</span><span class="va">truth</span>, <span class="va">roll_ang</span><span class="op">$</span><span class="va">iso_chart</span><span class="op">)</span>,</span>
+<span>              euler       <span class="op">=</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">eul_ang</span><span class="op">$</span><span class="va">truth</span>,  <span class="va">eul_ang</span><span class="op">$</span><span class="va">iso_chart</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">key_qnx</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>archimedean <span class="op">=</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">roll_ang</span><span class="op">$</span><span class="va">truth</span>, <span class="va">roll_ang</span><span class="op">$</span><span class="va">iso_chart</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span>,</span>
+<span>              euler       <span class="op">=</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">eul_ang</span><span class="op">$</span><span class="va">truth</span>,  <span class="va">eul_ang</span><span class="op">$</span><span class="va">iso_chart</span>,  K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sphere</span>   <span class="op">&lt;-</span> <span class="fu">severed_sphere</span><span class="op">(</span><span class="va">N_DEFAULT</span>, cap <span class="op">=</span> <span class="fl">0.4</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">stretch</span>  <span class="op">&lt;-</span> <span class="op">(</span><span class="va">pi</span> <span class="op">-</span> <span class="va">sphere</span><span class="op">$</span><span class="va">cap</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="va">sphere</span><span class="op">$</span><span class="va">cap</span><span class="op">)</span>    <span class="co"># r / (R sin(r/R)) at the rim</span></span>
+<span><span class="va">n_sphere</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">classic</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"severed_sphere"</span> <span class="op">&amp;</span> <span class="va">classic</span><span class="op">$</span><span class="va">ran</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strwrap.html">strwrap</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="fu">require_exact_truth</span><span class="op">(</span><span class="va">sphere</span>, <span class="st">"a reconstruction score"</span><span class="op">)</span>,</span>
+<span>                     error <span class="op">=</span> <span class="va">conditionMessage</span><span class="op">)</span>, <span class="fl">72</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div>
+<pre><code>a reconstruction score needs exact ground truth, and this sample does
+not have it: severed_sphere carries a conventional chart (equidistant
+(a convention; no isometric chart exists)). Scoring against it measures
+agreement with a convention, not recovery of a structure.</code></pre>
+<p>Score the customary angle chart against the arc-length chart on one two-turn
+roll and the gap is 0.567 in normalised
+Procrustes RMSE, with <span class="math inline">\(Q_{NX}\)</span> at 0.462. That
+is not a rounding difference. An evaluation against the angle chart measures
+recovery of a reparameterisation, and the factor by which it is wrong is a
+property of the roll rather than of the method under test.</p>
+<p>The defect is known and was fixed in 2017. Schoeneman et al. proposed the Euler
+Isometric Swiss Roll <span class="citation">(<a href="references.html#ref-schoeneman2017error">10</a>)</span>, replacing the Archimedean spiral
+with the Fresnel integrals; it has been used since <span class="citation">(<a href="references.html#ref-mahapatra2018learning">38</a>)</span>.
+Their stated reason is that curvature proportional to arc length “ensures that
+isometry is preserved”. The checkable reason is simpler: the Fresnel
+parameterisation is <strong>unit speed</strong>, so the parameter <em>is</em> arc length by
+definition. Label an Euler roll by its turning angle instead and the same error
+appears at 0.258 — smaller, and not zero.</p>
+<p>Every Swiss roll in this book is scored against arc length. Figure
+<a href="comparison.html#fig:comp-chart">11.1</a> is why.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:comp-chart"></span>
+<img src="11-versus-swiss-roll_files/figure-html/comp-chart-1.png" alt="A line chart with position by turning angle on the horizontal axis and position by arc length on the vertical axis, both scaled to the unit interval. A straight grey diagonal marks equality. A solid dark curve for the Archimedean spiral bows well below the diagonal, farthest from it around the middle of the range. A dashed lighter curve for the Euler spiral bows above the diagonal by a much smaller amount. Both curves meet the diagonal only at the two ends." width="90%"><p class="caption">
+Figure 11.1: Position along the spiral measured two ways, on the same sample. The grey diagonal is where the two agree. The Archimedean roll’s customary angle chart departs from arc length across the whole sweep; the Euler roll’s departs far less, because its parameterisation is unit speed.
+</p>
+</div>
+</div>
+<div id="the-severed-sphere-has-no-answer-key-at-all" class="section level3" number="11.3.2">
+<h3>
+<span class="header-section-number">11.3.2</span> The severed sphere has no answer key at all<a class="anchor" aria-label="anchor" href="#the-severed-sphere-has-no-answer-key-at-all"><i class="fas fa-link"></i></a>
+</h3>
+<p>Say it bluntly. A sphere has constant positive Gaussian curvature, the plane has
+none, and curvature is intrinsic — Gauss’s <em>Theorema Egregium</em>. No chart of any
+patch of a sphere preserves distances, however small the patch and however
+clever the chart. <code>severed_sphere()</code> therefore ships a <strong>convention</strong>: the
+azimuthal-equidistant chart about the retained pole, which gets every radial
+geodesic exactly right and stretches every circle around it by
+<span class="math inline">\(r / (R\sin(r/R))\)</span> — a factor reaching 7.04 at the rim of the
+largest patch in the classic grid.</p>
+<p>The object knows this, and the refusal printed above is <code>require_exact_truth()</code>
+reading the flag. That guard fires only where something calls it. <code>grid_cell()</code>
+does not, so the classic grid scored the severed sphere 1280 times,
+exactly as it scored the roll. Those numbers exist, they are in the committed
+artefact, and this chapter reports none of them as recovery of a structure.</p>
+</div>
+</div>
+<div id="comp-core" class="section level2" number="11.4">
+<h2>
+<span class="header-section-number">11.4</span> Difficulty has two axes, not one<a class="anchor" aria-label="anchor" href="#comp-core"><i class="fas fa-link"></i></a>
+</h2>
+<div id="the-knob-has-to-move-the-right-thing" class="section level3" number="11.4.1">
+<h3>
+<span class="header-section-number">11.4.1</span> The knob has to move the right thing<a class="anchor" aria-label="anchor" href="#the-knob-has-to-move-the-right-thing"><i class="fas fa-link"></i></a>
+</h3>
+<p>Both families have a difficulty parameter, and both parameters have to be
+checked, because the obvious version of each does nothing.</p>
+<p>For the Swiss roll it is the turn count, and the obvious parameterisation — let
+the angle run further and the radius run with it — adds revolutions at <em>constant</em>
+sheet spacing, so the <span class="math inline">\(k\)</span>-nearest-neighbour graph stays faithful however many
+turns are asked for. <code>swiss_roll()</code> instead holds the outer radius fixed and
+fits the requested revolutions inside it, so the radial gap between consecutive
+sheets falls as one over the turn count. That is Balasubramanian and Schwartz’s
+gap-to-spacing ratio <span class="math inline">\(g/s\)</span> <span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span>, and it is the one axis
+both families can be plotted against.</p>
+<p>For a crease pattern it is <span class="math inline">\(\theta\)</span>. But folding does two things at once: it
+brings distant sheets together <em>and</em> it lifts the sheet out of the plane. The
+second is what <code>non_planarity()</code> measures — the share of ambient variance no
+plane captures, the third principal eigenvalue over their sum.</p>
+<div class="sourceCode" id="cb82"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">axes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/eval.html">local</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">seeds</span> <span class="op">&lt;-</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span>
+<span>  <span class="va">one</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">family</span>, <span class="va">par</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
+<span>    family <span class="op">=</span> <span class="va">family</span>, par <span class="op">=</span> <span class="va">par</span>, np <span class="op">=</span> <span class="fu">non_planarity</span><span class="op">(</span><span class="va">m</span><span class="op">)</span>,</span>
+<span>    gs <span class="op">=</span> <span class="fu">branch_gap</span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">$</span><span class="va">ratio</span>, sc <span class="op">=</span> <span class="fu">short_circuit_index</span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">run</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">vals</span>, <span class="va">family</span>, <span class="va">make</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">vals</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">seeds</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu">one</span><span class="op">(</span><span class="fu">make</span><span class="op">(</span><span class="va">v</span>, <span class="va">s</span><span class="op">)</span>, <span class="va">family</span>, <span class="va">v</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span></span>
+<span>    <span class="fu">run</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">classic</span><span class="op">$</span><span class="va">par</span><span class="op">[</span><span class="va">classic</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"swiss_roll"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="st">"Swiss roll"</span>,</span>
+<span>        <span class="kw">function</span><span class="op">(</span><span class="va">v</span>, <span class="va">s</span><span class="op">)</span> <span class="fu">swiss_roll</span><span class="op">(</span><span class="va">N_DEFAULT</span>, turns <span class="op">=</span> <span class="va">v</span>, seed <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu">run</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">classic</span><span class="op">$</span><span class="va">par</span><span class="op">[</span><span class="va">classic</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"severed_sphere"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>        <span class="st">"severed sphere"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span>, <span class="va">s</span><span class="op">)</span> <span class="fu">severed_sphere</span><span class="op">(</span><span class="va">N_DEFAULT</span>, cap <span class="op">=</span> <span class="va">v</span>, seed <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu">run</span><span class="op">(</span><span class="cn">NA_real_</span>, <span class="st">"S-curve"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span>, <span class="va">s</span><span class="op">)</span> <span class="fu">s_curve</span><span class="op">(</span><span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu">run</span><span class="op">(</span><span class="va">THETA_GRID</span>, <span class="st">"Miura"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span>, <span class="va">s</span><span class="op">)</span></span>
+<span>      <span class="fu">sample_manifold</span><span class="op">(</span><span class="fu">miura_ori</span><span class="op">(</span><span class="fl">6L</span>, <span class="fl">6L</span><span class="op">)</span>, theta <span class="op">=</span> <span class="va">v</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="va">s</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="co"># The S-curve is added by hand because it has no difficulty parameter at all;</span></span>
+<span><span class="co"># aggregate() drops a group whose key is NA, and inventing a key would be worse.</span></span>
+<span><span class="va">cell</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">np</span>, <span class="va">gs</span>, <span class="va">sc</span><span class="op">)</span> <span class="op">~</span> <span class="va">family</span> <span class="op">+</span> <span class="va">par</span>, <span class="va">axes</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">sc_rows</span> <span class="op">&lt;-</span> <span class="va">axes</span><span class="op">[</span><span class="va">axes</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"S-curve"</span>, <span class="op">]</span></span>
+<span><span class="va">cell</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span><span class="va">cell</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>family <span class="op">=</span> <span class="st">"S-curve"</span>, par <span class="op">=</span> <span class="cn">NA_real_</span>,</span>
+<span>                               np <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">sc_rows</span><span class="op">$</span><span class="va">np</span><span class="op">)</span>, gs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">sc_rows</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span>,</span>
+<span>                               sc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">sc_rows</span><span class="op">$</span><span class="va">sc</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">np_top</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">cell</span><span class="op">$</span><span class="va">np</span><span class="op">[</span><span class="va">cell</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"Miura"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">np_bot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">cell</span><span class="op">$</span><span class="va">np</span><span class="op">[</span><span class="va">cell</span><span class="op">$</span><span class="va">family</span> <span class="op">!=</span> <span class="st">"Miura"</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">swept</span> <span class="op">&lt;-</span> <span class="va">cell</span><span class="op">[</span><span class="va">cell</span><span class="op">$</span><span class="va">family</span> <span class="op">!=</span> <span class="st">"S-curve"</span>, <span class="op">]</span></span>
+<span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">cell</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">gs</span>, <span class="va">np</span>, colour <span class="op">=</span> <span class="va">family</span>, shape <span class="op">=</span> <span class="va">family</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="co"># Finite bounds, not +/- Inf: under a log transform an infinite limit is NaN</span></span>
+<span>  <span class="co"># and the band silently does not draw.</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/annotate.html">annotate</a></span><span class="op">(</span><span class="st">"rect"</span>, xmin <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">cell</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span>, xmax <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">cell</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span> <span class="op">*</span> <span class="fl">2</span>,</span>
+<span>                    ymin <span class="op">=</span> <span class="va">np_top</span>, ymax <span class="op">=</span> <span class="va">np_bot</span>, fill <span class="op">=</span> <span class="st">"grey70"</span>, alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">swept</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">swept</span><span class="op">$</span><span class="va">family</span>, <span class="va">swept</span><span class="op">$</span><span class="va">par</span><span class="op">)</span>, <span class="op">]</span>,</span>
+<span>                     <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>group <span class="op">=</span> <span class="va">family</span><span class="op">)</span>, linewidth <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2.3</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_x_continuous</a></span><span class="op">(</span>transform <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"log10"</span>, <span class="st">"reverse"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">scale_colour_book</span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0.05</span>, end <span class="op">=</span> <span class="fl">0.78</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"gap-to-spacing ratio (log scale, harder to the right)"</span>,</span>
+<span>                y <span class="op">=</span> <span class="st">"ambient non-planarity"</span>, colour <span class="op">=</span> <span class="cn">NULL</span>, shape <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">theme_fold</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:comp-plane"></span>
+<img src="11-versus-swiss-roll_files/figure-html/comp-plane-1.png" alt="A scatter plot with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and ambient non-planarity from zero to about 0.32 on the vertical axis. A connected run of Miura points sweeps along the bottom of the panel and never rises above about 0.06. A connected run of Swiss roll points sits in a narrow horizontal band near 0.09 to 0.13, with the S-curve as a single point beside them, and severed sphere points well above at 0.22 to 0.30. A grey shaded horizontal band separates the Miura run from everything else and contains no points." width="90%"><p class="caption">
+Figure 11.2: The two difficulty axes. Each family sweeps its own parameter; difficulty rises to the right. The shaded band is empty, so over this design there is no setting at which a folded Miura and a classical surface are comparable on both axes at once.
+</p>
+</div>
+<p>The ranges are <strong>disjoint</strong>. Across the whole <span class="math inline">\(\theta\)</span> sweep a six-by-six Miura
+covers non-planarity from
+0.000 to
+0.056; the Swiss rolls in the classic grid cover
+0.090 to
+0.124, the S-curve sits
+at 0.116, and the severed
+sphere starts at
+0.218 and rises. The
+corridor between 0.056 and 0.090 is
+empty.</p>
+<p>Figure <a href="comparison.html#fig:comp-plane">11.2</a> is the argument. A sweep of <span class="math inline">\(\theta\)</span> alone is not a
+controlled comparison, because it moves both axes together and the families
+never meet on the second. At the easy end of the <span class="math inline">\(g/s\)</span> range a Miura is a flat
+plane, which PCA recovers exactly; a Swiss roll at the same separation is still
+curved, and PCA cannot.</p>
+<p>The third column of <code>cell</code> is the reason <span class="math inline">\(g/s\)</span> carries the first axis rather
+than the more obvious candidate. <code>short_circuit_index()</code> asks whether the
+neighbours a method would actually pick are neighbours on the surface too; it is
+scale-free, bounded above by one, and comparable across families, which makes it
+the better-behaved statistic of the two. It is also nearly constant over most of
+this design. Across the classic grid’s turn range it falls only from
+1.000 to
+0.703, and almost all of
+that drop happens at the last two settings; across the whole <span class="math inline">\(\theta\)</span> sweep the
+Miura falls from 1.000 to
+0.799; the severed sphere
+never leaves
+0.999. A difficulty
+axis that is flat until the very end of the range cannot order the settings in
+between, so the comparison is made on <span class="math inline">\(g/s\)</span> and the short-circuit index is
+reported beside it as the check that <span class="math inline">\(g/s\)</span> is not measuring the sampler.</p>
+</div>
+<div id="the-fix-and-what-it-costs" class="section level3" number="11.4.2">
+<h3>
+<span class="header-section-number">11.4.2</span> The fix, and what it costs<a class="anchor" aria-label="anchor" href="#the-fix-and-what-it-costs"><i class="fas fa-link"></i></a>
+</h3>
+<p><span class="math inline">\(\theta\)</span> is not the only knob the generator has. Cell count dominates
+non-planarity: a small Miura at a wide opening angle and a deep fold reaches
+above anything the Swiss roll produces, while a six-by-six at the same angles
+stays an order of magnitude below. Sweeping <span class="math inline">\((n_x, \alpha, \theta)\)</span> decouples the
+axes and creates the overlap a <span class="math inline">\(\theta\)</span> sweep lacks. That is what E1’s second arm
+did, and it is what <code>e1-controlled.rds</code> holds.</p>
+<p>Crease count on its own does nothing. Arm B holds <span class="math inline">\(g/s\)</span> fixed and varies the
+tessellation from nine facets to a hundred and forty-four; PCA’s mean error moves
+between
+0.039
+and
+0.071,
+Isomap’s between
+0.028
+and
+0.038,
+and neither monotonically. Error is flat in crease count at matched separation.
+Whatever makes these patterns hard, it is not that they have creases.</p>
+</div>
+<div id="one-geometry-against-a-family" class="section level3" number="11.4.3">
+<h3>
+<span class="header-section-number">11.4.3</span> One geometry against a family<a class="anchor" aria-label="anchor" href="#one-geometry-against-a-family"><i class="fas fa-link"></i></a>
+</h3>
+<p>This is the structural difference, and it survives everything the measurements
+below do to the rest of the chapter. A Swiss roll’s turn count changes how
+tightly one shape is wound; it is a real knob, and <code>swiss_roll()</code> makes it one. A
+crease pattern gives a <em>family</em>: the same exact chart at every <span class="math inline">\(\theta\)</span>, so a
+method’s score is a curve rather than a point and the shape of the curve is a
+property of the method. Nothing about the classical surfaces forbids such a
+sweep, and one is drawn here. What they cannot supply is the exact key at the far
+end of it.</p>
+<p>Nor have they had to break the habit that goes with a fixed geometry. A Swiss
+roll’s answer key is two-dimensional and its failures are legible, so the
+customary report is a picture: the unrolled sheet either comes out as a rectangle
+or it does not, and the reader is invited to agree. That is a serviceable way to
+show a method working and a poor way to compare two that both nearly work — which
+is exactly the regime the dispute over two-dimensional embeddings lives in
+<span class="citation">(<a href="references.html#ref-chari2023specious">1</a>,<a href="references.html#ref-lause2024elephant">2</a>)</span>. A parameterised family forces the
+question into a number at every setting, and the number is what the rest of this
+chapter argues over.</p>
+</div>
+</div>
+<div id="comp-results" class="section level2" number="11.5">
+<h2>
+<span class="header-section-number">11.5</span> Results<a class="anchor" aria-label="anchor" href="#comp-results"><i class="fas fa-link"></i></a>
+</h2>
+<div id="the-head-to-head-matched-on-separation-alone" class="section level3" number="11.5.1">
+<h3>
+<span class="header-section-number">11.5.1</span> The head-to-head, matched on separation alone<a class="anchor" aria-label="anchor" href="#the-head-to-head-matched-on-separation-alone"><i class="fas fa-link"></i></a>
+</h3>
+<p>Match each Swiss roll to the <span class="math inline">\(\theta\)</span> whose measured <span class="math inline">\(g/s\)</span> is nearest, keep the
+ones landing inside the crease family’s range, and score both sides from the
+committed grids at the same eight methods, the same twenty seeds and no noise.</p>
+<div class="sourceCode" id="cb83"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mi</span> <span class="op">&lt;-</span> <span class="va">cell</span><span class="op">[</span><span class="va">cell</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"Miura"</span>, <span class="op">]</span></span>
+<span><span class="va">ro</span> <span class="op">&lt;-</span> <span class="va">cell</span><span class="op">[</span><span class="va">cell</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"Swiss roll"</span>, <span class="op">]</span></span>
+<span><span class="va">ro</span> <span class="op">&lt;-</span> <span class="va">ro</span><span class="op">[</span><span class="va">ro</span><span class="op">$</span><span class="va">gs</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">mi</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">ro</span><span class="op">$</span><span class="va">gs</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">mi</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">near</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">ro</span><span class="op">$</span><span class="va">gs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/which.min.html">which.min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">mi</span><span class="op">$</span><span class="va">gs</span> <span class="op">-</span> <span class="va">x</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ro</span><span class="op">$</span><span class="va">theta</span>    <span class="op">&lt;-</span> <span class="va">mi</span><span class="op">$</span><span class="va">par</span><span class="op">[</span><span class="va">near</span><span class="op">]</span></span>
+<span><span class="va">ro</span><span class="op">$</span><span class="va">mismatch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">mi</span><span class="op">$</span><span class="va">gs</span><span class="op">[</span><span class="va">near</span><span class="op">]</span> <span class="op">-</span> <span class="va">ro</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span> <span class="op">/</span> <span class="va">ro</span><span class="op">$</span><span class="va">gs</span></span>
+<span></span>
+<span><span class="va">A</span> <span class="op">&lt;-</span> <span class="va">classic</span><span class="op">[</span><span class="va">classic</span><span class="op">$</span><span class="va">family</span> <span class="op">==</span> <span class="st">"swiss_roll"</span> <span class="op">&amp;</span> <span class="va">classic</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"none"</span> <span class="op">&amp;</span></span>
+<span>             <span class="va">classic</span><span class="op">$</span><span class="va">ran</span> <span class="op">&amp;</span> <span class="va">classic</span><span class="op">$</span><span class="va">par</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">ro</span><span class="op">$</span><span class="va">par</span>, <span class="op">]</span></span>
+<span><span class="va">B</span> <span class="op">&lt;-</span> <span class="va">crease</span><span class="op">[</span><span class="va">crease</span><span class="op">$</span><span class="va">noise</span> <span class="op">==</span> <span class="st">"none"</span> <span class="op">&amp;</span> <span class="va">crease</span><span class="op">$</span><span class="va">ran</span> <span class="op">&amp;</span> <span class="va">crease</span><span class="op">$</span><span class="va">theta</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">ro</span><span class="op">$</span><span class="va">theta</span>, <span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html">all</a></span><span class="op">(</span><span class="va">A</span><span class="op">$</span><span class="va">seed</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">BENCH_SEEDS</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/all.html">all</a></span><span class="op">(</span><span class="va">B</span><span class="op">$</span><span class="va">seed</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">BENCH_SEEDS</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html">merge</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">rmse</span>, <span class="va">qnx</span><span class="op">)</span> <span class="op">~</span> <span class="va">method</span>, <span class="va">A</span>, <span class="va">mean</span><span class="op">)</span>,</span>
+<span>                    <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"roll_rmse"</span>, <span class="st">"roll_qnx"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>           <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">rmse</span>, <span class="va">qnx</span><span class="op">)</span> <span class="op">~</span> <span class="va">method</span>, <span class="va">B</span>, <span class="va">mean</span><span class="op">)</span>,</span>
+<span>                    <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"cr_rmse"</span>, <span class="st">"cr_qnx"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">h</span> <span class="op">&lt;-</span> <span class="va">h</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">h</span><span class="op">$</span><span class="va">roll_rmse</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">rho</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>rmse <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">h</span><span class="op">$</span><span class="va">roll_rmse</span>, <span class="va">h</span><span class="op">$</span><span class="va">cr_rmse</span>, method <span class="op">=</span> <span class="st">"spearman"</span><span class="op">)</span>,</span>
+<span>         qnx  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">h</span><span class="op">$</span><span class="va">roll_qnx</span>,  <span class="va">h</span><span class="op">$</span><span class="va">cr_qnx</span>,  method <span class="op">=</span> <span class="st">"spearman"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">gap</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d</span>, <span class="va">key</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/reshape.html">reshape</a></span><span class="op">(</span><span class="va">d</span><span class="op">[</span><span class="va">d</span><span class="op">$</span><span class="va">method</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"pca"</span>, <span class="st">"isomap"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">key</span>, <span class="st">"seed"</span>, <span class="st">"method"</span>, <span class="st">"rmse"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>               idvar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">key</span>, <span class="st">"seed"</span><span class="op">)</span>, timevar <span class="op">=</span> <span class="st">"method"</span>, direction <span class="op">=</span> <span class="st">"wide"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">rmse.pca</span> <span class="op">-</span> <span class="va">w</span><span class="op">$</span><span class="va">rmse.isomap</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">naive</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu">gap</span><span class="op">(</span><span class="va">A</span>, <span class="st">"par"</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu">gap</span><span class="op">(</span><span class="va">B</span>, <span class="st">"theta"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>That leaves 3 matched pairs, agreeing to within
+6.8% in <span class="math inline">\(g/s\)</span>.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:comp-ranking"></span>
+<img src="11-versus-swiss-roll_files/figure-html/comp-ranking-1.png" alt="A dumbbell chart. Eight methods run down the vertical axis, ordered by Swiss-roll error with Isomap at the top and PCA and classical MDS at the bottom. Each method carries two markers joined by a grey segment, one for the Swiss roll and one for the matched Miura. Every Miura marker lies to the left of its Swiss-roll marker, that is at lower error. For Isomap the two nearly coincide near zero; for PCA and MDS the Miura marker sits far to the left while the Swiss-roll marker is at the extreme right." width="90%"><p class="caption">
+Figure 11.3: Mean reconstruction error of eight methods on a Swiss roll and on a Miura matched to it in gap-to-spacing ratio. Methods are ordered by their Swiss-roll score, and the connecting segments make the reordering visible: the two linear methods move from joint last to near the front.
+</p>
+</div>
+<p>The two rankings barely correlate: Spearman 0.036 on
+reconstruction error and -0.060 on <span class="math inline">\(Q_{NX}\)</span>. So the
+classical benchmark <em>does</em> rank methods differently — and the order it produces
+is the one the field has internalised. Isomap first, the linear methods joint
+last: the picture the Swiss roll was introduced to make
+<span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>, and the one against which the neighbour embeddings have
+been read ever since <span class="citation">(<a href="references.html#ref-vandermaaten2008tsne">7</a>,<a href="references.html#ref-mcinnes2018umap">8</a>)</span>.</p>
+<p>The reordering is not a shuffle at the margin. PCA and classical MDS score
+0.898 on the roll, joint last of
+eight, and 0.093 on the Miura matched
+to it, which is second. Isomap barely moves —
+0.049 against
+0.065 — and neither does its
+<span class="math inline">\(Q_{NX}\)</span>, 0.860 against
+0.864. Every method scores better
+on the crease side, which is the first thing to notice: at matched separation the
+folded sheet is the easier object for all eight. What changes the order is that
+the linear methods gain far more from the change than the geodesic one does.</p>
+</div>
+<div id="why-that-answer-is-the-wrong-one" class="section level3" number="11.5.2">
+<h3>
+<span class="header-section-number">11.5.2</span> Why that answer is the wrong one<a class="anchor" aria-label="anchor" href="#why-that-answer-is-the-wrong-one"><i class="fas fa-link"></i></a>
+</h3>
+<p>Because the match was on one axis and there are two. PCA does well on a folded
+Miura for a reason that has nothing to do with creases: even at the largest
+<span class="math inline">\(\theta\)</span> this grid uses the sheet is still nearly planar, and a nearly planar
+object is what PCA is optimal for. Read off this comparison, the Swiss roll
+separates PCA from Isomap 30 times better than the crease
+pattern does — a number produced almost entirely by the axis the match failed to
+control.</p>
+</div>
+<div id="the-controlled-comparison" class="section level3" number="11.5.3">
+<h3>
+<span class="header-section-number">11.5.3</span> The controlled comparison<a class="anchor" aria-label="anchor" href="#the-controlled-comparison"><i class="fas fa-link"></i></a>
+</h3>
+<p><code>e1-controlled.rds</code> sweeps <span class="math inline">\((n_x, \alpha, \theta)\)</span> against turns, and has an
+overlap region in which both axes lie inside the joint range of the two families.</p>
+<div class="sourceCode" id="cb84"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ctl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/eval.html">local</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">e1</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html">is.finite</a></span><span class="op">(</span><span class="va">e1</span><span class="op">$</span><span class="va">rmse</span><span class="op">)</span>, <span class="op">]</span>; <span class="va">s</span><span class="op">$</span><span class="va">lg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">gs</span><span class="op">)</span></span>
+<span>  <span class="va">s</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">lg</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">lg</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">min</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">s</span><span class="op">$</span><span class="va">lg</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">lg</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">max</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span></span>
+<span>    <span class="va">s</span><span class="op">$</span><span class="va">np</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">np</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">min</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">s</span><span class="op">$</span><span class="va">np</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">np</span>, <span class="va">s</span><span class="op">$</span><span class="va">kind</span>, <span class="va">max</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/reshape.html">reshape</a></span><span class="op">(</span><span class="va">ctl</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"kind"</span>, <span class="st">"label"</span>, <span class="st">"seed"</span>, <span class="st">"method"</span>, <span class="st">"rmse"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>             idvar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"kind"</span>, <span class="st">"label"</span>, <span class="st">"seed"</span><span class="op">)</span>, timevar <span class="op">=</span> <span class="st">"method"</span>,</span>
+<span>             direction <span class="op">=</span> <span class="st">"wide"</span><span class="op">)</span></span>
+<span><span class="va">w</span><span class="op">$</span><span class="va">spread</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">rmse.pca</span> <span class="op">-</span> <span class="va">w</span><span class="op">$</span><span class="va">rmse.isomap</span><span class="op">)</span></span>
+<span><span class="va">sp</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">spread</span>, <span class="va">w</span><span class="op">$</span><span class="va">kind</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">ratio</span> <span class="op">&lt;-</span> <span class="va">sp</span><span class="op">[[</span><span class="st">"classic"</span><span class="op">]</span><span class="op">]</span> <span class="op">/</span> <span class="va">sp</span><span class="op">[[</span><span class="st">"crease"</span><span class="op">]</span><span class="op">]</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span>                       <span class="co"># cluster bootstrap, resampling whole settings</span></span>
+<span><span class="va">boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="op">{</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span><span class="op">(</span><span class="va">w</span>, <span class="va">w</span><span class="op">$</span><span class="va">kind</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">l</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">label</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">l</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">d</span><span class="op">$</span><span class="va">spread</span><span class="op">[</span><span class="va">d</span><span class="op">$</span><span class="va">label</span> <span class="op">==</span> <span class="va">x</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">r</span><span class="op">[[</span><span class="st">"classic"</span><span class="op">]</span><span class="op">]</span> <span class="op">/</span> <span class="va">r</span><span class="op">[[</span><span class="st">"crease"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">ci</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">boot</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">spread</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html">I</a></span><span class="op">(</span><span class="va">kind</span> <span class="op">==</span> <span class="st">"classic"</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">w</span><span class="op">)</span>   <span class="co"># cluster-robust by setting</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html">model.matrix</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>; <span class="va">u</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/residuals.html">residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>; <span class="va">bread</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/solve.html">solve</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/crossprod.html">crossprod</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">meat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">label</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="va">w</span><span class="op">$</span><span class="va">label</span> <span class="op">==</span> <span class="va">l</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/crossprod.html">tcrossprod</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/crossprod.html">crossprod</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span><span class="va">i</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>, <span class="va">u</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tval</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="op">(</span><span class="va">bread</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">meat</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">bread</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">pval</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/TDist.html">pt</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">tval</span><span class="op">)</span>, df <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">w</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">mscore</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">rmse</span>, <span class="va">qnx</span><span class="op">)</span> <span class="op">~</span> <span class="va">kind</span> <span class="op">+</span> <span class="va">method</span>, <span class="va">ctl</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="va">score</span>  <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">k</span>, <span class="va">m</span>, <span class="va">col</span><span class="op">)</span> <span class="va">mscore</span><span class="op">[[</span><span class="va">col</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">mscore</span><span class="op">$</span><span class="va">kind</span> <span class="op">==</span> <span class="va">k</span> <span class="op">&amp;</span> <span class="va">mscore</span><span class="op">$</span><span class="va">method</span> <span class="op">==</span> <span class="va">m</span><span class="op">]</span></span></code></pre></div>
+<p>9 crease settings and
+5 Swiss rolls survive the
+double restriction. Inside it <strong>the ranking is identical</strong>: Isomap first on both
+families, PCA and classical MDS behind it on both. Nothing flips.</p>
+<p>What differs is the spread. The mean gap between PCA and Isomap is
+0.574 on the classical side against
+0.113 on the crease side — a ratio of
+5.06, with a cluster bootstrap interval over settings of
+1.7 to 9.8 and a
+cluster-robust <span class="math inline">\(p\)</span> of 0.02. The absolute scores go the same
+way: PCA at 0.922 on a roll
+against 0.286 on a crease pattern,
+Isomap at 0.348 against
+0.183.</p>
+<p>State it in the book’s own voice. <strong>Crease patterns are not a harder benchmark;
+they are an easier one that discriminates less.</strong> A benchmark earns its keep by
+telling methods apart, and on that criterion the Swiss roll wins by a factor of
+about five.</p>
+<p>What that costs a reader is worth being concrete about. A benchmark whose methods
+sit 0.113 apart needs more replicates to separate
+two of them than one whose methods sit 0.574
+apart. Chapter <a href="results.html#results">10</a> turns that into a statistic of its own and reports
+where along the <span class="math inline">\(\theta\)</span> axis this benchmark has any resolving power at all;
+read next to the ratio above, the two are the same observation from opposite
+ends. It does not make the crease pattern useless — a benchmark whose
+answer key is exact can be asked questions a benchmark whose answer key is a
+convention cannot, and Chapter <a href="evaluation.html#evaluation">9</a> asks them — but anyone choosing
+between the two for a straight method comparison should choose the roll, and this
+chapter is where the book says so.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:comp-spread"></span>
+<img src="11-versus-swiss-roll_files/figure-html/comp-spread-1.png" alt="A line chart with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and the mean absolute difference between PCA and Isomap reconstruction error on the vertical axis from zero to about one. The Swiss roll curve climbs from about 0.4 at the left to a peak near 0.9 in the middle, then drops almost vertically to zero and stays there across the whole right-hand half. The Miura curve is nearly flat just above zero across its entire range, never exceeding about 0.05." width="90%"><p class="caption">
+Figure 11.4: How far apart each benchmark holds PCA and Isomap, across its whole sweep and at every seed the grids carry. Difficulty rises to the right. The Miura curve stays near the floor throughout. The Swiss roll separates the two methods widely over a middle window and then stops separating them at all, because past that window Isomap short-circuits and fails as completely as PCA.
+</p>
+</div>
+<p>Figure <a href="comparison.html#fig:comp-spread">11.4</a> attaches a caveat to that factor of five. The Swiss
+roll’s discriminating power is not monotone in its own difficulty. It reaches
+0.909 in a middle window
+and then collapses to
+0.0003 at the tightest
+rolls, where Isomap short-circuits and fails as completely as PCA does — so past
+that window the classical benchmark separates nothing either. The settings the
+head-to-head matched on sit inside the peak. That is the right place to measure a
+benchmark, on its best window rather than its worst, but the number is a
+statement about Swiss rolls there and not about Swiss rolls generally.</p>
+</div>
+</div>
+<div id="comp-diagnostics" class="section level2" number="11.6">
+<h2>
+<span class="header-section-number">11.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#comp-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<p>One objection deserves an answer before a reader raises it, and it is specific
+enough that a footnote would not do.</p>
+<p>E1’s decisive arm sampled with <code>boundary = TRUE</code>, because a two-by-two Miura
+leaves no room for the interior margin <code>sample_manifold()</code> normally draws inside.
+A Miura’s unfolded outline is not convex, so for a pair straddling one of its
+teeth the straight chart segment leaves the sheet and chart distance is a <em>lower
+bound</em> on the geodesic — Chapter <a href="folding-geometry.html#folding-geometry">2</a> measures this. An answer
+key that understates long distances penalises the geodesic method specifically,
+which is exactly the comparison being made.</p>
+<div class="sourceCode" id="cb85"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">labs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ctl</span><span class="op">$</span><span class="va">label</span><span class="op">[</span><span class="va">ctl</span><span class="op">$</span><span class="va">kind</span> <span class="op">==</span> <span class="st">"crease"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">exit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">labs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">q</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html">strsplit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html">sub</a></span><span class="op">(</span><span class="st">"^miura"</span>, <span class="st">""</span>, <span class="va">l</span><span class="op">)</span>, <span class="st">"/"</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">pat</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span><span class="op">(</span><span class="va">q</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span><span class="op">(</span><span class="va">q</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="va">q</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="fu">chart_exit_fraction</span><span class="op">(</span><span class="fu">sample_manifold</span><span class="op">(</span><span class="va">pat</span>, theta <span class="op">=</span> <span class="va">q</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span>, n <span class="op">=</span> <span class="fl">600L</span>,</span>
+<span>                                      seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, boundary <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="va">pat</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">loo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">labs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">k</span> <span class="op">&lt;-</span> <span class="va">w</span><span class="op">[</span><span class="va">w</span><span class="op">$</span><span class="va">kind</span> <span class="op">==</span> <span class="st">"classic"</span> <span class="op">|</span> <span class="va">w</span><span class="op">$</span><span class="va">label</span> <span class="op">!=</span> <span class="va">l</span>, <span class="op">]</span></span>
+<span>  <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html">tapply</a></span><span class="op">(</span><span class="va">k</span><span class="op">$</span><span class="va">spread</span>, <span class="va">k</span><span class="op">$</span><span class="va">kind</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span>  <span class="va">m</span><span class="op">[[</span><span class="st">"classic"</span><span class="op">]</span><span class="op">]</span> <span class="op">/</span> <span class="va">m</span><span class="op">[[</span><span class="st">"crease"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Between 0.00% and
+3.47% of sampled pairs are affected. Dropping the
+worst-affected setting moves the ratio from 5.06 to
+5.11, and over the
+9 leave-one-out refits it stays between
+4.41 and 5.80. The
+approximation biases against the finding rather than for it, and no single
+setting carries it.</p>
+<p>The second question a reader is entitled to ask is how much of the ratio is seed
+noise. Every cell above is an average over seeds — 5 in
+the controlled arm, 20 in the two grids — and the
+within-family scatter is large: the standard deviation of the PCA-to-Isomap gap
+across settings and seeds is 0.393
+on the classical side against
+0.070 on the crease side.
+That scatter is why the interval quoted above comes from a bootstrap over whole
+settings rather than over rows, and why the <span class="math inline">\(p\)</span>-value is cluster-robust: seeds
+within a setting are not independent draws of the quantity being estimated, and
+treating them as such would report an interval several times too narrow.</p>
+</div>
+<div id="comp-limits" class="section level2" number="11.7">
+<h2>
+<span class="header-section-number">11.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#comp-limits"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>The overlap is a corner.</strong> It holds
+9 crease settings,
+5 rolls, three methods and two
+metrics. The bootstrap interval —
+1.7 to 9.8 — is the honest
+width of the claim, and it is wide. The head-to-head above is broader in methods
+and narrower in control. Neither is the study a settled answer would need.</p>
+<p><strong>Under the neighbourhood metric the families nearly do collapse.</strong> Isomap scores
+0.773 on creases against
+0.778 on Swiss rolls. The whole
+difference between the families sits in how badly the linear methods fail, and
+that is a fact about ambient non-planarity rather than about creases.</p>
+<p><strong>The pre-registration got nothing right.</strong> <code>PLAN.md</code> drafted three outcomes
+before the run. The families did not collapse; they did not separate in the
+registered sense, which was <em>different rankings</em>, and the ranking is identical;
+and arm B’s null settled neither. The replacement claim is in this book because
+it fits the evidence, not because its antecedent was met, and recording that is
+what pre-registration is for.</p>
+<p><strong>The Swiss roll is still the right tool for two jobs.</strong> It is the clearest
+picture in the subject and it belongs in a first lecture, and a pipeline that
+fails on it is broken. What it cannot be is the evidence, because one fixed
+geometry has nowhere to put a curve.</p>
+</div>
+<div id="comp-reproduce" class="section level2" number="11.8">
+<h2>
+<span class="header-section-number">11.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#comp-reproduce"><i class="fas fa-link"></i></a>
+</h2>
+<p><code>scripts/run-classic-grid.R</code> writes <code>classic-grid.rds</code>, <code>scripts/experiment-e1.R</code>
+the three E1 artefacts, <code>scripts/run-benchmark-grid.R</code> the crease grid; all are
+committed with provenance. <code>tests/testthat/test-baselines.R</code> asserts the
+arc-length closed form, the Fresnel error, the sphere’s stretch factor and the
+refusal printed above.</p>
+</div>
+<div id="comp-reading" class="section level2" number="11.9">
+<h2>
+<span class="header-section-number">11.9</span> Further reading<a class="anchor" aria-label="anchor" href="#comp-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>The Swiss roll and the S-curve enter with Isomap <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span> and LLE
+<span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span>; Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> is the textbook treatment
+and the place to see how settled their role became. Balasubramanian and Schwartz
+<span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span> is one page long and is the origin of the
+gap-to-spacing argument this chapter’s first axis rests on.</p>
+<p>On the answer key, Schoeneman et al. <span class="citation">(<a href="references.html#ref-schoeneman2017error">10</a>)</span> is the paper that
+noticed the Archimedean roll’s chart was not isometric and proposed the Euler
+replacement, and Mahapatra and Chandola <span class="citation">(<a href="references.html#ref-mahapatra2018learning">38</a>)</span> use it. This
+chapter’s contribution is not the observation but its size.</p>
+<p>On what a comparison of this kind can establish, Espadoto et al.
+<span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey the quantitative benchmarks and Machado et al.
+<span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span> argue that the projection quality metrics they rest on
+are necessary but not sufficient — a caution that applies with full force to the
+five-fold separation reported above. The dispute about reading two-dimensional
+embeddings at all <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>,<a href="references.html#ref-lause2024elephant">2</a>)</span> is the reason this
+book measures rather than argues.</p>
+
+</div>
 </div>
 
 
@@ -137,7 +654,35 @@ together, never the ratio alone.</li>
 <div class="next"><a href="application.html"><span class="header-section-number">12</span> From benchmark to decision</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#comparison"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#comparison"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></li>
+<li><a class="nav-link" href="#comp-question"><span class="header-section-number">11.1</span> What this chapter answers</a></li>
+<li><a class="nav-link" href="#comp-setup"><span class="header-section-number">11.2</span> Setup</a></li>
+<li>
+<a class="nav-link" href="#comp-background"><span class="header-section-number">11.3</span> Background</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped"><span class="header-section-number">11.3.1</span> The Swiss roll has an exact chart, and it is usually not the one shipped</a></li>
+<li><a class="nav-link" href="#the-severed-sphere-has-no-answer-key-at-all"><span class="header-section-number">11.3.2</span> The severed sphere has no answer key at all</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#comp-core"><span class="header-section-number">11.4</span> Difficulty has two axes, not one</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#the-knob-has-to-move-the-right-thing"><span class="header-section-number">11.4.1</span> The knob has to move the right thing</a></li>
+<li><a class="nav-link" href="#the-fix-and-what-it-costs"><span class="header-section-number">11.4.2</span> The fix, and what it costs</a></li>
+<li><a class="nav-link" href="#one-geometry-against-a-family"><span class="header-section-number">11.4.3</span> One geometry against a family</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#comp-results"><span class="header-section-number">11.5</span> Results</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#the-head-to-head-matched-on-separation-alone"><span class="header-section-number">11.5.1</span> The head-to-head, matched on separation alone</a></li>
+<li><a class="nav-link" href="#why-that-answer-is-the-wrong-one"><span class="header-section-number">11.5.2</span> Why that answer is the wrong one</a></li>
+<li><a class="nav-link" href="#the-controlled-comparison"><span class="header-section-number">11.5.3</span> The controlled comparison</a></li>
+</ul>
+</li>
+<li><a class="nav-link" href="#comp-diagnostics"><span class="header-section-number">11.6</span> Diagnostics</a></li>
+<li><a class="nav-link" href="#comp-limits"><span class="header-section-number">11.7</span> Where it fails</a></li>
+<li><a class="nav-link" href="#comp-reproduce"><span class="header-section-number">11.8</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#comp-reading"><span class="header-section-number">11.9</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -307,7 +852,7 @@ together, never the ratio alone.</li>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

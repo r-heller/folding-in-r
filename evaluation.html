@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 9 Ground truth and the evaluators | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Your embedding looks good. Is it correct? Procrustes-aligned RMSE against the true unfolding as the headline metric. Trustworthiness, continuity, kNN preservation, Kruskal stress — each measured...">
+<meta name="description" content="Your embedding looks good. Is it correct?  9.1 What “correct” means here Machado, Behrisch and Telea built projections that score well on trustworthiness and continuity while displaying structure...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 9 Ground truth and the evaluators | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/evaluation.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Your embedding looks good. Is it correct? Procrustes-aligned RMSE against the true unfolding as the headline metric. Trustworthiness, continuity, kNN preservation, Kruskal stress — each measured...">
+<meta property="og:description" content="Your embedding looks good. Is it correct?  9.1 What “correct” means here Machado, Behrisch and Telea built projections that score well on trustworthiness and continuity while displaying structure...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 9 Ground truth and the evaluators | Folding in R">
-<meta name="twitter:description" content="Your embedding looks good. Is it correct? Procrustes-aligned RMSE against the true unfolding as the headline metric. Trustworthiness, continuity, kNN preservation, Kruskal stress — each measured...">
+<meta name="twitter:description" content="Your embedding looks good. Is it correct?  9.1 What “correct” means here Machado, Behrisch and Telea built projections that score well on trustworthiness and continuity while displaying structure...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -115,14 +115,835 @@
 <span class="header-section-number">9</span> Ground truth and the evaluators<a class="anchor" aria-label="anchor" href="#evaluation"><i class="fas fa-link"></i></a>
 </h1>
 <p><em>Your embedding looks good. Is it correct?</em></p>
-<!-- TODO: chapter content. Outline below is the plan of record. -->
+<div id="eval-question" class="section level2" number="9.1">
+<h2>
+<span class="header-section-number">9.1</span> What “correct” means here<a class="anchor" aria-label="anchor" href="#eval-question"><i class="fas fa-link"></i></a>
+</h2>
+<p>Machado, Behrisch and Telea built projections that score well on trustworthiness
+and continuity while displaying structure the data does not have
+<span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span>. That is the false-<em>positive</em> direction, and it needs no
+ground truth: to show that a bad embedding scores high, it is enough to know
+that the embedding is bad. This chapter runs the other direction. It hands each
+evaluator the exact answer as a candidate embedding and asks whether the
+evaluator recognises it. That cannot be done without an answer key, which is why
+it is not usually done, and it is the one thing a crease pattern buys that no
+real dataset can supply.</p>
+<p>The complement matters because the two failures have different consequences. A
+metric that rewards a wrong embedding wastes a reader’s attention. A metric that
+punishes the right one changes which method gets shipped.</p>
+<p>“Correct” is fixed here before anything is measured. An embedding is correct
+when it <em>is</em> the chart, up to a similarity of the plane. Chapter
+<a href="folding-geometry.html#folding-geometry">2</a> established that the flat pattern is not an approximation
+to the folded sheet’s intrinsic structure but that structure itself, so there is
+an answer and it is exact. Everything in this chapter is a comparison against
+that answer, and the object under test is not an embedding method. It is the
+scoring function.</p>
+<p>The disagreement about two-dimensional embeddings of single-cell data has
+largely migrated from the embeddings to the evaluators. That framing is not this
+book’s: Lause, Berens and Kobak state it as their published position, concluding
+that the case against those embeddings <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>)</span> rested on metrics
+that “focused on preservation of distances, where 2D PCA was unsurprisingly the
+best” <span class="citation">(<a href="references.html#ref-lause2024elephant">2</a>)</span>. This book takes no position on what an embedding is
+for. It measures how far each evaluator sits from the evaluator that has the
+answer key.</p>
+<p>Three things are established below, and one that the plan of record expected is
+not. The evaluators disagree with the answer key, systematically and in a
+direction that depends on which reference geometry they are given. Continuity
+in particular cannot tell a perfect embedding from a plainly wrong one at any
+fold angle. And the four metrics that a paper reports side by side are not four
+pieces of evidence. What does <em>not</em> survive is the shape of the law: the
+inversion threshold is not a property of the fold angle alone, and saying so is
+the point of having run the experiment rather than described it.</p>
+</div>
+<div id="eval-setup" class="section level2" number="9.2">
+<h2>
+<span class="header-section-number">9.2</span> Setup<a class="anchor" aria-label="anchor" href="#eval-setup"><i class="fas fa-link"></i></a>
+</h2>
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">audit</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/evaluator-audit.rds"</span>, <span class="st">"d7982cf7eb3afe7d"</span><span class="op">)</span></span>
+<span><span class="va">pilot</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/evaluator-audit-pilot.rds"</span>, <span class="st">"736906d41b87b8b3"</span><span class="op">)</span></span>
+<span><span class="va">grid</span>  <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/benchmark-grid.rds"</span>,  <span class="st">"2483a468d82d4d64"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html">attr</a></span><span class="op">(</span><span class="va">audit</span>, <span class="st">"provenance"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># knitr rounds an inline numeric to options(digits), which turns 4e-16 into 0</span></span>
+<span><span class="co"># and 0.0104 into 0.01. These return character, so a small number survives the</span></span>
+<span><span class="co"># trip into prose intact.</span></span>
+<span><span class="va">fmt</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">d</span> <span class="op">=</span> <span class="fl">3L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/formatc.html">formatC</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">signif</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">d</span><span class="op">)</span>, format <span class="op">=</span> <span class="st">"fg"</span>, digits <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="va">sci</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">d</span> <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/formatc.html">formatC</a></span><span class="op">(</span><span class="va">x</span>, format <span class="op">=</span> <span class="st">"e"</span>, digits <span class="op">=</span> <span class="va">d</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p</span>    <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span></span>
+<span><span class="va">m</span>    <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0.8</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">U</span>    <span class="op">&lt;-</span> <span class="va">m</span><span class="op">$</span><span class="va">truth</span></span>
+<span><span class="va">pca2</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/prcomp.html">prcomp</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">X</span>, rank. <span class="op">=</span> <span class="va">EMBED_DIM</span><span class="op">)</span><span class="op">$</span><span class="va">x</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="va">EMBED_DIM</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<p><code>audit</code> is the chapter’s evidence: 19200 scored rows over
+20 values of <span class="math inline">\(\theta\)</span>, 4 values of <span class="math inline">\(k\)</span>,
+2 sample sizes, 20 seeds,
+3 reference geometries and
+2 candidate embeddings, produced by
+<code>scripts/run-evaluator-audit.R</code> in 2.1 hours.
+<code>pilot</code> is the narrower design that decided this chapter existed at all, and
+<code>grid</code> is the main benchmark, read here for the metrics it already reports.</p>
+</div>
+<div id="eval-background" class="section level2" number="9.3">
+<h2>
+<span class="header-section-number">9.3</span> Background<a class="anchor" aria-label="anchor" href="#eval-background"><i class="fas fa-link"></i></a>
+</h2>
+<div id="the-headline-metric-normalised-procrustes-rmse" class="section level3" number="9.3.1">
+<h3>
+<span class="header-section-number">9.3.1</span> The headline metric: normalised Procrustes RMSE<a class="anchor" aria-label="anchor" href="#the-headline-metric-normalised-procrustes-rmse"><i class="fas fa-link"></i></a>
+</h3>
+<p>There is exactly one alignment convention in this book, and it lives in
+<code>procrustes_align()</code>. It is the <strong>full</strong> Procrustes fit
+<span class="citation">(<a href="references.html#ref-gower1975procrustes">24</a>,<a href="references.html#ref-schonemann1966procrustes">34</a>)</span>: the similarity group of
+translation, rotation, <strong>reflection</strong> and one isotropic scale, and nothing else.</p>
+<p>Each admission is a decision about what “the same chart” means.</p>
+<p><em>Translation and rotation</em> are free because a chart has no origin and no
+preferred axis. <em>Isotropic scale</em> is free because two of the methods under test
+have no scale to speak of — a t-SNE embedding’s extent is a function of its
+perplexity and its iteration count <span class="citation">(<a href="references.html#ref-vandermaaten2008tsne">7</a>)</span> — and scoring them on
+one would measure a setting rather than a geometry.</p>
+<p><em>Reflection is the one that must be argued.</em> A mirrored unfolding is a correct
+unfolding. Turn the flat sheet over and the crease pattern is the same pattern,
+its mountains and valleys exchanged; no method in Part II is given anything from
+which it could recover a handedness, and none claims to. The implementation
+detail carries the whole argument: the rotation is taken as <span class="math inline">\(UV'\)</span> from the
+singular value decomposition of the cross-product matrix, with <strong>no determinant
+correction</strong>. A version that forced <span class="math inline">\(\det R = 1\)</span> would score an exactly mirrored
+recovery as a failure.</p>
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rot</span>    <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Trig.html">cos</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">cos</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span></span>
+<span><span class="va">moved</span>  <span class="op">&lt;-</span> <span class="fl">2.7</span> <span class="op">*</span> <span class="va">U</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="fu">rot</span><span class="op">(</span><span class="fl">1.1</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="op">-</span><span class="fl">9</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">U</span><span class="op">)</span>, <span class="fl">2L</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">mirror</span> <span class="op">&lt;-</span> <span class="va">moved</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">err_moved</span>  <span class="op">&lt;-</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">moved</span>,  <span class="va">U</span><span class="op">)</span></span>
+<span><span class="va">err_mirror</span> <span class="op">&lt;-</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">mirror</span>, <span class="va">U</span><span class="op">)</span></span>
+<span><span class="va">det_moved</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/det.html">det</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html">attr</a></span><span class="op">(</span><span class="fu">procrustes_align</span><span class="op">(</span><span class="va">moved</span>,  <span class="va">U</span><span class="op">)</span>, <span class="st">"rotation"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">det_mirror</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/det.html">det</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html">attr</a></span><span class="op">(</span><span class="fu">procrustes_align</span><span class="op">(</span><span class="va">mirror</span>, <span class="va">U</span><span class="op">)</span>, <span class="st">"rotation"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">zb</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/complex.html">complex</a></span><span class="op">(</span>real <span class="op">=</span> <span class="va">U</span><span class="op">[</span>, <span class="fl">1L</span><span class="op">]</span>, imaginary <span class="op">=</span> <span class="va">U</span><span class="op">[</span>, <span class="fl">2L</span><span class="op">]</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span></span>
+<span><span class="va">bend</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/complex.html">Re</a></span><span class="op">(</span><span class="va">zb</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/complex.html">Im</a></span><span class="op">(</span><span class="va">zb</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">err_exact</span> <span class="op">&lt;-</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">U</span>, <span class="va">U</span><span class="op">)</span></span>
+<span><span class="va">err_bend</span>  <span class="op">&lt;-</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">bend</span>, <span class="va">U</span><span class="op">)</span></span>
+<span><span class="va">qnx_bend</span> <span class="op">&lt;-</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">bend</span>, <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"chart"</span><span class="op">)</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span></span></code></pre></div>
+<p>A rotated, rescaled, translated copy of the chart scores
+4.7e-16. Its mirror image scores 4.7e-16 —
+the same number to the last digit that means anything — and the fitted rotation
+has determinant -1 against 1 for the unmirrored copy.
+Both are zero to floating point, which is what “quotients out” has to mean.</p>
+<p>What is <em>not</em> quotiented out is everything else, and the boundary is sharp.
+Anisotropic scale and shear stay in the residual, because those are precisely the
+distortions the isometry claim is about. So does a conformal bend: the map
+<span class="math inline">\(z \mapsto z^2\)</span> is a rotation and an isotropic scale at every point, so it moves
+no neighbour out of any neighbourhood, while its scale factor varies across the
+chart. It scores 0.255 here, and <span class="math inline">\(Q_{NX}\)</span> at <span class="math inline">\(K\)</span> =
+20 against the chart calls the same configuration
+0.963.</p>
+<p>The score is normalised by the chart’s own root-sum-square radius, which fixes
+both ends. Zero is exact recovery. One is an embedding that explains none of the
+chart’s variance, and a random configuration reaches it to <span class="math inline">\(O(1/n)\)</span>. A bounded
+metric matters because Chapter <a href="results.html#results">10</a> reports every result as an excess
+over a floor, and an excess needs both ends nailed down.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:eval-fig-alignment"></span>
+<img src="09-ground-truth-evaluation_files/figure-html/eval-fig-alignment-1.png" alt="Three scatter panels of the same 800 points. Panel A is the exact chart, a filled rectangle whose colour ramps left to right with four roughly straight level-set paths running top to bottom. Panel B is the same rectangle, rotated, enlarged and flipped, so its colour ramp now runs diagonally from the dark top-right corner to the bright bottom-left one; its subtitle gives a score of four times ten to the minus sixteen. Panel C is the chart bent by a conformal map into a wedge that fans out towards the top, with the level sets splayed apart rather than parallel; it scores about one quarter." width="90%"><p class="caption">
+Figure 9.1: What the alignment quotients out, and what it does not. All three panels are scored against the same chart. Point colour is the first chart coordinate and the grey paths are its level sets, drawn so the structure survives greyscale printing.
+</p>
+</div>
+<p>Figure <a href="evaluation.html#fig:eval-fig-alignment">9.1</a> is the convention in one row. Panel B is
+the same chart and scores as such. Panel C is not, and the rank metrics will
+disagree.</p>
+</div>
+<div id="the-four-metrics-under-audit" class="section level3" number="9.3.2">
+<h3>
+<span class="header-section-number">9.3.2</span> The four metrics under audit<a class="anchor" aria-label="anchor" href="#the-four-metrics-under-audit"><i class="fas fa-link"></i></a>
+</h3>
+<p>Four scores are computed for every cell of the book’s grid, and each is defined
+here against a <strong>reference geometry</strong> <span class="math inline">\(D\)</span> and a neighbourhood size <span class="math inline">\(k\)</span>. Write
+<span class="math inline">\(r_{ij}\)</span> for the rank of point <span class="math inline">\(j\)</span> in point <span class="math inline">\(i\)</span>’s ordering under <span class="math inline">\(D\)</span>, and
+<span class="math inline">\(\hat r_{ij}\)</span> for the same rank in the embedding.</p>
+<p><strong>Trustworthiness</strong> and <strong>continuity</strong> <span class="citation">(<a href="references.html#ref-venna2001neighborhood">35</a>,<a href="references.html#ref-kaski2003trustworthiness">36</a>)</span> charge the embedding for the neighbours it invents
+and the neighbours it loses:</p>
+<p><span class="math display">\[M_1(k) = 1 - A(k)\sum_{i}\sum_{j \in U_k(i)}\big(r_{ij} - k\big), \qquad
+  M_2(k) = 1 - A(k)\sum_{i}\sum_{j \in V_k(i)}\big(\hat r_{ij} - k\big),\]</span></p>
+<p>with <span class="math inline">\(U_k(i)\)</span> the points in the display’s <span class="math inline">\(k\)</span>-neighbourhood but not the
+reference’s, <span class="math inline">\(V_k(i)\)</span> the reverse, and
+<span class="math inline">\(A(k) = 2 / \big(Nk(2N - 3k - 1)\big)\)</span> the scaling transcribed from Kaski et al.
+Two things about <span class="math inline">\(A(k)\)</span> travel with it and most re-implementations drop them.
+It is the reciprocal of the largest penalty sum any embedding can produce, which
+is why <span class="math inline">\(M_1 = 0\)</span> is a floor rather than merely a small number — and the authors
+are explicit that it is a <em>scaling</em>, not a proven bound on what a real
+projection can attain, so a value slightly below zero is not necessarily a bug
+and nothing here clamps one. Read as an information-retrieval pair they are
+precision and recall of the neighbourhood <span class="citation">(<a href="references.html#ref-venna2010information">37</a>)</span>.</p>
+<p><strong><span class="math inline">\(Q_{NX}(K)\)</span></strong> is read off the co-ranking matrix of Lee and Verleysen
+<span class="citation">(<a href="references.html#ref-lee2009quality">32</a>)</span>, <span class="math inline">\(Q[k, l]\)</span> counting the ordered pairs at rank <span class="math inline">\(k\)</span> in the
+reference and <span class="math inline">\(l\)</span> in the embedding. Its top-left block is the fraction of
+<span class="math inline">\(K\)</span>-neighbourhoods preserved,
+<span class="math inline">\(Q_{NX}(K) = \frac{1}{Kn}\sum_{k \le K}\sum_{l \le K} Q[k, l]\)</span>, which is
+<span class="math inline">\(K/(n-1)\)</span> for a random embedding rather than zero; <code>rnx()</code> applies that
+correction and <code>auc_qnx()</code> integrates it over <span class="math inline">\(K\)</span> on a log scale.</p>
+<p><strong>kNN preservation</strong> is the mean agreement of the two <span class="math inline">\(k\)</span>-nearest-neighbour
+sets. One identity is worth stating rather than leaving to be rediscovered:
+its overlap form is <em>exactly</em> <span class="math inline">\(Q_{NX}(k)\)</span>. <code>knn_preservation()</code> therefore
+defaults to the Jaccard form, so that the book’s four metrics are four and not
+three.</p>
+<p>Kruskal stress <span class="citation">(<a href="references.html#ref-kruskal1964fit">23</a>)</span> is the fifth member of the usual set and is
+absent here on purpose. Chapter <a href="folding-geometry.html#folding-geometry">2</a> proves as a one-line
+proposition that ambient-referenced stress must rank the exact unfolding below a
+two-component PCA of the folded cloud, for every <span class="math inline">\(\theta &gt; 0\)</span>; a simulation of a
+theorem is not evidence. What is not entailed, and what this chapter measures,
+is what the <em>rank</em> metrics do, because they are invariant to a monotone
+contraction of distances until neighbour identity changes.</p>
+</div>
+<div id="three-reference-geometries" class="section level3" number="9.3.3">
+<h3>
+<span class="header-section-number">9.3.3</span> Three reference geometries<a class="anchor" aria-label="anchor" href="#three-reference-geometries"><i class="fas fa-link"></i></a>
+</h3>
+<p>Every one of the four takes a distance matrix and does not care where it came
+from. That is the lever.</p>
 <ul>
-<li>Procrustes-aligned RMSE against the true unfolding as the headline metric.</li>
-<li>Trustworthiness, continuity, kNN preservation, Kruskal stress — each measured <em>against</em> truth.</li>
-<li>Where each standard metric is optimistic, and by how much.</li>
-<li>The metrics are kNN-based and mutually correlated; exact truth is what makes the comparison possible.</li>
-<li>The book’s main experimental contribution.</li>
+<li>
+<strong>ambient</strong> — Euclidean distance in <span class="math inline">\(\mathbb{R}^3\)</span> between the points as
+observed. This is what PCA, MDS, t-SNE and UMAP actually consume, and what
+essentially every published evaluation uses <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span>.</li>
+<li>
+<strong>chart</strong> — Euclidean distance in the exact two-dimensional truth. On this
+construction that <em>is</em> the geodesic distance on the folded surface, exactly
+and not as an estimate.</li>
+<li>
+<strong>graph</strong> — the estimate a method has to work with: a symmetric <span class="math inline">\(k\)</span>-nearest-
+neighbour graph on the ambient points with all-pairs shortest paths, which is
+Isomap’s internal geometry <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>.</li>
 </ul>
+<p>Nothing in <code>R/metrics.R</code> prefers one, and the argument is named <code>reference</code>
+rather than <code>data</code> to keep that visible at the call site.</p>
+<p>The book’s own grid uses two of them at once, and the fact is worth stating
+plainly because it is invisible in the output.</p>
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">D_amb</span> <span class="op">&lt;-</span> <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"ambient"</span><span class="op">)</span></span>
+<span><span class="va">D_cha</span> <span class="op">&lt;-</span> <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"chart"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">conventions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
+<span>  candidate  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"the exact chart"</span>, <span class="st">"two-component PCA"</span><span class="op">)</span>,</span>
+<span>  rmse       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">U</span>, <span class="va">U</span><span class="op">)</span>, <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">pca2</span>, <span class="va">U</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  qnx_chart  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu">qnx</span><span class="op">(</span><span class="va">U</span>, <span class="va">D_cha</span>, <span class="va">K_QNX</span><span class="op">)</span>, <span class="fu">qnx</span><span class="op">(</span><span class="va">pca2</span>, <span class="va">D_cha</span>, <span class="va">K_QNX</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  knn_ambient <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu">knn_preservation</span><span class="op">(</span><span class="va">D_amb</span>, <span class="va">U</span>,    <span class="va">K_DEFAULT</span><span class="op">)</span>,</span>
+<span>                  <span class="fu">knn_preservation</span><span class="op">(</span><span class="va">D_amb</span>, <span class="va">pca2</span>, <span class="va">K_DEFAULT</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code>grid</code> scores <span class="math inline">\(Q_{NX}\)</span> at <span class="math inline">\(K\)</span> = 20 against the
+chart, and trustworthiness, continuity and kNN preservation
+at <span class="math inline">\(k\)</span> = 10 against ambient distance. Two
+neighbourhood sizes and two reference geometries, in adjacent columns of one
+table. Both choices are defensible and <code>R/constants.R</code> records why: the first
+three ask whether the embedding preserved the neighbourhoods a method could
+<em>see</em>, so ambient is the honest reference; <span class="math inline">\(Q_{NX}\)</span> is asked against the answer
+key, because that is the question a benchmark with an answer key exists to be
+able to ask.</p>
+<p>The cost of leaving that unsaid is in the table. On the exact chart at
+<span class="math inline">\(\theta\)</span> = 0.8, the <span class="math inline">\(Q_{NX}\)</span> column reads
+1 and the kNN column reads
+0.789. One says the answer key is perfect.
+The other says it lost a fifth of its neighbourhoods. Both are correct, and
+they are not answering the same question.</p>
+</div>
+</div>
+<div id="eval-core" class="section level2" number="9.4">
+<h2>
+<span class="header-section-number">9.4</span> The known-answer test<a class="anchor" aria-label="anchor" href="#eval-core"><i class="fas fa-link"></i></a>
+</h2>
+<p>The design is one sentence. Hand each evaluator the exact chart as though it
+were a submission, alongside a two-component PCA of the folded cloud, and record
+which one it prefers.</p>
+<p>PCA is the sharp choice of wrong answer rather than a straw man. It is the wrong
+chart — it flattens the corrugation instead of unfolding it — and it is
+simultaneously the least-squares-optimal <em>linear</em> reproduction of the ambient
+configuration it was given <span class="citation">(<a href="references.html#ref-pearson1901lines">17</a>)</span>. An evaluator that scores
+reproduction of ambient distance is being handed the best available competitor
+at exactly the thing it measures.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:eval-fig-candidates"></span>
+<img src="09-ground-truth-evaluation_files/figure-html/eval-fig-candidates-1.png" alt="Three scatter panels of 800 points each. Panel A is the exact chart: an evenly filled rectangle with a smooth left-to-right colour ramp and four level-set paths running nearly straight down it. Panel B is the two-component PCA at the chapter's working fold angle: the same rectangle, its points gathered into faint vertical bands and its level sets kinked. Panel C is the same PCA at the last fold angle of the sweep: the points are now gathered into pronounced stripes with visible gaps between them, and the level sets are strongly zigzagged. The three subtitles give scores of about zero, one tenth and one fifth." width="90%"><p class="caption">
+Figure 9.2: The candidates, Procrustes-aligned to the same answer key and scored against it. Point colour is the first chart coordinate and the grey paths are its level sets, which the exact chart draws as straight nested lines and a wrong chart does not. The wrongness is a function of the fold angle, which is why the audit sweeps it rather than fixing it.
+</p>
+</div>
+<p>Figure <a href="evaluation.html#fig:eval-fig-candidates">9.2</a> is the comparison the audit runs at every
+cell. The exact chart scores 1.7e-16. PCA scores
+0.108 at the fold angle used throughout this chapter
+and 0.21 at the last angle of the sweep, and the level sets it
+draws are kinked where the creases ran. An <strong>inversion</strong> is an evaluator ranking
+panel A below panel B or C.</p>
+<p>Panel B is worth pausing on, because it is the reason this is a hard test rather
+than an easy one. At a moderate fold a Miura is still close to planar, so its
+principal-component projection is not a grotesque failure — it is a mildly wrong
+answer that looks reasonable. An evaluator that cannot separate panel A from
+panel B is failing at a discrimination that matters, not at a trick.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:eval-fig-inversion"></span>
+<img src="09-ground-truth-evaluation_files/figure-html/eval-fig-inversion-1.png" alt="Four line panels, one per metric, sharing a vertical axis from zero to one labelled share of seeds inverted, against the folding parameter theta from zero to one. In the trustworthiness, kNN preservation and Q_NX panels almost every curve lies flat along zero, apart from a small bump near theta of 0.05 and, for the largest neighbourhood size, a low ragged band around one fifth that jumps to near one at the far right. The continuity panel is different: four sigmoid curves rise from zero to one, the largest neighbourhood size rising first at about theta 0.2 and the smallest last at about theta 0.9." width="90%"><p class="caption">
+Figure 9.3: Inversion rate against the folding parameter: the share of seeds in which the evaluator ranks the exact chart below a two-component PCA of the same cloud. Ambient reference, n = 800. Neighbourhood size is encoded by colour and line style together. The panels do not pool over sample size, because the two sample sizes are two different phenomena.
+</p>
+</div>
+<p>Figure <a href="evaluation.html#fig:eval-fig-inversion">9.3</a> is the result at the larger sample size,
+and it is four different pictures rather than one. Continuity inverts on a
+clean sigmoid whose location slides left as <span class="math inline">\(k\)</span> grows. Trustworthiness, kNN
+preservation and <span class="math inline">\(Q_{NX}\)</span> mostly do not invert at all: they rank the exact
+chart first almost everywhere, with a bump near <span class="math inline">\(\theta\)</span> = 0.05 where the
+two candidates are barely distinguishable, and a low ragged band at the largest
+<span class="math inline">\(k\)</span> that only becomes a majority in the last cell of the sweep.</p>
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="va">audit</span><span class="op">$</span><span class="va">inversions</span></span>
+<span><span class="va">flat_inversions</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">inv</span><span class="op">$</span><span class="va">inverted</span><span class="op">[</span><span class="va">inv</span><span class="op">$</span><span class="va">theta</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">chart_inversions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">inv</span><span class="op">$</span><span class="va">inverted</span><span class="op">[</span><span class="va">inv</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"chart"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">chart_rows</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">inv</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"chart"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sc</span> <span class="op">&lt;-</span> <span class="va">audit</span><span class="op">$</span><span class="va">scores</span></span>
+<span><span class="va">chart_truth</span> <span class="op">&lt;-</span> <span class="va">sc</span><span class="op">[</span><span class="va">sc</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"chart"</span> <span class="op">&amp;</span> <span class="va">sc</span><span class="op">$</span><span class="va">candidate</span> <span class="op">==</span> <span class="st">"truth"</span>, <span class="op">]</span></span>
+<span><span class="va">truth_exact</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html">all</a></span><span class="op">(</span><span class="va">chart_truth</span><span class="op">$</span><span class="va">trust</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;</span> <span class="va">chart_truth</span><span class="op">$</span><span class="va">cont</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;</span></span>
+<span>                     <span class="va">chart_truth</span><span class="op">$</span><span class="va">knn</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;</span> <span class="va">chart_truth</span><span class="op">$</span><span class="va">qnx</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p>Two controls make this a mechanism rather than a rate, and both come out clean.</p>
+<p>At <span class="math inline">\(\theta\)</span> = 0 the inversion count over the whole artefact is
+0. A flat sheet contracts nothing, ambient distance <em>is</em>
+chart distance, and there is nothing to invert — which is the prediction
+Chapter <a href="folding-geometry.html#folding-geometry">2</a>’s contraction result makes, evaluated at the one
+point where the contraction vanishes.</p>
+<p>Against the chart reference the count is 0 in
+12800 rows. Not rare: never. And the reason is arithmetic rather than
+luck — handed the chart as its reference, every metric scores the chart as a
+candidate at exactly one, which is checked here rather than asserted
+(<code>truth_exact</code> is TRUE). No candidate can beat a perfect score, so
+no inversion is available.</p>
+<p>The inversion is therefore not a property of the metric. It is a property of the
+pair (metric, reference geometry), and the reference is doing most of the work.</p>
+<p>An inversion is also not a <em>bug</em>. It is the evaluator answering the question it
+was actually asked. An ambient-referenced metric measures reproduction of
+ambient distance; folding contracts ambient distance strictly; so the exact
+unfolding reproduces ambient distance badly by construction, and something that
+was fitted to reproduce it does better. That much is Chapter
+<a href="folding-geometry.html#folding-geometry">2</a>’s stress proposition and needed no experiment.</p>
+<p>What did need one is that a <em>rank</em> metric inverts at all. Rank metrics are
+invariant to any monotone transformation of distances, and the argument that
+they should therefore be safe here is the argument this chapter was budgeted to
+test. It fails on a detail: folding is not a monotone map on ambient distance.
+The contraction factor is <span class="math inline">\(\sin(\rho/2)\)</span> <em>per crease crossed</em>, so a pair
+straddling a fold contracts while a pair of the same chart distance inside one
+facet does not, and their order swaps. Neighbour identity therefore changes,
+and the amount it changes is measurable.</p>
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rk</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">D</span><span class="op">)</span> <span class="op">{</span> <span class="fu"><a href="https://rdrr.io/r/base/diag.html">diag</a></span><span class="op">(</span><span class="va">D</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="cn">Inf</span></span>
+<span>                    <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">D</span>, <span class="fl">1L</span>, <span class="va">rank</span>, ties.method <span class="op">=</span> <span class="st">"first"</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span> <span class="op">}</span></span>
+<span><span class="va">agree</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">r1</span>, <span class="va">r2</span>, <span class="va">K</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowSums</a></span><span class="op">(</span><span class="va">r1</span> <span class="op">&gt;=</span> <span class="fl">1L</span> <span class="op">&amp;</span> <span class="va">r1</span> <span class="op">&lt;=</span> <span class="va">K</span> <span class="op">&amp;</span> <span class="va">r2</span> <span class="op">&gt;=</span> <span class="fl">1L</span> <span class="op">&amp;</span> <span class="va">r2</span> <span class="op">&lt;=</span> <span class="va">K</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="va">K</span></span>
+<span></span>
+<span><span class="va">m_flat</span>  <span class="op">&lt;-</span> <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>, seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">ra_flat</span> <span class="op">&lt;-</span> <span class="fu">rk</span><span class="op">(</span><span class="fu">reference_dist</span><span class="op">(</span><span class="va">m_flat</span>, <span class="st">"ambient"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rc_flat</span> <span class="op">&lt;-</span> <span class="fu">rk</span><span class="op">(</span><span class="fu">reference_dist</span><span class="op">(</span><span class="va">m_flat</span>, <span class="st">"chart"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ra</span> <span class="op">&lt;-</span> <span class="fu">rk</span><span class="op">(</span><span class="va">D_amb</span><span class="op">)</span>; <span class="va">rc</span> <span class="op">&lt;-</span> <span class="fu">rk</span><span class="op">(</span><span class="va">D_cha</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">moved_flat</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">-</span> <span class="fu">agree</span><span class="op">(</span><span class="va">ra_flat</span>, <span class="va">rc_flat</span>, <span class="va">K_DEFAULT</span><span class="op">)</span></span>
+<span><span class="va">moved_fold</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">-</span> <span class="fu">agree</span><span class="op">(</span><span class="va">ra</span>, <span class="va">rc</span>, <span class="va">K_DEFAULT</span><span class="op">)</span></span></code></pre></div>
+<p>At <span class="math inline">\(\theta\)</span> = 0 a point’s ambient neighbours and its chart neighbours are
+the same set: the share that differ is 0. At <span class="math inline">\(\theta\)</span> =
+0.8 it is 0.13. That number is the whole mechanism.
+An eighth of every neighbourhood has been rewritten by the fold, the exact chart
+is scored on reproducing the rewritten version, and it does not reproduce it —
+because it is right.</p>
+<div id="why-the-obvious-fix-fails" class="section level3" number="9.4.1">
+<h3>
+<span class="header-section-number">9.4.1</span> Why the obvious fix fails<a class="anchor" aria-label="anchor" href="#why-the-obvious-fix-fails"><i class="fas fa-link"></i></a>
+</h3>
+<p>The obvious repair is to keep the metric and replace the reference: score against
+estimated geodesics instead of ambient distance, which is what a practitioner
+who has read Isomap would reach for. It does nothing, and it cannot.</p>
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">D_gra</span> <span class="op">&lt;-</span> <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"graph"</span>, k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">prov</span><span class="op">$</span><span class="va">k</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rg</span>    <span class="op">&lt;-</span> <span class="fu">rk</span><span class="op">(</span><span class="va">D_gra</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">Ks</span>          <span class="op">&lt;-</span> <span class="va">prov</span><span class="op">$</span><span class="va">k</span></span>
+<span><span class="va">agree_graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">Ks</span>, <span class="kw">function</span><span class="op">(</span><span class="va">K</span><span class="op">)</span> <span class="fu">agree</span><span class="op">(</span><span class="va">ra</span>, <span class="va">rg</span>, <span class="va">K</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">agree_chart</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="va">Ks</span>, <span class="kw">function</span><span class="op">(</span><span class="va">K</span><span class="op">)</span> <span class="fu">agree</span><span class="op">(</span><span class="va">ra</span>, <span class="va">rc</span>, <span class="va">K</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">graph_above</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html">all</a></span><span class="op">(</span><span class="va">D_gra</span> <span class="op">&gt;=</span> <span class="va">D_amb</span> <span class="op">-</span> <span class="va">TOL</span><span class="op">$</span><span class="va">default</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">key</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"k"</span>, <span class="st">"theta"</span>, <span class="st">"n"</span>, <span class="st">"seed"</span>, <span class="st">"candidate"</span><span class="op">)</span></span>
+<span><span class="va">paired</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html">merge</a></span><span class="op">(</span><span class="va">sc</span><span class="op">[</span><span class="va">sc</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"ambient"</span>, <span class="op">]</span>, <span class="va">sc</span><span class="op">[</span><span class="va">sc</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"graph"</span>, <span class="op">]</span>,</span>
+<span>                  by <span class="op">=</span> <span class="va">key</span>, suffixes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">".a"</span>, <span class="st">".g"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">gap_graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">METRIC_LABEL</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">paired</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="va">v</span>, <span class="st">".a"</span><span class="op">)</span><span class="op">]</span><span class="op">]</span> <span class="op">-</span> <span class="va">paired</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="va">v</span>, <span class="st">".g"</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The graph reference agrees with the ambient reference on
+1, 1, 1, 1 of the neighbour sets at
+<span class="math inline">\(k\)</span> of 5, 10, 20, 40 — that is, on all of them. The chart
+reference, over the same points, agrees on only
+0.908, 0.873, 0.865, 0.879.</p>
+<p>The identity is exact and has a one-line proof. Any path through a Euclidean
+graph is at least as long as the straight line between its endpoints, so graph
+distance is never below ambient distance (<code>graph_above</code> is TRUE);
+and the graph contains an edge to each of a point’s <span class="math inline">\(k\)</span> nearest ambient
+neighbours, whose shortest path is therefore that edge. So for every
+<span class="math inline">\(K \le k\)</span> the two geometries have the <em>same</em> <span class="math inline">\(K\)</span> nearest neighbours in the
+<em>same</em> order. A rank metric evaluated at <span class="math inline">\(K \le k\)</span> cannot see the difference.</p>
+<p>The audit says the same thing across all 19200 scored rows: the largest
+gap between an ambient-referenced and a graph-referenced score is
+0 for continuity, kNN
+preservation and <span class="math inline">\(Q_{NX}\)</span>, and 0.0022 for
+trustworthiness. Trustworthiness is the only one that moves, and that too
+follows: it is the one metric that asks for the reference rank of a point the
+<em>embedding</em> placed nearby, which can lie far outside the graph’s own <span class="math inline">\(k\)</span>.</p>
+<p>An estimated geodesic is not a different question from an ambient distance at
+the scale a rank metric looks at. Only an exact chart is, and only a benchmark
+with an answer key has one. This is a stronger statement than “graph distances
+are fragile” — the short-circuit failures of Chapter <a href="geodesic.html#geodesic">5</a>
+<span class="citation">(<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span> are about the long-range structure, and the point
+here is that even a <em>perfectly</em> connected graph changes nothing locally.</p>
+</div>
+</div>
+<div id="eval-results" class="section level2" number="9.5">
+<h2>
+<span class="header-section-number">9.5</span> Results<a class="anchor" aria-label="anchor" href="#eval-results"><i class="fas fa-link"></i></a>
+</h2>
+<div id="how-optimistic-and-in-what-units" class="section level3" number="9.5.1">
+<h3>
+<span class="header-section-number">9.5.1</span> How optimistic, and in what units<a class="anchor" aria-label="anchor" href="#how-optimistic-and-in-what-units"><i class="fas fa-link"></i></a>
+</h3>
+<p>“Optimistic by X” is not a statement the evidence supports, and the reason is
+visible before any inversion is counted.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:eval-fig-scores"></span>
+<img src="09-ground-truth-evaluation_files/figure-html/eval-fig-scores-1.png" alt="Five line panels sharing a vertical axis from zero to one labelled score, plotted against the folding parameter theta. In the trustworthiness and continuity panels both curves are flat along the top of the axis at one across the entire range and are indistinguishable. In the kNN preservation and Q_NX panels both curves fall away as theta grows, the exact chart staying above the PCA curve and reaching about 0.58 and 0.71 at the right-hand end. In the fifth panel, normalised Procrustes RMSE, the exact chart is flat at zero while the PCA curve rises to about 0.21." width="90%"><p class="caption">
+Figure 9.4: The two candidates scored against ambient distance across the whole fold sweep, at the book’s default neighbourhood size and n = 800. All five quantities lie on the unit interval and share one axis, so the comparison is not an artefact of scaling. Candidate is encoded by colour and line style together.
+</p>
+</div>
+<p>Figure <a href="evaluation.html#fig:eval-fig-scores">9.4</a> puts all five quantities on one axis, which
+they share because the normalised Procrustes score also lives on the unit
+interval. Trustworthiness and continuity are two flat lines at the top of the
+panel. They do not separate a configuration whose error is zero from one whose
+error reaches a fifth of the chart’s radius, at any fold angle in the sweep.</p>
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">amb</span> <span class="op">&lt;-</span> <span class="va">inv</span><span class="op">[</span><span class="va">inv</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="st">"ambient"</span>, <span class="op">]</span></span>
+<span><span class="va">amb</span><span class="op">$</span><span class="va">margin</span> <span class="op">&lt;-</span> <span class="va">amb</span><span class="op">$</span><span class="va">pca2</span> <span class="op">-</span> <span class="va">amb</span><span class="op">$</span><span class="va">truth</span>      <span class="co"># positive when the evaluator prefers PCA</span></span>
+<span><span class="va">big</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">prov</span><span class="op">$</span><span class="va">n</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">optimism</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">METRIC_LABEL</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">mt</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">amb</span><span class="op">[</span><span class="va">amb</span><span class="op">$</span><span class="va">metric</span> <span class="op">==</span> <span class="va">mt</span> <span class="op">&amp;</span> <span class="va">amb</span><span class="op">$</span><span class="va">n</span> <span class="op">==</span> <span class="va">big</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>metric         <span class="op">=</span> <span class="va">METRIC_LABEL</span><span class="op">[[</span><span class="va">mt</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>             inverted       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">inverted</span><span class="op">)</span>,</span>
+<span>             widest_pca     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">margin</span><span class="op">)</span>,</span>
+<span>             widest_truth   <span class="op">=</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">margin</span><span class="op">)</span>,</span>
+<span>             pca_reportable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">margin</span>  <span class="op">&gt;</span> <span class="va">MIN_REPORTABLE</span><span class="op">)</span>,</span>
+<span>             truth_reportable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="op">-</span><span class="va">d</span><span class="op">$</span><span class="va">margin</span> <span class="op">&gt;</span> <span class="va">MIN_REPORTABLE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cont_cells</span>      <span class="op">&lt;-</span> <span class="va">amb</span><span class="op">[</span><span class="va">amb</span><span class="op">$</span><span class="va">metric</span> <span class="op">==</span> <span class="st">"cont"</span> <span class="op">&amp;</span> <span class="va">amb</span><span class="op">$</span><span class="va">n</span> <span class="op">==</span> <span class="va">big</span>, <span class="op">]</span></span>
+<span><span class="va">cont_reportable</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">cont_cells</span><span class="op">$</span><span class="va">margin</span> <span class="op">&gt;</span> <span class="va">MIN_REPORTABLE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">one_cell</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">ref</span>, <span class="va">cand</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">sc</span><span class="op">[</span><span class="va">sc</span><span class="op">$</span><span class="va">reference</span> <span class="op">==</span> <span class="va">ref</span> <span class="op">&amp;</span> <span class="va">sc</span><span class="op">$</span><span class="va">candidate</span> <span class="op">==</span> <span class="va">cand</span> <span class="op">&amp;</span></span>
+<span>            <span class="va">sc</span><span class="op">$</span><span class="va">k</span> <span class="op">==</span> <span class="va">K_DEFAULT</span> <span class="op">&amp;</span> <span class="va">sc</span><span class="op">$</span><span class="va">n</span> <span class="op">==</span> <span class="va">big</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">trust</span>, <span class="va">cont</span>, <span class="va">knn</span>, <span class="va">qnx</span><span class="op">)</span> <span class="op">~</span> <span class="va">theta</span>, data <span class="op">=</span> <span class="va">d</span>, FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">ceiling</span>   <span class="op">&lt;-</span> <span class="fu">one_cell</span><span class="op">(</span><span class="st">"ambient"</span>, <span class="st">"truth"</span><span class="op">)</span>   <span class="co"># what a perfect answer scores</span></span>
+<span><span class="va">chart_pca</span> <span class="op">&lt;-</span> <span class="fu">one_cell</span><span class="op">(</span><span class="st">"chart"</span>,   <span class="st">"pca2"</span><span class="op">)</span>    <span class="co"># what a wrong answer scores</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">optimism</span>, digits <span class="op">=</span> <span class="fl">3</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"metric"</span>, <span class="st">"inverted"</span>, <span class="st">"widest PCA lead"</span>, <span class="st">"widest truth lead"</span>,</span>
+<span>                <span class="st">"PCA wins reportably"</span>, <span class="st">"truth wins reportably"</span><span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Four metrics, four answers. Ambient reference, at the larger sample size, over every fold angle, neighbourhood size and seed in the audit. 'Reportably' means by more than the book's pre-registered reportable difference."</span><span class="op">)</span></span></code></pre></div>
+<div class="inline-table"><table class="table table-sm">
+<caption>
+<span id="tab:eval-optimism">Table 9.1: </span>Four metrics, four answers. Ambient reference, at the larger sample size, over every fold angle, neighbourhood size and seed in the audit. ‘Reportably’ means by more than the book’s pre-registered reportable difference.</caption>
+<colgroup>
+<col width="16%">
+<col width="8%">
+<col width="15%">
+<col width="17%">
+<col width="19%">
+<col width="21%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">metric</th>
+<th align="right">inverted</th>
+<th align="right">widest PCA lead</th>
+<th align="right">widest truth lead</th>
+<th align="right">PCA wins reportably</th>
+<th align="right">truth wins reportably</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">trustworthiness</td>
+<td align="right">0.013</td>
+<td align="right">0.000</td>
+<td align="right">0.009</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">continuity</td>
+<td align="right">0.418</td>
+<td align="right">0.010</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">kNN preservation</td>
+<td align="right">0.054</td>
+<td align="right">0.029</td>
+<td align="right">0.197</td>
+<td align="right">0.003</td>
+<td align="right">0.459</td>
+</tr>
+<tr class="even">
+<td align="left">Q_NX</td>
+<td align="right">0.056</td>
+<td align="right">0.023</td>
+<td align="right">0.157</td>
+<td align="right">0.001</td>
+<td align="right">0.329</td>
+</tr>
+</tbody>
+</table></div>
+<p>Table <a href="evaluation.html#tab:eval-optimism">9.1</a> is the honest summary and it does not reduce to a
+number.</p>
+<p>Continuity inverts on
+41.8 per cent
+of cells, and its widest lead over the truth anywhere at this sample size is
+0.0104. It clears the
+book’s pre-registered reportable difference of 0.02 in
+0 of 1600 cells. So the claim
+the numbers support is <em>not</em> “continuity prefers a wrong embedding by X”. It is
+that <strong>continuity cannot distinguish a perfect embedding from a plainly wrong
+one at all</strong>, and reports both as excellent. The weaker version sounds bolder
+and is not what happened.</p>
+<p>Trustworthiness is inert too, and more nearly symmetrically so: it inverts on
+1.3
+per cent of cells and never moves by more than
+0.0087
+either way.</p>
+<p>kNN preservation and <span class="math inline">\(Q_{NX}\)</span> do the job asked of them. They rank the exact
+chart first, by a margin clearing the reportable difference in
+45.9
+and
+32.9
+per cent of cells, and their widest lead for the truth is
+0.197.
+Ranking the right answer first is the whole of what is asked, and two of four
+metrics do it.</p>
+<p>They do it while calling the right answer mediocre, which is the second half of
+the finding and the one with a practical consequence. The <code>ceiling</code> object holds
+the score the answer key itself earns under the standard recipe. At the last
+cell of the sweep, ambient-referenced kNN preservation at <span class="math inline">\(k\)</span> = 10
+rates the exact unfolding 0.58 and <span class="math inline">\(Q_{NX}\)</span> rates it
+0.714. Any reader shown
+0.58 would call that embedding a partial failure. It
+is the answer.</p>
+<p>One more reading is available here and it corrects a tempting summary. The
+result so far invites “use the right reference geometry and the metrics behave”,
+and that is only half true. Swapping ambient for the exact chart fixes the
+<em>ordering</em>: with the answer key as reference, nothing inverts anywhere. It does
+not give trustworthiness and continuity a range to answer in. Scored against the
+exact chart at the hardest cell of the sweep, the two-component PCA — the
+configuration whose true error is 0.212 —
+still earns trustworthiness 0.995 and continuity
+0.995. A perfect reference geometry and a wrong
+embedding, and the metric reports near-perfection. The reference decides who
+wins; the metric decides whether the win means anything, and for these two it
+does not.</p>
+</div>
+<div id="four-metrics-one-number" class="section level3" number="9.5.2">
+<h3>
+<span class="header-section-number">9.5.2</span> Four metrics, one number<a class="anchor" aria-label="anchor" href="#four-metrics-one-number"><i class="fas fa-link"></i></a>
+</h3>
+<p>The four are reported side by side in almost every evaluation, and read as four
+independent lines of evidence. On the audit they gave four different answers. On
+the benchmark grid — nine methods, three noise models, the whole <span class="math inline">\(\theta\)</span> sweep,
+9199 scored cells — they largely do not.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:eval-fig-agreement"></span>
+<img src="09-ground-truth-evaluation_files/figure-html/eval-fig-agreement-1.png" alt="Three scatter panels, each of roughly nine thousand semi-transparent points. The left panel plots Q_NX against kNN preservation and the cloud lies close to a rising curve, annotated Spearman 0.92. The middle panel plots trustworthiness against continuity, a looser rising cloud crammed into the top-right corner above 0.9 on both axes, annotated Spearman 0.70. The right panel plots trustworthiness against normalised Procrustes RMSE: a dense horizontal band pinned near trustworthiness one that stretches across the whole range of the error axis, annotated Spearman minus 0.79." width="90%"><p class="caption">
+Figure 9.5: Metric agreement across the benchmark grid. Each point is one scored cell. The two rank metrics in the left panel are computed at different neighbourhood sizes against different reference geometries and still move together; the right panel is the gap this chapter is about.
+</p>
+</div>
+<p>Figure <a href="evaluation.html#fig:eval-fig-agreement">9.5</a>, left panel: <span class="math inline">\(Q_{NX}\)</span> and kNN preservation
+rank the grid’s cells at Spearman 0.921 — across
+9199 cells, at <em>different</em> neighbourhood sizes,
+against <em>different</em> reference geometries. They are near-redundant despite being
+configured to ask two different questions, because both count neighbour-set
+overlap and neighbour sets are what varies. Trustworthiness and continuity agree
+at 0.695. Reporting three of these is not three pieces of
+evidence; it is one piece of evidence and two restatements, and the practice of
+tabling them together <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> hides that.</p>
+<p>The four fall into two families rather than four instruments, and the split is
+the one the definitions predict. <span class="math inline">\(Q_{NX}\)</span> and kNN preservation count how much of
+a neighbour <em>set</em> survived, and their overlap forms are the same number, so
+correlation near one is the expected result rather than a discovery.
+Trustworthiness and continuity weight each lost or invented neighbour by <em>how
+far</em> it moved in ranks, which is a different functional and gives them the
+looser agreement above. A reader wanting two independent readings should take
+one from each family and a distance-based score alongside — which is what
+<code>rank_metrics()</code> returns in one pass and what the book’s grid records per cell.</p>
+<p>The right panel is what a chapter on evaluators is for.
+74.1 per cent of the grid’s scored cells have
+trustworthiness above 0.99, and 46.6 per cent of
+<em>those</em> have a normalised Procrustes error above 0.2 — an embedding that has
+lost a fifth of the chart. The grid’s median cell scores
+0.227 on Procrustes and
+0.996 on trustworthiness. A metric whose median is
+that close to its ceiling is not measuring the range it is being asked about.</p>
+</div>
+</div>
+<div id="eval-diagnostics" class="section level2" number="9.6">
+<h2>
+<span class="header-section-number">9.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#eval-diagnostics"><i class="fas fa-link"></i></a>
+</h2>
+<div id="does-k-change-the-answer" class="section level3" number="9.6.1">
+<h3>
+<span class="header-section-number">9.6.1</span> Does k change the answer?<a class="anchor" aria-label="anchor" href="#does-k-change-the-answer"><i class="fas fa-link"></i></a>
+</h3>
+<p>It does, and this is where the chapter’s plan of record has to be corrected
+against its own artefact.</p>
+<p>The contribution was specified as a <strong>threshold law in <span class="math inline">\(\theta\)</span></strong>: rank metrics
+are invariant to monotone contraction until neighbour identity changes, so they
+should invert only above a fold angle of about 0.8 while stress inverts
+everywhere. The first half is right and is why the rank metrics behave at all
+differently from stress. The threshold is not.</p>
+<div class="figure" style="text-align: center">
+<span style="display:block;" id="fig:eval-fig-threshold"></span>
+<img src="09-ground-truth-evaluation_files/figure-html/eval-fig-threshold-1.png" alt="A line chart with two nearly coincident descending curves. The horizontal axis is the neighbourhood fraction k over n on a logarithmic scale from about 0.006 to 0.1; the vertical axis is the threshold fold angle from zero to one. Both curves fall steeply from about 0.9 at the left to about 0.1 to 0.2 at the right. Each point is labelled with its neighbourhood size k; the two curves interleave, so that k of 5 at n of 400 sits at the same place as k of 10 at n of 800." width="90%"><p class="caption">
+Figure 9.6: Where continuity’s inversion sets in. The threshold is the smallest fold angle from which the evaluator inverts on at least half of seeds and never recovers. Plotted against the neighbourhood fraction k/n, the two sample sizes fall on one curve; plotted against k alone they would not. Sample size is encoded by colour, shape and line style together.
+</p>
+</div>
+<p>Figure <a href="evaluation.html#fig:eval-fig-threshold">9.6</a> locates it. At the smallest neighbourhood
+the threshold is 0.9,
+which is roughly where the plan expected it. At the largest it is
+0.2 — near the flat
+sheet, fourteen grid steps earlier. A single threshold in <span class="math inline">\(\theta\)</span> does not exist,
+because <span class="math inline">\(k\)</span> moves it across most of the available range.</p>
+<p>What the two sample sizes do is settle what <span class="math inline">\(k\)</span> is a proxy for. Plotted against
+the neighbourhood <em>fraction</em> <span class="math inline">\(k/n\)</span> the two curves nearly coincide: at
+<span class="math inline">\(k/n\)</span> = 0.0125 the threshold is
+0.8 at the smaller
+sample and 0.8 at
+the larger — the same value, at half the neighbourhood size and twice the
+points. The mechanism follows: a <span class="math inline">\(k\)</span>-neighbourhood covers a chart radius
+that scales as <span class="math inline">\(\sqrt{k/n}\)</span>, and continuity inverts once that radius is large
+enough that a typical neighbourhood spans a crease. Fold angle and neighbourhood
+fraction are two ways of buying the same thing.</p>
+<p>So the law the chapter can state is a threshold surface in <span class="math inline">\((\theta, k/n)\)</span> for
+<strong>continuity</strong>, and for continuity alone: at the larger sample size no other
+metric has a <span class="math inline">\(\theta_{1/2}\)</span> at any <span class="math inline">\(k\)</span> in the design. The coincidence with
+Chapter <a href="geodesic.html#geodesic">5</a>’s analytic short-circuit onset that the plan
+anticipated is <em>not</em> established here — this artefact does not measure the
+short circuit, and the two would have to be run against each other before
+either could be said to predict the other.</p>
+</div>
+<div id="what-to-report-when-you-have-no-answer-key" class="section level3" number="9.6.2">
+<h3>
+<span class="header-section-number">9.6.2</span> What to report when you have no answer key<a class="anchor" aria-label="anchor" href="#what-to-report-when-you-have-no-answer-key"><i class="fas fa-link"></i></a>
+</h3>
+<p>Three recommendations follow, and they cost nothing.</p>
+<p><strong>Report the reference geometry and the neighbourhood size with the score.</strong>
+“Trustworthiness 0.99” is not a result. The audit’s whole content is that the
+same metric on the same embedding answers differently depending on which
+distance matrix it was handed, and by more than the difference between a perfect
+embedding and a bad one.</p>
+<p><strong>Report the score against its floor.</strong> <code>metric_floor()</code> returns the smallest
+normalised Procrustes error <em>any</em> <span class="math inline">\(d\)</span>-dimensional configuration of these points
+could achieve — the tail of the chart’s own spectrum, by Eckart–Young
+<span class="citation">(<a href="references.html#ref-eckart1936approximation">18</a>)</span>.</p>
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">floor_2d</span> <span class="op">&lt;-</span> <span class="fu">metric_floor</span><span class="op">(</span><span class="va">m</span>, <span class="fl">2L</span><span class="op">)</span></span>
+<span><span class="va">floor_1d</span> <span class="op">&lt;-</span> <span class="fu">metric_floor</span><span class="op">(</span><span class="va">m</span>, <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="va">prod4</span>    <span class="op">&lt;-</span> <span class="fu">product_manifold</span><span class="op">(</span><span class="va">m</span>, <span class="fu">sample_manifold</span><span class="op">(</span><span class="va">p</span>, theta <span class="op">=</span> <span class="fl">0.5</span>, n <span class="op">=</span> <span class="va">N_DEFAULT</span>,</span>
+<span>                                                seed <span class="op">=</span> <span class="va">BENCH_SEEDS</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">floor_prod</span> <span class="op">&lt;-</span> <span class="fu">metric_floor</span><span class="op">(</span><span class="va">prod4</span>, <span class="va">EMBED_DIM</span><span class="op">)</span></span>
+<span><span class="va">grid_floor</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">floor</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">floor</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p>On this sample it returns 0, and the grid’s own <code>floor</code> column is
+0 in every cell it holds. That is worth one sentence rather than a
+column: a two-dimensional chart embedded in two dimensions has nothing
+unreachable in it, so every error reported in Chapter <a href="results.html#results">10</a> is loss the
+method is responsible for. Force the same chart into one dimension and the floor
+is 0.652; take Chapter <a href="benchmarks.html#benchmarks">8</a>’s product of two
+folded sheets, an intrinsically four-dimensional object, and it is
+0.649. A method scoring 0.649 has thrown
+away everything on the main grid and hit the bound exactly on the product.
+Reporting the number without its floor distinguishes neither.</p>
+<p><strong>Report the answer key’s own score.</strong> The floor bounds the Procrustes metric
+and nothing else — there is no analogous bound for <span class="math inline">\(Q_{NX}\)</span> or trustworthiness,
+and this chapter does not supply one. What it does supply is the empirical
+substitute that only a known-answer benchmark can produce: the <code>ceiling</code> object
+above is the score a <em>perfect</em> embedding attains under each convention. Where
+that number is 0.58, an embedding scoring
+0.58 has not half failed. It has succeeded, and the
+shortfall belongs to the metric.</p>
+<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">DU</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">U</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">11L</span><span class="op">)</span></span>
+<span><span class="va">J</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">2L</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">U</span><span class="op">)</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span></span>
+<span><span class="va">distortion</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  `conformal bend` <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/complex.html">complex</a></span><span class="op">(</span>real <span class="op">=</span> <span class="va">U</span><span class="op">[</span>, <span class="fl">1L</span><span class="op">]</span>, imaginary <span class="op">=</span> <span class="va">U</span><span class="op">[</span>, <span class="fl">2L</span><span class="op">]</span><span class="op">)</span><span class="op">^</span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="va">t</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/complex.html">Re</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/complex.html">Im</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  shear  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">U</span><span class="op">[</span>, <span class="fl">1L</span><span class="op">]</span> <span class="op">+</span> <span class="va">t</span> <span class="op">*</span> <span class="va">U</span><span class="op">[</span>, <span class="fl">2L</span><span class="op">]</span>, <span class="va">U</span><span class="op">[</span>, <span class="fl">2L</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  jitter <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="va">U</span> <span class="op">+</span> <span class="va">t</span> <span class="op">*</span> <span class="va">J</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">match_error</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">f</span>, <span class="va">target</span>, <span class="va">hi</span> <span class="op">=</span> <span class="fl">6</span><span class="op">)</span> <span class="op">{</span>          <span class="co"># bisect on the strength</span></span>
+<span>  <span class="va">lo</span> <span class="op">&lt;-</span> <span class="fl">1e-6</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">50L</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">mid</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">lo</span> <span class="op">+</span> <span class="va">hi</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu">reconstruction_error</span><span class="op">(</span><span class="fu">f</span><span class="op">(</span><span class="va">mid</span><span class="op">)</span>, <span class="va">U</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">target</span><span class="op">)</span> <span class="va">lo</span> <span class="op">&lt;-</span> <span class="va">mid</span> <span class="kw">else</span> <span class="va">hi</span> <span class="op">&lt;-</span> <span class="va">mid</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu">f</span><span class="op">(</span><span class="op">(</span><span class="va">lo</span> <span class="op">+</span> <span class="va">hi</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">battery</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">distortion</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">match_error</span><span class="op">(</span><span class="va">distortion</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>, <span class="fl">0.39</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>distortion <span class="op">=</span> <span class="va">nm</span>,</span>
+<span>             rmse  <span class="op">=</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">Y</span>, <span class="va">U</span><span class="op">)</span>,</span>
+<span>             trust <span class="op">=</span> <span class="fu">trustworthiness</span><span class="op">(</span><span class="va">DU</span>, <span class="va">Y</span>, <span class="va">K_DEFAULT</span><span class="op">)</span>,</span>
+<span>             cont  <span class="op">=</span> <span class="fu">continuity</span><span class="op">(</span><span class="va">DU</span>, <span class="va">Y</span>, <span class="va">K_DEFAULT</span><span class="op">)</span>,</span>
+<span>             knn   <span class="op">=</span> <span class="fu">knn_preservation</span><span class="op">(</span><span class="va">DU</span>, <span class="va">Y</span>, <span class="va">K_DEFAULT</span><span class="op">)</span>,</span>
+<span>             qnx   <span class="op">=</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">Y</span>, <span class="va">DU</span>, <span class="va">K_QNX</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">battery</span>, digits <span class="op">=</span> <span class="fl">3</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"distortion"</span>, <span class="st">"Procrustes RMSE"</span>, <span class="st">"trustworthiness"</span>,</span>
+<span>                <span class="st">"continuity"</span>, <span class="st">"kNN preservation"</span>, <span class="st">"Q_NX"</span><span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Three distortions of one chart, each tuned by bisection to the same normalised Procrustes error. The rank metrics do not agree about them, and the disagreement is not small."</span><span class="op">)</span></span></code></pre></div>
+<div class="inline-table"><table style="width:100%;" class="table table-sm">
+<caption>
+<span id="tab:eval-battery">Table 9.2: </span>Three distortions of one chart, each tuned by bisection to the same normalised Procrustes error. The rank metrics do not agree about them, and the disagreement is not small.</caption>
+<colgroup>
+<col width="18%">
+<col width="19%">
+<col width="19%">
+<col width="13%">
+<col width="20%">
+<col width="7%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">distortion</th>
+<th align="right">Procrustes RMSE</th>
+<th align="right">trustworthiness</th>
+<th align="right">continuity</th>
+<th align="right">kNN preservation</th>
+<th align="right">Q_NX</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">conformal bend</td>
+<td align="right">0.39</td>
+<td align="right">1.000</td>
+<td align="right">1.000</td>
+<td align="right">0.927</td>
+<td align="right">0.943</td>
+</tr>
+<tr class="even">
+<td align="left">shear</td>
+<td align="right">0.39</td>
+<td align="right">0.998</td>
+<td align="right">0.998</td>
+<td align="right">0.589</td>
+<td align="right">0.739</td>
+</tr>
+<tr class="odd">
+<td align="left">jitter</td>
+<td align="right">0.39</td>
+<td align="right">0.889</td>
+<td align="right">0.887</td>
+<td align="right">0.059</td>
+<td align="right">0.178</td>
+</tr>
+</tbody>
+</table></div>
+<p>And a fourth, which is really a warning about the first three. Optimism is a
+band, not a number. Table <a href="evaluation.html#tab:eval-battery">9.2</a> applies three
+distortions to the same chart and tunes each to an identical true error of
+0.39. Trustworthiness rates them
+1, 0.998, 0.889. kNN preservation rates the
+same three configurations 0.927, 0.589, 0.0593 —
+a spread of 0.87 at fixed true error. There
+is no correction factor to apply, because there is no factor: what the rank
+metrics see is the <em>kind</em> of distortion, and the Procrustes error does not
+determine it.</p>
+</div>
+</div>
+<div id="eval-limits" class="section level2" number="9.7">
+<h2>
+<span class="header-section-number">9.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#eval-limits"><i class="fas fa-link"></i></a>
+</h2>
+<p><strong>One family, one wrong candidate.</strong> Every number above is a Miura at one
+tessellation size against one competitor. PCA is the right competitor for an
+ambient-referenced metric and a poor one for anything else, and an evaluator
+that survives this test has survived one test. The audit’s inversion is a
+property of the pair, and a different wrong embedding — a short-circuited
+Isomap, say — would produce a different table.</p>
+<p><strong>Two sample sizes are not a sample-size law.</strong> The <span class="math inline">\(k/n\)</span> collapse in Figure
+<a href="evaluation.html#fig:eval-fig-threshold">9.6</a> rests on two values of <span class="math inline">\(n\)</span> that differ by a factor
+of two, and on a threshold statistic estimated from 20 seeds
+per cell on a grid of 20 fold angles. It is consistent with
+<span class="math inline">\(\sqrt{k/n}\)</span> and it does not exclude much else. A third sample size is the
+cheapest experiment this chapter suggests and it has not been run.</p>
+<p><strong>The pilot’s own headline pooled over <span class="math inline">\(n\)</span>, and should not have.</strong> The narrow
+run that decided this chapter existed reported one table in <span class="math inline">\(k\)</span> and <span class="math inline">\(\theta\)</span>,
+averaged over both of its 2 sample sizes.
+On the full sweep kNN preservation inverts on
+30.4
+per cent of cells at the smaller sample size and
+5.44 per
+cent at the larger; the pooled figure is
+17.9 per cent, which
+describes neither. That is recorded here rather than quietly fixed, because it
+is the same error this chapter warns about in other people’s tables.</p>
+<p><strong>Nothing here is a claim about methods.</strong> The known-answer test scores
+evaluators. Which method to use, and whether this benchmark can tell them apart
+at all, is Chapter <a href="results.html#results">10</a>’s question and is settled by a pre-registered
+rule rather than by these curves.</p>
+<p><strong>What this chapter does not settle.</strong> Whether an evaluator that mishandles a
+crease also mishandles a real dataset is not established and cannot be, because
+the property being exploited — an exact chart — is the property real data lacks.
+The defensible reading is the disqualification argument: a metric that ranks the
+right answer below a wrong one where the right answer is <em>known</em> has not earned
+trust where it is not. That is a necessary condition, it asserts nothing about
+biology, and it is all this chapter claims.</p>
+</div>
+<div id="eval-reproduce" class="section level2" number="9.8">
+<h2>
+<span class="header-section-number">9.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#eval-reproduce"><i class="fas fa-link"></i></a>
+</h2>
+<p>The artefact is <code>data/processed/evaluator-audit.rds</code>, produced by
+<code>scripts/run-evaluator-audit.R</code>, which also writes the pilot under <code>--pilot</code>.
+It carries its own provenance and this chapter refuses to render against a
+different run.</p>
+<div class="sourceCode" id="cb71"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb71-1"><a href="evaluation.html#cb71-1" tabindex="-1"></a><span class="ex">Rscript</span> scripts/run-evaluator-audit.R <span class="at">--pilot</span>   <span class="co"># the narrow decision run</span></span>
+<span id="cb71-2"><a href="evaluation.html#cb71-2" tabindex="-1"></a><span class="ex">Rscript</span> scripts/run-evaluator-audit.R           <span class="co"># the full sweep</span></span></code></pre></div>
+<p>The metric definitions are in <code>R/metrics.R</code> and every identity used above is a
+test in <code>tests/testthat/test-metrics.R</code>: that reflection alone is free, which is
+what forbids a determinant-one fit; that <span class="math inline">\(A(k)\)</span> agrees with a brute-forced worst
+case derived without reference to the paper; that the normalised Procrustes
+statistic agrees with <code>vegan</code>’s symmetric form; that
+<code>knn_preservation(measure = "overlap")</code> is exactly <span class="math inline">\(Q_{NX}(k)\)</span>; that on a flat
+sheet the chart <em>is</em> the ambient geometry and on a folded one it is not; and
+that <code>metric_floor()</code> is attained by the truncated chart and nothing gets below
+it. Run them with <code>Rscript tests/testthat.R</code>.</p>
+</div>
+<div id="eval-reading" class="section level2" number="9.9">
+<h2>
+<span class="header-section-number">9.9</span> Further reading<a class="anchor" aria-label="anchor" href="#eval-reading"><i class="fas fa-link"></i></a>
+</h2>
+<p>Lee and Verleysen’s textbook <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> and their co-ranking paper
+<span class="citation">(<a href="references.html#ref-lee2009quality">32</a>)</span> are the reference for everything in the rank-metric section,
+and Kaski et al. <span class="citation">(<a href="references.html#ref-kaski2003trustworthiness">36</a>)</span> is the primary for trustworthiness
+and continuity — with Venna and Kaski <span class="citation">(<a href="references.html#ref-venna2001neighborhood">35</a>)</span> for priority and
+the information-retrieval reading <span class="citation">(<a href="references.html#ref-venna2010information">37</a>)</span> for why the pair is a
+pair. Espadoto et al. <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey what is actually reported in
+practice, which is the target of the agreement result above.</p>
+<p>On the adversarial side, Machado et al. <span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span> is the direct
+complement to this chapter and should be read alongside it. Schoeneman et al.
+<span class="citation">(<a href="references.html#ref-schoeneman2017error">10</a>)</span> make the same move in a different direction: they build a
+benchmark whose answer key is exact because the parameterisation is unit speed,
+and Chapter <a href="comparison.html#comparison">11</a> measures this book’s construction against theirs.</p>
+
+</div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
@@ -278,7 +1099,36 @@
 <div class="next"><a href="results.html"><span class="header-section-number">10</span> Benchmark results</a></div>
 </div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav"><li><a class="nav-link" href="#evaluation"><span class="header-section-number">9</span> Ground truth and the evaluators</a></li></ul>
+      <ul class="nav navbar-nav">
+<li><a class="nav-link" href="#evaluation"><span class="header-section-number">9</span> Ground truth and the evaluators</a></li>
+<li><a class="nav-link" href="#eval-question"><span class="header-section-number">9.1</span> What “correct” means here</a></li>
+<li><a class="nav-link" href="#eval-setup"><span class="header-section-number">9.2</span> Setup</a></li>
+<li>
+<a class="nav-link" href="#eval-background"><span class="header-section-number">9.3</span> Background</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#the-headline-metric-normalised-procrustes-rmse"><span class="header-section-number">9.3.1</span> The headline metric: normalised Procrustes RMSE</a></li>
+<li><a class="nav-link" href="#the-four-metrics-under-audit"><span class="header-section-number">9.3.2</span> The four metrics under audit</a></li>
+<li><a class="nav-link" href="#three-reference-geometries"><span class="header-section-number">9.3.3</span> Three reference geometries</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#eval-core"><span class="header-section-number">9.4</span> The known-answer test</a><ul class="nav navbar-nav"><li><a class="nav-link" href="#why-the-obvious-fix-fails"><span class="header-section-number">9.4.1</span> Why the obvious fix fails</a></li></ul>
+</li>
+<li>
+<a class="nav-link" href="#eval-results"><span class="header-section-number">9.5</span> Results</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#how-optimistic-and-in-what-units"><span class="header-section-number">9.5.1</span> How optimistic, and in what units</a></li>
+<li><a class="nav-link" href="#four-metrics-one-number"><span class="header-section-number">9.5.2</span> Four metrics, one number</a></li>
+</ul>
+</li>
+<li>
+<a class="nav-link" href="#eval-diagnostics"><span class="header-section-number">9.6</span> Diagnostics</a><ul class="nav navbar-nav">
+<li><a class="nav-link" href="#does-k-change-the-answer"><span class="header-section-number">9.6.1</span> Does k change the answer?</a></li>
+<li><a class="nav-link" href="#what-to-report-when-you-have-no-answer-key"><span class="header-section-number">9.6.2</span> What to report when you have no answer key</a></li>
+</ul>
+</li>
+<li><a class="nav-link" href="#eval-limits"><span class="header-section-number">9.7</span> Where it fails</a></li>
+<li><a class="nav-link" href="#eval-reproduce"><span class="header-section-number">9.8</span> Reproduce this</a></li>
+<li><a class="nav-link" href="#eval-reading"><span class="header-section-number">9.9</span> Further reading</a></li>
+</ul>
 
       <div class="book-extra">
         <ul class="list-unstyled">
@@ -295,7 +1145,7 @@
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-08-31.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-03.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">
