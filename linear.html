@@ -251,7 +251,7 @@ whole benchmark is about.</p>
 <span><span class="va">chart_aspect</span> <span class="op">&lt;-</span> <span class="va">u</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">/</span> <span class="va">u</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>          <span class="co"># of the chart, which folding never touches</span></span></code></pre></div>
 <p>At <span class="math inline">\(\theta = 0\)</span> the sheet lies in a plane, PCA finds that plane, and the recovery
 is exact. On this sample the error is
-3.8e-16 against a floor of 0,
+2.2e-16 against a floor of 0,
 and over the whole clean flat row of the committed grid — 20
 seeds — the worst is
 1.4e-15, with
@@ -323,9 +323,9 @@ whose rank orders agree perfectly.</p>
 <p>The same holds for the routes into PCA itself. At <span class="math inline">\(\theta\)</span> of 0.5,
 <code><a href="https://rdrr.io/r/stats/cmdscale.html">cmdscale()</a></code>, <code><a href="https://rdrr.io/r/stats/princomp.html">princomp()</a></code> and an eigendecomposition of the covariance matrix all
 land on <code><a href="https://rdrr.io/r/stats/prcomp.html">prcomp()</a></code>’s answer at Procrustes distances of
-9.4e-16,
-2.6e-16 and
-1.5e-16. Four names, one computation.
+5.7e-16,
+2.1e-16 and
+2e-16. Four names, one computation.
 The accuracy argument for <code><a href="https://rdrr.io/r/stats/prcomp.html">prcomp()</a></code> has nowhere to show up on data of this
 conditioning.</p>
 <div class="figure" style="text-align: center">
@@ -724,7 +724,7 @@ substitution with a kernel built from geodesic distances. Lee and Verleysen
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-04.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-08.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">
