@@ -40,6 +40,9 @@ jobs:
       # once Pages is live (until then it is 404 by design), and the
       # stylesheet in style/header.html is relative to the rendered pages,
       # not to style/, so it cannot resolve from the include file itself.
+      # Temporarily also the JAXA repository: the whole host has answered 503
+      # since at least 2026-11-02 (Miura 1985, PROJECT_CONCEPT.md). Remove the
+      # exclusion once https://jaxa.repo.nii.ac.jp/records/31382 answers again.
       - name: Check links in Rmd, Markdown and style includes
         uses: lycheeverse/lychee-action@v2
         with:
@@ -50,6 +53,7 @@ jobs:
             --accept 200,206,429
             --exclude '^https://r-heller\.github\.io/folding-in-r/'
             --exclude 'style/style/font-awesome\.min\.css$'
+            --exclude '^https://jaxa\.repo\.nii\.ac\.jp/'
             '*.Rmd' '*.md' 'style/*.html' '.github/**/*.md'
           fail: true
 
