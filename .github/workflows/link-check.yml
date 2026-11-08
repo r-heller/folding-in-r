@@ -36,6 +36,10 @@ jobs:
 
       # Sources, not the rendered book: this catches a bad URL before it is
       # ever published, and needs no render to do it.
+      # Two exclusions: the book's own address is checked by the "site" job
+      # once Pages is live (until then it is 404 by design), and the
+      # stylesheet in style/header.html is relative to the rendered pages,
+      # not to style/, so it cannot resolve from the include file itself.
       - name: Check links in Rmd, Markdown and style includes
         uses: lycheeverse/lychee-action@v2
         with:
@@ -44,6 +48,8 @@ jobs:
             --max-retries 3
             --timeout 30
             --accept 200,206,429
+            --exclude '^https://r-heller\.github\.io/folding-in-r/'
+            --exclude 'style/style/font-awesome\.min\.css$'
             '*.Rmd' '*.md' 'style/*.html' '.github/**/*.md'
           fail: true
 
