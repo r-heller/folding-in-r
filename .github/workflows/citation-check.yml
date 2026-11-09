@@ -14,6 +14,7 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/citation-check.yml'
       - 'CITATION.cff'
       - 'scripts/check-citation-cff.R'
       - 'book.bib'
@@ -24,6 +25,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - '.github/workflows/citation-check.yml'
       - 'CITATION.cff'
       - 'scripts/check-citation-cff.R'
       - 'book.bib'
@@ -36,6 +38,8 @@ on:
 jobs:
   check-citations:
     runs-on: ubuntu-latest
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
 

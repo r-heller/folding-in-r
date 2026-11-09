@@ -10,6 +10,8 @@
 
 <!-- TODO: chapter content. Outline below is the plan of record. -->
 
+**Chapter status: planned.** The application below has not yet been carried out. No single-cell comparison or improvement over a default method is claimed.
+
 - Use the Chapter \@ref(results) grid to select a method and its hyperparameters.
 - Apply that choice to a single-cell dataset.
 - Compare against the field-default choice.
