@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: render-book-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -162,6 +166,15 @@ jobs:
 
       - name: Reject counting pixels in source and rendered pages
         run: python3 scripts/check-no-counting-pixels.py .
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify reader interactions
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:browser
 
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4

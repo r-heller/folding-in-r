@@ -770,7 +770,7 @@ method choice entirely; fix them identically across arms.
 ### `13-conclusion.Rmd` — new · 700 w
 
 Closes on what Chapter 9 established and what it did not. Add to
-`_bookdown.yml` and `vgwort_pixels.csv`.
+`_bookdown.yml`.
 
 ---
 
@@ -799,8 +799,7 @@ via S1-8.
 `scripts/render-chapter-pdfs.R` derives each output filename with the regex
 `\{#[^}]+\}`, so adding an anchor to an unnumbered heading yields the slug
 `glossary -` or `glossary .unnumbered` and the chapter PDF 404s. The bare `{-}`
-produces `glossary.html` via the title-slug fallback, matching the existing
-`vgwort_pixels.csv` row. **Cross-reference the glossary by link text, never by
+produces `glossary.html` via the title-slug fallback. **Cross-reference the glossary by link text, never by
 `\@ref()`.**
 
 Origami and folding terms (800 w); manifold-learning and evaluation terms (900 w).
@@ -809,7 +808,7 @@ Carries the $\theta$ correction.
 ### `98-citing-this-guide.Rmd` — new · ~150 w
 
 Both siblings ship one. Gives `boxempty` its only call site (S1-7). Generate
-`citation.ris` from `CITATION.cff`; add a `vgwort_pixels.csv` row.
+`citation.ris` from `CITATION.cff`.
 
 ---
 

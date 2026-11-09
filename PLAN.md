@@ -308,7 +308,7 @@ coRanking, uwot.
 Both siblings ship it; this book has `CITATION.cff` and `citation.bib` but no
 reader-facing citation page. It also leaves `boxempty` — one of five declared
 callout classes, declared at `style/style.css:177` with a LaTeX fallback — with
-zero call sites by construction. ~150 words, one `vgwort_pixels.csv` row.
+zero call sites by construction. ~150 words.
 
 #### S1-8 — Decide the Chapter 12 dataset
 
@@ -357,10 +357,8 @@ move, the commit that moves it says so out loud and the chapter reports both.
 
 ## S2 — quality
 
-- **S2-1** — `vgwort.yml` runs `check-vgwort-eligibility.R` against rendered
-  `docs/` and writes `vgwort_pixels.csv` back, failing only if a previously
-  eligible chapter drops below threshold. Converts a hand-maintained register into
-  a computed one.
+- **S2-1** — Counting pixels are retired. The publication check rejects their
+  endpoints and metadata in sources and rendered pages.
 - **S2-2** — Collapse the nine planned artefacts to five. `evaluator-audit.rds`
   and `metric-calibration.rds` share every cell and every distance matrix;
   computing them separately doubles the Dijkstra cost for nothing.

@@ -55,3 +55,5 @@ Thumbs.db
 !data/processed/*.rds
 # ...except smoke-test output, which must never be mistaken for the real grid.
 data/processed/*-quick.rds
+
+node_modules/

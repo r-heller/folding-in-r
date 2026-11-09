@@ -503,7 +503,7 @@ resolves from a committed artefact through an inline `r` expression,
 | 5.4 | Add the dark-mode highlight palette and search-dropdown overrides; add a contrast check over both themes |
 | 5.5 | Write real CHANGELOG sections; tag `v1.0.0`; cut a release; enable Zenodo; propagate the DOI to all five citation surfaces |
 | 5.6 | Add `LICENSE-DATA.md` and `THIRD-PARTY.md`; add issue templates and `97-errata.Rmd` |
-| 5.7 | Land the VG Wort pixel injection and the eligibility `--check` mode |
+| 5.7 | Retired: counting pixels are prohibited by the publication check |
 | 5.8 | Add dependabot; pin actions to SHAs; add a `concurrency` group to `render-book.yml`; pin `r-version` |
 
 **Exit:** canonical URL returns 200; `link-check.yml` green including the site
@@ -763,7 +763,7 @@ verified; **[M]** = measured directly against this tree during the audit.
 | S2 | No `concurrency` group on the deploying workflow; overlapping deploys have already happened |
 | S2 | Nothing pins the R version or the repository snapshot |
 | S2 | `lint-chapters.R` check 2 never runs on the appendices although the script says it does |
-| S2 | `check-vgwort-eligibility.R` is in no workflow |
+| S2 | Retired: counting-pixel tools removed |
 | S2 | No dependabot; every action on a mutable tag |
 
 ### Content gap
