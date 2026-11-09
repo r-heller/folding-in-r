@@ -1,32 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="en-GB">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
 <title>Chapter 5 Geodesic methods | Folding in R</title>
-<meta name="author" content="R. Heller">
-<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30  If the data lie on a folded sheet, how do you flatten it back out?  5.1 What this chapter answers Isomap’s premise is this book’s premise....">
-<meta name="generator" content="bookdown 0.47 with bs4_book()">
-<meta property="og:title" content="Chapter 5 Geodesic methods | Folding in R">
-<meta property="og:type" content="book">
-<meta property="og:url" content="https://r-heller.github.io/folding-in-r/geodesic.html">
-<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30  If the data lie on a folded sheet, how do you flatten it back out?  5.1 What this chapter answers Isomap’s premise is this book’s premise....">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chapter 5 Geodesic methods | Folding in R">
-<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30  If the data lie on a folded sheet, how do you flatten it back out?  5.1 What this chapter answers Isomap’s premise is this book’s premise....">
-<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
-<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
-<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
-<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
-<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/font-awesome.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+<meta content="R. Heller" name="author"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30  If the data lie on a folded sheet, how do you flatten it back out?  5.1 What this chapter answers Isomap’s premise is this book’s premise...." name="description"/>
+<meta content="bookdown 0.47 with bs4_book()" name="generator"/>
+<meta content="Chapter 5 Geodesic methods | Folding in R" property="og:title"/>
+<meta content="book" property="og:type"/>
+<meta content="https://r-heller.github.io/folding-in-r/geodesic.html" property="og:url"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" property="og:image"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30  If the data lie on a folded sheet, how do you flatten it back out?  5.1 What this chapter answers Isomap’s premise is this book’s premise...." property="og:description"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Chapter 5 Geodesic methods | Folding in R" name="twitter:title"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30  If the data lie on a folded sheet, how do you flatten it back out?  5.1 What this chapter answers Isomap’s premise is this book’s premise...." name="twitter:description"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" name="twitter:image"/>
+<!-- JS --><script crossorigin="anonymous" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script><script crossorigin="anonymous" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js"></script><script crossorigin="anonymous" src="https://kit.fontawesome.com/6ecbd6c532.js"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet"/>
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet"/>
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet"/>
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet"/>
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="style/font-awesome.min.css" rel="stylesheet"/>
+<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -52,29 +53,36 @@
       margin-left: 2em;
     }
   </style>
-<link rel="stylesheet" href="style/style.css">
-</head>
+<link href="style/style.css" rel="stylesheet"/>
+<style id="unified-book-download-style">
+.book-downloads--unified {display:flex!important;flex-wrap:wrap;gap:12px 24px;margin:16px 0 24px!important;padding:14px 16px!important;border:1px solid #a8adb4;border-radius:8px;background:transparent;color:inherit;font-family:system-ui,sans-serif;font-size:14px;line-height:1.4;box-sizing:border-box;max-width:100%;}
+.book-downloads--unified .book-download-group {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.book-downloads--unified .book-download-label {font-weight:600;margin-right:4px;}
+.book-downloads--unified a {display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid currentColor;border-radius:5px;text-decoration:none!important;font-weight:600;color:inherit;}
+.book-downloads--unified a:hover {background:rgba(127,127,127,.14);}
+.book-downloads--unified a:focus-visible {outline:3px solid #2684d9;outline-offset:3px;}
+.book-downloads--unified svg {height:20px;width:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.book-downloads:not(.book-downloads--unified),.book-download-footer,.sidebar-downloads {display:none!important;}
+@media(max-width:500px){.book-downloads--unified{gap:12px;padding:12px!important;}.book-downloads--unified .book-download-group{width:100%;}.book-downloads--unified .book-download-label{min-width:92px;}}
+@media print{.book-downloads--unified{display:none!important;}}
+</style></head>
 <body data-spy="scroll" data-target="#toc">
-
 <div class="container-fluid">
 <div class="row">
-  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
-
-    <div class="d-flex align-items-start justify-content-between">
-      <h1>
-        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+<header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+<div class="d-flex align-items-start justify-content-between">
+<h1>
+<a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
         <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
-      </h1>
-      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
-    </div>
-
-    <div id="main-nav" class="collapse-lg">
-      <form role="search">
-        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</h1>
+<button aria-controls="main-nav" aria-expanded="true" class="btn btn-outline-primary d-lg-none ml-2 mt-1" data-target="#main-nav" data-toggle="collapse" type="button"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+</div>
+<div class="collapse-lg" id="main-nav">
+<form role="search">
+<input aria-label="Search" class="form-control" id="search" placeholder="Search" type="search"/>
 </form>
-
-      <nav aria-label="Table of contents"><h2>Table of contents</h2>
-        <ul class="book-toc list-unstyled">
+<nav aria-label="Table of contents"><h2>Table of contents</h2>
+<ul class="book-toc list-unstyled">
 <li><a class="" href="index.html">Preface</a></li>
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
@@ -104,25 +112,24 @@
 <li><a class="" href="citing.html">Citing this book</a></li>
 <li><a class="" href="references.html">References</a></li>
 </ul>
-
-        <div class="book-extra">
-          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
-        </div>
-      </nav>
+<div class="book-extra">
+<p><a href="https://github.com/r-heller/folding-in-r" id="book-repo">View book source <i class="fab fa-github"></i></a></p>
 </div>
-  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="geodesic" class="section level1" number="5">
+</nav>
+</div>
+</header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div class="section level1" id="geodesic" number="5">
 <h1>
-<span class="header-section-number">5</span> Geodesic methods<a class="anchor" aria-label="anchor" href="#geodesic"><i class="fas fa-link"></i></a>
-</h1>
+<span class="header-section-number">5</span> Geodesic methods<a aria-label="anchor" class="anchor" href="#geodesic"><i class="fas fa-link"></i></a>
+</h1><nav aria-label="Book and chapter downloads" class="book-downloads book-downloads--unified"><div class="book-download-group"><span class="book-download-label">Entire book</span><a aria-label="Download entire book as PDF" download="" href="folding-in-r.pdf" title="Download entire book as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download entire book as EPUB" download="" href="folding-in-r.epub" title="Download entire book as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div><div class="book-download-group"><span class="book-download-label">This chapter</span><a aria-label="Download this chapter as PDF" download="" href="downloads/chapters/geodesic.pdf" title="Download this chapter as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download this chapter as EPUB" download="" href="downloads/chapters/geodesic.epub" title="Download this chapter as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div></nav>
 <!-- page-provenance:start -->
 <div class="page-provenance">
 <p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-10-30</em></p>
 </div>
 <!-- page-provenance:end -->
 <p><em>If the data lie on a folded sheet, how do you flatten it back out?</em></p>
-<div id="geo-question" class="section level2" number="5.1">
+<div class="section level2" id="geo-question" number="5.1">
 <h2>
-<span class="header-section-number">5.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#geo-question"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.1</span> What this chapter answers<a aria-label="anchor" class="anchor" href="#geo-question"><i class="fas fa-link"></i></a>
 </h2>
 <p>Isomap’s premise is this book’s premise. Estimate the distances measured <em>along</em>
 the surface, embed those instead of the distances measured <em>through</em> the space
@@ -147,9 +154,9 @@ object — which is not the mechanism the plan of record predicted.</p>
 consumes <em>ambient</em> distance, and the gap between the two curves is the value of
 consuming the right thing.</p>
 </div>
-<div id="geo-setup" class="section level2" number="5.2">
+<div class="section level2" id="geo-setup" number="5.2">
 <h2>
-<span class="header-section-number">5.2</span> Setup<a class="anchor" aria-label="anchor" href="#geo-setup"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.2</span> Setup<a aria-label="anchor" class="anchor" href="#geo-setup"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span>   <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/benchmark-grid.rds"</span>, <span class="st">"2483a468d82d4d64"</span><span class="op">)</span></span>
@@ -161,13 +168,13 @@ moves it, over 7 values at
 3 fold angles and all 20 benchmark seeds.
 Chapter <a href="linear.html#linear">4</a> explains what <code>read_run()</code> refuses.</p>
 </div>
-<div id="geo-background" class="section level2" number="5.3">
+<div class="section level2" id="geo-background" number="5.3">
 <h2>
-<span class="header-section-number">5.3</span> Background<a class="anchor" aria-label="anchor" href="#geo-background"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.3</span> Background<a aria-label="anchor" class="anchor" href="#geo-background"><i class="fas fa-link"></i></a>
 </h2>
-<div id="isomap-in-three-stages" class="section level3" number="5.3.1">
+<div class="section level3" id="isomap-in-three-stages" number="5.3.1">
 <h3>
-<span class="header-section-number">5.3.1</span> Isomap, in three stages<a class="anchor" aria-label="anchor" href="#isomap-in-three-stages"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.3.1</span> Isomap, in three stages<a aria-label="anchor" class="anchor" href="#isomap-in-three-stages"><i class="fas fa-link"></i></a>
 </h3>
 <p>Isomap <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span> is classical multidimensional scaling
 <span class="citation">(<a href="references.html#ref-torgerson1952mds">22</a>)</span> with the distance matrix replaced. Build a
@@ -218,9 +225,9 @@ density this book fixes at <code>N_DEFAULT</code> points.</p>
 geodesic distance and is deterministic. Diffusion maps consumes <strong>ambient</strong>
 distance and is stochastic, and both of those are easy to get wrong.</p>
 </div>
-<div id="diffusion-maps-and-why-it-is-filed-here" class="section level3" number="5.3.2">
+<div class="section level3" id="diffusion-maps-and-why-it-is-filed-here" number="5.3.2">
 <h3>
-<span class="header-section-number">5.3.2</span> Diffusion maps, and why it is filed here<a class="anchor" aria-label="anchor" href="#diffusion-maps-and-why-it-is-filed-here"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.3.2</span> Diffusion maps, and why it is filed here<a aria-label="anchor" class="anchor" href="#diffusion-maps-and-why-it-is-filed-here"><i class="fas fa-link"></i></a>
 </h3>
 <p>Diffusion maps <span class="citation">(<a href="references.html#ref-coifman2006diffusion">27</a>)</span> puts a Gaussian kernel on the ambient
 distances, normalises it into a Markov chain, and embeds the points so that
@@ -254,13 +261,13 @@ other methods that do.
 </div>
 </div>
 </div>
-<div id="geo-core" class="section level2" number="5.4">
+<div class="section level2" id="geo-core" number="5.4">
 <h2>
-<span class="header-section-number">5.4</span> The geodesic you do not have to estimate<a class="anchor" aria-label="anchor" href="#geo-core"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.4</span> The geodesic you do not have to estimate<a aria-label="anchor" class="anchor" href="#geo-core"><i class="fas fa-link"></i></a>
 </h2>
-<div id="the-claim-and-its-one-condition" class="section level3" number="5.4.1">
+<div class="section level3" id="the-claim-and-its-one-condition" number="5.4.1">
 <h3>
-<span class="header-section-number">5.4.1</span> The claim, and its one condition<a class="anchor" aria-label="anchor" href="#the-claim-and-its-one-condition"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.4.1</span> The claim, and its one condition<a aria-label="anchor" class="anchor" href="#the-claim-and-its-one-condition"><i class="fas fa-link"></i></a>
 </h3>
 <p>Folding preserves distance along the surface exactly (Chapter
 <a href="folding-geometry.html#folding-geometry">2</a>). So the length of a path on the folded sheet equals the
@@ -290,9 +297,9 @@ such pairs is -6.2e-07, a negative number. And
 sheet, so the chart distance is the geodesic for every pair in this sample and
 not merely a lower bound on it.</p>
 </div>
-<div id="the-decomposition" class="section level3" number="5.4.2">
+<div class="section level3" id="the-decomposition" number="5.4.2">
 <h3>
-<span class="header-section-number">5.4.2</span> The decomposition<a class="anchor" aria-label="anchor" href="#the-decomposition"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.4.2</span> The decomposition<a aria-label="anchor" class="anchor" href="#the-decomposition"><i class="fas fa-link"></i></a>
 </h3>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Y_exact</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cmdscale.html">cmdscale</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">as.dist</a></span><span class="op">(</span><span class="va">dU</span><span class="op">)</span>, k <span class="op">=</span> <span class="va">EMBED_DIM</span><span class="op">)</span>           <span class="co"># exact geodesics in</span></span>
@@ -318,8 +325,8 @@ by 2.95 per cent in relative root-mean-square.</p>
 on a crease pattern has one cause, it is a property of a graph rather than of an
 optimiser, and it can be looked at directly.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geo-graph-fig"></span>
-<img src="05-geodesic-methods_files/figure-html/geo-graph-fig-1.png" alt="Two scatter panels side by side, each with exact geodesic distance on the horizontal axis and the ratio of graph distance to geodesic distance on the vertical, with a reference line at one. In the left panel, at a small fold angle, the cloud spreads widely above the line at the shortest distances, reaching roughly twice the geodesic, then narrows quickly into a tight band sitting just above one for the rest of the range. In the right panel, at a large fold angle, the same narrowing happens but the band has dropped below the line: the short-distance scatter now runs from about a half to about twice, and beyond a moderate distance the band settles a little under one." width="90%"><p class="caption">
+<span id="fig:geo-graph-fig" style="display:block;"></span>
+<img alt="Two scatter panels side by side, each with exact geodesic distance on the horizontal axis and the ratio of graph distance to geodesic distance on the vertical, with a reference line at one. In the left panel, at a small fold angle, the cloud spreads widely above the line at the shortest distances, reaching roughly twice the geodesic, then narrows quickly into a tight band sitting just above one for the rest of the range. In the right panel, at a large fold angle, the same narrowing happens but the band has dropped below the line: the short-distance scatter now runs from about a half to about twice, and beyond a moderate distance the band settles a little under one." src="05-geodesic-methods_files/figure-html/geo-graph-fig-1.png" width="90%"/><p class="caption">
 Figure 5.1: Shortest-path distance on the ambient neighbourhood graph against the exact geodesic distance, as a ratio, for a lightly folded sheet and a deeply folded one. The horizontal line at one is exactness. Points above it are the discretisation bias of walking along graph edges; points below it are distances the fold has contracted. A random ten thousand pairs are drawn in each panel.
 </p>
 </div>
@@ -334,9 +341,9 @@ truth. The two biases are different mechanisms with opposite signs, and
 <code>geo-diagnostics</code> is where they cancel.</p>
 </div>
 </div>
-<div id="geo-results" class="section level2" number="5.5">
+<div class="section level2" id="geo-results" number="5.5">
 <h2>
-<span class="header-section-number">5.5</span> Results<a class="anchor" aria-label="anchor" href="#geo-results"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.5</span> Results<a aria-label="anchor" class="anchor" href="#geo-results"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html">subset</a></span><span class="op">(</span><span class="va">grid</span>, <span class="va">noise</span> <span class="op">==</span> <span class="st">"none"</span> <span class="op">&amp;</span> <span class="va">ran</span><span class="op">)</span></span>
@@ -356,8 +363,8 @@ truth. The two biases are different mechanisms with opposite signs, and
 <span><span class="va">noisy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span><span class="op">(</span><span class="va">rmse</span> <span class="op">~</span> <span class="va">noise</span> <span class="op">+</span> <span class="va">theta</span>, <span class="fu"><a href="https://rdrr.io/r/base/subset.html">subset</a></span><span class="op">(</span><span class="va">grid</span>, <span class="va">method</span> <span class="op">==</span> <span class="st">"isomap"</span> <span class="op">&amp;</span> <span class="va">ran</span><span class="op">)</span>,</span>
 <span>                   <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geo-curves-fig"></span>
-<img src="05-geodesic-methods_files/figure-html/geo-curves-fig-1.png" alt="Two panels sharing a horizontal axis, the folding parameter from zero to nearly one. Panel A, reconstruction error: the PCA curve starts at zero and rises smoothly to about 0.21; the Isomap curve starts at about 0.024, stays nearly flat through the first half and then rises to about 0.19, crossing below the PCA curve at around 0.4; the diffusion curve is nearly flat at about 0.2 across the whole range and rises at the very end. Panel B, Q-NX: PCA starts at one and falls to about 0.68; Isomap starts at about 0.94, falls slowly and crosses above PCA near 0.6; diffusion runs flat near 0.785 and falls at the end." width="90%"><p class="caption">
+<span id="fig:geo-curves-fig" style="display:block;"></span>
+<img alt="Two panels sharing a horizontal axis, the folding parameter from zero to nearly one. Panel A, reconstruction error: the PCA curve starts at zero and rises smoothly to about 0.21; the Isomap curve starts at about 0.024, stays nearly flat through the first half and then rises to about 0.19, crossing below the PCA curve at around 0.4; the diffusion curve is nearly flat at about 0.2 across the whole range and rises at the very end. Panel B, Q-NX: PCA starts at one and falls to about 0.68; Isomap starts at about 0.94, falls slowly and crosses above PCA near 0.6; diffusion runs flat near 0.785 and falls at the end." src="05-geodesic-methods_files/figure-html/geo-curves-fig-1.png" width="90%"/><p class="caption">
 Figure 5.2: Isomap and diffusion maps over the fold sweep, with PCA from Chapter 4 as the reference. Panel A is reconstruction error against the chart, panel B is <span class="math inline">\(Q_{NX}\)</span> at <span class="math inline">\(K_{QNX}\)</span> against the chart. Lines are means over the twenty benchmark seeds and bands in panel A are their full range. Lower is better in A, higher in B.
 </p>
 </div>
@@ -398,9 +405,9 @@ under ambient Gaussian noise and
 outliers, on a sheet that is not folded at all. Displaced points are new
 neighbours, and a graph method’s whole input is who is a neighbour.</p>
 </div>
-<div id="geo-bridge" class="section level2" number="5.6">
+<div class="section level2" id="geo-bridge" number="5.6">
 <h2>
-<span class="header-section-number">5.6</span> When does the graph bridge?<a class="anchor" aria-label="anchor" href="#geo-bridge"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.6</span> When does the graph bridge?<a aria-label="anchor" class="anchor" href="#geo-bridge"><i class="fas fa-link"></i></a>
 </h2>
 <p>A <strong>fold jump</strong> is a <span class="math inline">\(k\)</span>-nearest-neighbour edge between two points the sheet
 holds far apart — the classical short circuit that destroys Isomap on tightly
@@ -466,8 +473,8 @@ chart distance coincide, and any edge counted there is sparse sampling rather
 than folding. That control is 0 at every <span class="math inline">\(k\)</span> tested, so the
 counts below have no false positives in them.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geo-onset-fig"></span>
-<img src="05-geodesic-methods_files/figure-html/geo-onset-fig-1.png" alt="Two panels sharing a horizontal axis that runs from fold angle 0.7 to 0.99, with a vertical dashed line at 0.95 marking the benchmark grid's ceiling. Panel A: a falling curve, the facet clearance, from about 0.74 down to about 0.19, crossed by four horizontal dashed lines at heights 0.29, 0.41, 0.51 and 0.63 for neighbourhood sizes 10, 20, 30 and 45. The three upper lines cross the curve before the vertical marker; the lowest, for the smallest neighbourhood, crosses it after. Panel B: four rising curves of fold-jump edge counts on a logarithmic vertical axis, one per neighbourhood size, each leaving zero close to where panel A predicts and then climbing steeply; the curve for the smallest neighbourhood is flat at zero until past the vertical marker." width="90%"><p class="caption">
+<span id="fig:geo-onset-fig" style="display:block;"></span>
+<img alt="Two panels sharing a horizontal axis that runs from fold angle 0.7 to 0.99, with a vertical dashed line at 0.95 marking the benchmark grid's ceiling. Panel A: a falling curve, the facet clearance, from about 0.74 down to about 0.19, crossed by four horizontal dashed lines at heights 0.29, 0.41, 0.51 and 0.63 for neighbourhood sizes 10, 20, 30 and 45. The three upper lines cross the curve before the vertical marker; the lowest, for the smallest neighbourhood, crosses it after. Panel B: four rising curves of fold-jump edge counts on a logarithmic vertical axis, one per neighbourhood size, each leaving zero close to where panel A predicts and then climbing steeply; the curve for the smallest neighbourhood is flat at zero until past the vertical marker." src="05-geodesic-methods_files/figure-html/geo-onset-fig-1.png" width="90%"/><p class="caption">
 Figure 5.3: The analytic onset against the measured one, over a fold sweep deliberately extended past the benchmark’s own ceiling — the vertical dashed line at the largest fold angle the grid uses. Panel A is the exact clearance between non-touching facets as the sheet closes, with the chart <span class="math inline">\(k\)</span>-nearest-neighbour radius for four neighbourhood sizes drawn as horizontal lines; each crossing is a predicted onset, marked with an open circle. Panel B is the measured number of fold-jump edges per sample, averaged over the twenty benchmark seeds, with the same predictions marked on the horizontal axis.
 </p>
 </div>
@@ -549,9 +556,9 @@ degradation from 0.024 to
 a single fold jump. Raising <span class="math inline">\(k\)</span> is what crosses the boundary inside the grid, and
 that is the subject of the next section.</p>
 </div>
-<div id="geo-diagnostics" class="section level2" number="5.7">
+<div class="section level2" id="geo-diagnostics" number="5.7">
 <h2>
-<span class="header-section-number">5.7</span> Diagnostics<a class="anchor" aria-label="anchor" href="#geo-diagnostics"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.7</span> Diagnostics<a aria-label="anchor" class="anchor" href="#geo-diagnostics"><i class="fas fa-link"></i></a>
 </h2>
 <p>If the short circuit is absent, what is doing the damage? The <span class="math inline">\(k\)</span> sweep answers
 it, and the answer is that a neighbourhood size is not a setting to be tuned once.</p>
@@ -590,8 +597,8 @@ the two ends are not simply harder and easier versions of one problem.</p>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html">approx</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">bias</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">k</span><span class="op">)</span>, xout <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">NA_real_</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geo-k-fig"></span>
-<img src="05-geodesic-methods_files/figure-html/geo-k-fig-1.png" alt="Two panels, both with neighbourhood size on a logarithmic horizontal axis from five to seventy. Panel A: three U-shaped curves of reconstruction error. The lowest, at the smallest fold angle, falls steeply and bottoms out near k = 45. The middle bottoms out near k = 20 and rises again. The highest, at the largest fold angle, bottoms out near k = 12 and rises steeply after it. Panel B: three curves falling from positive values at k = 5 through a horizontal zero line to negative values at k = 45; the curve for the largest fold angle crosses zero first, near k = 7, and ends lowest, near minus 0.2." width="90%"><p class="caption">
+<span id="fig:geo-k-fig" style="display:block;"></span>
+<img alt="Two panels, both with neighbourhood size on a logarithmic horizontal axis from five to seventy. Panel A: three U-shaped curves of reconstruction error. The lowest, at the smallest fold angle, falls steeply and bottoms out near k = 45. The middle bottoms out near k = 20 and rises again. The highest, at the largest fold angle, bottoms out near k = 12 and rises steeply after it. Panel B: three curves falling from positive values at k = 5 through a horizontal zero line to negative values at k = 45; the curve for the largest fold angle crosses zero first, near k = 7, and ends lowest, near minus 0.2." src="05-geodesic-methods_files/figure-html/geo-k-fig-1.png" width="90%"/><p class="caption">
 Figure 5.4: Why the optimum moves. Panel A is Isomap’s reconstruction error against neighbourhood size at three fold angles, from the committed sweep; the open circles mark each curve’s minimum. Panel B is the median relative departure of the shortest-path distance from the exact geodesic, measured at the same three fold angles: positive is the discretisation bias of walking along edges, negative is the fold contracting them, and each curve crosses zero at a smaller neighbourhood size than the last.
 </p>
 </div>
@@ -624,9 +631,9 @@ needed repairing. Diffusion maps needed a widened kernel in
 1; those are recorded in the
 <code>tuning</code> and <code>status</code> columns rather than folded into the mean.</p>
 </div>
-<div id="geo-limits" class="section level2" number="5.8">
+<div class="section level2" id="geo-limits" number="5.8">
 <h2>
-<span class="header-section-number">5.8</span> Where it fails<a class="anchor" aria-label="anchor" href="#geo-limits"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.8</span> Where it fails<a aria-label="anchor" class="anchor" href="#geo-limits"><i class="fas fa-link"></i></a>
 </h2>
 <p><strong>The predicted failure is not the observed one.</strong> This chapter was specified to
 pair an analytic short-circuit onset with a measured one, and it does — to
@@ -671,8 +678,8 @@ shortest path for
 0.0621 to 0.0767. Nothing about the sample changed;
 one entry of an adjacency matrix did.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geo-embed-fig"></span>
-<img src="05-geodesic-methods_files/figure-html/geo-embed-fig-1.png" alt="Two square scatter panels. In panel A the embedded points form an even rectangular patch with five grey level-set paths running across it as separate parallel curves. In panel B the patch is a similar rectangle but slightly bowed at its ends and the grey paths, still separate and ordered, are unevenly spaced and drawn closer together near the middle." width="90%"><p class="caption">
+<span id="fig:geo-embed-fig" style="display:block;"></span>
+<img alt="Two square scatter panels. In panel A the embedded points form an even rectangular patch with five grey level-set paths running across it as separate parallel curves. In panel B the patch is a similar rectangle but slightly bowed at its ends and the grey paths, still separate and ordered, are unevenly spaced and drawn closer together near the middle." src="05-geodesic-methods_files/figure-html/geo-embed-fig-1.png" width="90%"/><p class="caption">
 Figure 5.5: What Isomap returns, coloured by the exact chart coordinate along the corrugation, with grey level sets of that coordinate drawn over the points. Panel A is the lightly folded sheet and panel B the deeply folded one. Both recover the chart; the damage in B is a crowding of the level sets, not a tear.
 </p>
 </div>
@@ -692,9 +699,9 @@ and that is a weaker thing than a theorem.</p>
 prediction at four times the sample size moves every onset later, and the sweep
 that would establish that has not been run.</p>
 </div>
-<div id="geo-reproduce" class="section level2" number="5.9">
+<div class="section level2" id="geo-reproduce" number="5.9">
 <h2>
-<span class="header-section-number">5.9</span> Reproduce this<a class="anchor" aria-label="anchor" href="#geo-reproduce"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.9</span> Reproduce this<a aria-label="anchor" class="anchor" href="#geo-reproduce"><i class="fas fa-link"></i></a>
 </h2>
 <p>Both artefacts are committed and neither is generated at render time.
 <code>scripts/run-benchmark-grid.R</code> produces <code>benchmark-grid.rds</code> and
@@ -717,9 +724,9 @@ stochastic method called without a seed is an error.</li>
 </ul>
 <p>Run them with <code>Rscript tests/testthat.R</code> from the repository root.</p>
 </div>
-<div id="geo-reading" class="section level2" number="5.10">
+<div class="section level2" id="geo-reading" number="5.10">
 <h2>
-<span class="header-section-number">5.10</span> Further reading<a class="anchor" aria-label="anchor" href="#geo-reading"><i class="fas fa-link"></i></a>
+<span class="header-section-number">5.10</span> Further reading<a aria-label="anchor" class="anchor" href="#geo-reading"><i class="fas fa-link"></i></a>
 </h2>
 <p>Tenenbaum, de Silva and Langford <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span> is Isomap’s source and
 still the clearest statement of the three-stage construction. The convergence of
@@ -737,16 +744,14 @@ scaling <span class="citation">(<a href="references.html#ref-torgerson1952mds">2
 three settings of one method rather than three methods. Dijkstra
 <span class="citation">(<a href="references.html#ref-dijkstra1959note">29</a>)</span> is where shortest paths on a weighted graph begin, though
 <code>R/metrics.R</code> does not use his algorithm and says why.</p>
-
 </div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
-  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
-    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-  </button>
+<button aria-label="Toggle dark mode" class="btn-circle-mode" id="mode-switch" type="button">
+<i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i>
+</button>
 </div>
-
 <script>
   (function () {
     var stored = localStorage.getItem('themeMode');
@@ -800,101 +805,9 @@ three settings of one method rather than three methods. Dijkstra
       li.appendChild(t);
     });
   });
-</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // There are TWO .book-extra blocks on each page:
-    //  - sidebar one: contains #book-repo ("View book source")
-    //  - right-nav one: contains #book-source + #book-edit
-    // We want the latter.
-    var bookSource = document.getElementById("book-source");
-    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
-    if (!bookExtra || document.querySelector(".book-downloads")) return;
-
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
-    // Every link in this block is probed before it is offered.
-    //
-    // The full-book link used to be written unconditionally while the chapter
-    // link below it was probed -- and that asymmetry was the bug. The render
-    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
-    // so a build could deploy green with a "Downloads" box pointing at a PDF
-    // that was never produced. The workflow no longer tolerates that (it
-    // asserts both artefacts exist and clear a size floor), but a link that
-    // checks its own target is cheap, and the two mechanisms fail
-    // independently: a deploy that partially clears gh-pages would leave the
-    // assertion satisfied and the link dead.
-    //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
-
-    var TARGETS = [
-      { href: "folding-in-r.pdf",
-        id:   "book-download-full",
-        text: "Entire book (PDF) ",
-        icon: "fa-solid fa-book",
-        skip: false },
-      { href: "folding-in-r.epub",
-        id: "book-download-epub",
-        text: "Entire book (EPUB) ",
-        icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
-    ];
-
-    var exists = function (t) {
-      if (t.skip) return Promise.resolve(false);
-      return fetch(t.href, { method: "HEAD" })
-        .then(function (r) { return r.ok; })
-        .catch(function () { return false; });
-    };
-
-    Promise.all(TARGETS.map(exists)).then(function (found) {
-      // Resolved together rather than appended as each probe lands, so the
-      // order is the order of TARGETS and not the order of the network.
-      var live = TARGETS.filter(function (t, i) { return found[i]; });
-      if (!live.length) return;              // nothing to offer, no empty box
-      if (document.querySelector(".book-downloads")) return;
-
-      var wrap = document.createElement("div");
-      wrap.className = "book-downloads";
-
-      var heading = document.createElement("h6");
-      heading.className = "book-downloads-heading";
-      heading.textContent = "Downloads";
-      wrap.appendChild(heading);
-
-      var list = document.createElement("ul");
-      list.className = "list-unstyled";
-
-      live.forEach(function (t) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.id = t.id;
-        a.href = t.href;
-        a.textContent = t.text;
-        var icon = document.createElement("i");
-        icon.className = t.icon;
-        a.appendChild(icon);
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-
-      wrap.appendChild(list);
-      bookExtra.parentNode.insertBefore(wrap, bookExtra);
-    });
-  });
-</script><!-- Footer attribution --><div class="bookdown-attribution">
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-
 <script>
 // A pasted query can arrive before bookdown's focus-triggered index fetch ends.
 // Keep that first query pending until the index is ready.
@@ -924,11 +837,11 @@ three settings of one method rather than three methods. Dijkstra
 <div class="next"><a href="neighbor.html"><span class="header-section-number">6</span> Neighbour embeddings</a></div>
 </div>
 <!-- verified-downloads:start -->
-<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/geodesic.pdf">This chapter (PDF)</a></p></nav>
+
 <!-- verified-downloads:end -->
 </main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
-    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav">
+<nav aria-label="On this page" data-toggle="toc" id="toc"><h2>On this page</h2>
+<ul class="nav navbar-nav">
 <li><a class="nav-link" href="#geodesic"><span class="header-section-number">5</span> Geodesic methods</a></li>
 <li><a class="nav-link" href="#geo-question"><span class="header-section-number">5.1</span> What this chapter answers</a></li>
 <li><a class="nav-link" href="#geo-setup"><span class="header-section-number">5.2</span> Setup</a></li>
@@ -951,29 +864,23 @@ three settings of one method rather than three methods. Dijkstra
 <li><a class="nav-link" href="#geo-reproduce"><span class="header-section-number">5.9</span> Reproduce this</a></li>
 <li><a class="nav-link" href="#geo-reading"><span class="header-section-number">5.10</span> Further reading</a></li>
 </ul>
-
-      <div class="book-extra">
-        <ul class="list-unstyled">
-<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/05-geodesic-methods.Rmd">View source <i class="fab fa-github"></i></a></li>
-          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/05-geodesic-methods.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
-        </ul>
+<div class="book-extra">
+<ul class="list-unstyled">
+<li><a href="https://github.com/r-heller/folding-in-r/blob/main/05-geodesic-methods.Rmd" id="book-source">View source <i class="fab fa-github"></i></a></li>
+<li><a href="https://github.com/r-heller/folding-in-r/edit/main/05-geodesic-methods.Rmd" id="book-edit">Edit this page <i class="fab fa-github"></i></a></li>
+</ul>
 </div>
-    </nav>
+</nav>
 </div>
-
 </div>
 </div> <!-- .container -->
-
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
-  </div>
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
-  </div>
-
+<div class="col-12 col-md-6 mt-3">
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+</div>
+<div class="col-12 col-md-6 mt-3">
+<p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+</div>
 </div></div>
 </footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
   (function () {

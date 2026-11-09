@@ -1,32 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="en-GB">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
 <title>Chapter 2 The geometry of folding | Folding in R</title>
-<meta name="author" content="R. Heller">
-<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31  What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in...">
-<meta name="generator" content="bookdown 0.47 with bs4_book()">
-<meta property="og:title" content="Chapter 2 The geometry of folding | Folding in R">
-<meta property="og:type" content="book">
-<meta property="og:url" content="https://r-heller.github.io/folding-in-r/folding-geometry.html">
-<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31  What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in...">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chapter 2 The geometry of folding | Folding in R">
-<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31  What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in...">
-<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
-<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
-<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
-<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
-<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/font-awesome.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+<meta content="R. Heller" name="author"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31  What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in..." name="description"/>
+<meta content="bookdown 0.47 with bs4_book()" name="generator"/>
+<meta content="Chapter 2 The geometry of folding | Folding in R" property="og:title"/>
+<meta content="book" property="og:type"/>
+<meta content="https://r-heller.github.io/folding-in-r/folding-geometry.html" property="og:url"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" property="og:image"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31  What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in..." property="og:description"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Chapter 2 The geometry of folding | Folding in R" name="twitter:title"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31  What does folding preserve, and what does it destroy?  2.1 What this chapter answers A sheet of paper folded along creases is a surface in..." name="twitter:description"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" name="twitter:image"/>
+<!-- JS --><script crossorigin="anonymous" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script><script crossorigin="anonymous" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js"></script><script crossorigin="anonymous" src="https://kit.fontawesome.com/6ecbd6c532.js"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet"/>
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet"/>
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet"/>
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet"/>
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="style/font-awesome.min.css" rel="stylesheet"/>
+<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -52,29 +53,36 @@
       margin-left: 2em;
     }
   </style>
-<link rel="stylesheet" href="style/style.css">
-</head>
+<link href="style/style.css" rel="stylesheet"/>
+<style id="unified-book-download-style">
+.book-downloads--unified {display:flex!important;flex-wrap:wrap;gap:12px 24px;margin:16px 0 24px!important;padding:14px 16px!important;border:1px solid #a8adb4;border-radius:8px;background:transparent;color:inherit;font-family:system-ui,sans-serif;font-size:14px;line-height:1.4;box-sizing:border-box;max-width:100%;}
+.book-downloads--unified .book-download-group {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.book-downloads--unified .book-download-label {font-weight:600;margin-right:4px;}
+.book-downloads--unified a {display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid currentColor;border-radius:5px;text-decoration:none!important;font-weight:600;color:inherit;}
+.book-downloads--unified a:hover {background:rgba(127,127,127,.14);}
+.book-downloads--unified a:focus-visible {outline:3px solid #2684d9;outline-offset:3px;}
+.book-downloads--unified svg {height:20px;width:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.book-downloads:not(.book-downloads--unified),.book-download-footer,.sidebar-downloads {display:none!important;}
+@media(max-width:500px){.book-downloads--unified{gap:12px;padding:12px!important;}.book-downloads--unified .book-download-group{width:100%;}.book-downloads--unified .book-download-label{min-width:92px;}}
+@media print{.book-downloads--unified{display:none!important;}}
+</style></head>
 <body data-spy="scroll" data-target="#toc">
-
 <div class="container-fluid">
 <div class="row">
-  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
-
-    <div class="d-flex align-items-start justify-content-between">
-      <h1>
-        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+<header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+<div class="d-flex align-items-start justify-content-between">
+<h1>
+<a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
         <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
-      </h1>
-      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
-    </div>
-
-    <div id="main-nav" class="collapse-lg">
-      <form role="search">
-        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</h1>
+<button aria-controls="main-nav" aria-expanded="true" class="btn btn-outline-primary d-lg-none ml-2 mt-1" data-target="#main-nav" data-toggle="collapse" type="button"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+</div>
+<div class="collapse-lg" id="main-nav">
+<form role="search">
+<input aria-label="Search" class="form-control" id="search" placeholder="Search" type="search"/>
 </form>
-
-      <nav aria-label="Table of contents"><h2>Table of contents</h2>
-        <ul class="book-toc list-unstyled">
+<nav aria-label="Table of contents"><h2>Table of contents</h2>
+<ul class="book-toc list-unstyled">
 <li><a class="" href="index.html">Preface</a></li>
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
@@ -104,25 +112,24 @@
 <li><a class="" href="citing.html">Citing this book</a></li>
 <li><a class="" href="references.html">References</a></li>
 </ul>
-
-        <div class="book-extra">
-          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
-        </div>
-      </nav>
+<div class="book-extra">
+<p><a href="https://github.com/r-heller/folding-in-r" id="book-repo">View book source <i class="fab fa-github"></i></a></p>
 </div>
-  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="folding-geometry" class="section level1" number="2">
+</nav>
+</div>
+</header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div class="section level1" id="folding-geometry" number="2">
 <h1>
-<span class="header-section-number">2</span> The geometry of folding<a class="anchor" aria-label="anchor" href="#folding-geometry"><i class="fas fa-link"></i></a>
-</h1>
+<span class="header-section-number">2</span> The geometry of folding<a aria-label="anchor" class="anchor" href="#folding-geometry"><i class="fas fa-link"></i></a>
+</h1><nav aria-label="Book and chapter downloads" class="book-downloads book-downloads--unified"><div class="book-download-group"><span class="book-download-label">Entire book</span><a aria-label="Download entire book as PDF" download="" href="folding-in-r.pdf" title="Download entire book as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download entire book as EPUB" download="" href="folding-in-r.epub" title="Download entire book as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div><div class="book-download-group"><span class="book-download-label">This chapter</span><a aria-label="Download this chapter as PDF" download="" href="downloads/chapters/folding-geometry.pdf" title="Download this chapter as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download this chapter as EPUB" download="" href="downloads/chapters/folding-geometry.epub" title="Download this chapter as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div></nav>
 <!-- page-provenance:start -->
 <div class="page-provenance">
 <p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-08-31</em></p>
 </div>
 <!-- page-provenance:end -->
 <p><em>What does folding preserve, and what does it destroy?</em></p>
-<div id="geom-question" class="section level2" number="2.1">
+<div class="section level2" id="geom-question" number="2.1">
 <h2>
-<span class="header-section-number">2.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#geom-question"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.1</span> What this chapter answers<a aria-label="anchor" class="anchor" href="#geom-question"><i class="fas fa-link"></i></a>
 </h2>
 <p>A sheet of paper folded along creases is a surface in space. Flattened out again
 it is a region of the plane. The two are the same paper, and that is the whole
@@ -138,9 +145,9 @@ first.</p>
 <p>Nothing here is asserted. Every claim in this chapter is a check in
 <code>tests/testthat/</code>, and every number is computed while the page is built.</p>
 </div>
-<div id="geom-setup" class="section level2" number="2.2">
+<div class="section level2" id="geom-setup" number="2.2">
 <h2>
-<span class="header-section-number">2.2</span> Setup<a class="anchor" aria-label="anchor" href="#geom-setup"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.2</span> Setup<a aria-label="anchor" class="anchor" href="#geom-setup"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span></span>
@@ -149,13 +156,13 @@ first.</p>
 folding parameter <span class="math inline">\(\theta\)</span>. Both are in <code>R/</code>, sourced when this book renders,
 and the <a href="notation.html#notation">notation appendix</a> fixes the symbols.</p>
 </div>
-<div id="geom-background" class="section level2" number="2.3">
+<div class="section level2" id="geom-background" number="2.3">
 <h2>
-<span class="header-section-number">2.3</span> Background<a class="anchor" aria-label="anchor" href="#geom-background"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.3</span> Background<a aria-label="anchor" class="anchor" href="#geom-background"><i class="fas fa-link"></i></a>
 </h2>
-<div id="what-a-crease-pattern-is-and-what-it-is-not" class="section level3" number="2.3.1">
+<div class="section level3" id="what-a-crease-pattern-is-and-what-it-is-not" number="2.3.1">
 <h3>
-<span class="header-section-number">2.3.1</span> What a crease pattern is, and what it is not<a class="anchor" aria-label="anchor" href="#what-a-crease-pattern-is-and-what-it-is-not"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.3.1</span> What a crease pattern is, and what it is not<a aria-label="anchor" class="anchor" href="#what-a-crease-pattern-is-and-what-it-is-not"><i class="fas fa-link"></i></a>
 </h3>
 <p>A crease pattern is a planar straight-line graph on a region of paper: vertices,
 straight creases between them, and the facets those creases enclose. It carries
@@ -178,9 +185,9 @@ place to start if the constructive side is what you came for.
 </p>
 </div>
 </div>
-<div id="rigid-folding" class="section level3" number="2.3.2">
+<div class="section level3" id="rigid-folding" number="2.3.2">
 <h3>
-<span class="header-section-number">2.3.2</span> Rigid folding<a class="anchor" aria-label="anchor" href="#rigid-folding"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.3.2</span> Rigid folding<a aria-label="anchor" class="anchor" href="#rigid-folding"><i class="fas fa-link"></i></a>
 </h3>
 <p>The foldings this book uses are <strong>rigid</strong>: the facets stay flat and unstretched,
 and all the motion happens at the creases. That is a strong restriction and it
@@ -200,9 +207,9 @@ Kawasaki’s condition appears independently in work by Justin and by Murata, an
 no citation resolves cleanly to a single first statement. <em>Origametry</em> is the
 honest reference until one does.</p>
 </div>
-<div id="two-kinds-of-isometry" class="section level3" number="2.3.3">
+<div class="section level3" id="two-kinds-of-isometry" number="2.3.3">
 <h3>
-<span class="header-section-number">2.3.3</span> Two kinds of isometry<a class="anchor" aria-label="anchor" href="#two-kinds-of-isometry"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.3.3</span> Two kinds of isometry<a aria-label="anchor" class="anchor" href="#two-kinds-of-isometry"><i class="fas fa-link"></i></a>
 </h3>
 <p>The word <em>isometry</em> does two jobs and the difference between them is this book’s
 crux.</p>
@@ -219,9 +226,9 @@ does not change at all.</p>
 The answer key is intrinsic. That mismatch is not a flaw in the benchmark; it is
 the benchmark’s subject.</p>
 </div>
-<div id="curvature-and-where-it-is-not" class="section level3" number="2.3.4">
+<div class="section level3" id="curvature-and-where-it-is-not" number="2.3.4">
 <h3>
-<span class="header-section-number">2.3.4</span> Curvature, and where it is not<a class="anchor" aria-label="anchor" href="#curvature-and-where-it-is-not"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.3.4</span> Curvature, and where it is not<a aria-label="anchor" class="anchor" href="#curvature-and-where-it-is-not"><i class="fas fa-link"></i></a>
 </h3>
 <p>The natural wrong intuition about a folded sheet is that its curvature has been
 pushed into the vertices. It is worth writing against rather than merely
@@ -249,13 +256,13 @@ to justify the methods being tested on them, which is worth knowing before Part
 III reports that some of those methods struggle.</p>
 </div>
 </div>
-<div id="geom-core" class="section level2" number="2.4">
+<div class="section level2" id="geom-core" number="2.4">
 <h2>
-<span class="header-section-number">2.4</span> The isometry, in five steps<a class="anchor" aria-label="anchor" href="#geom-core"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.4</span> The isometry, in five steps<a aria-label="anchor" class="anchor" href="#geom-core"><i class="fas fa-link"></i></a>
 </h2>
-<div id="one-the-folding-is-written-down-not-solved-for" class="section level3" number="2.4.1">
+<div class="section level3" id="one-the-folding-is-written-down-not-solved-for" number="2.4.1">
 <h3>
-<span class="header-section-number">2.4.1</span> One: the folding is written down, not solved for<a class="anchor" aria-label="anchor" href="#one-the-folding-is-written-down-not-solved-for"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.4.1</span> One: the folding is written down, not solved for<a aria-label="anchor" class="anchor" href="#one-the-folding-is-written-down-not-solved-for"><i class="fas fa-link"></i></a>
 </h3>
 <p>The Miura-ori is a tessellation of congruent parallelograms <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span>.
 Its flat vertex <span class="math inline">\((i, j)\)</span> sits at</p>
@@ -286,9 +293,9 @@ sheet and one is flat-folded. The dihedral angle <span class="math inline">\(\rh
 from it and is never a synonym for it — a distinction this project got wrong
 once and now states in three places.</p>
 </div>
-<div id="two-the-isometry-is-exact-not-converged" class="section level3" number="2.4.2">
+<div class="section level3" id="two-the-isometry-is-exact-not-converged" number="2.4.2">
 <h3>
-<span class="header-section-number">2.4.2</span> Two: the isometry is exact, not converged<a class="anchor" aria-label="anchor" href="#two-the-isometry-is-exact-not-converged"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.4.2</span> Two: the isometry is exact, not converged<a aria-label="anchor" class="anchor" href="#two-the-isometry-is-exact-not-converged"><i class="fas fa-link"></i></a>
 </h3>
 <p>Because the placement was derived by imposing edge lengths and facet angles, the
 isometry holds by construction rather than to a solver’s tolerance. That is a
@@ -304,8 +311,8 @@ test and would not be a rigid folding. Over the whole <span class="math inline">
 departure on this pattern is 0, which is floating-point
 noise on a closed form rather than a tolerance anyone chose.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geom-pattern"></span>
-<img src="02-folding-geometry_files/figure-html/geom-pattern-1.png" alt="Two panels. The left panel is a flat Miura-ori crease pattern: a grid of congruent parallelograms whose vertical crease lines zigzag, with creases drawn in two colours and two line styles for mountain and valley. The right panel shows the same sheet folded into a corrugated surface, seen from above and to one side, with the near facets drawn over the far ones." width="90%"><p class="caption">
+<span id="fig:geom-pattern" style="display:block;"></span>
+<img alt="Two panels. The left panel is a flat Miura-ori crease pattern: a grid of congruent parallelograms whose vertical crease lines zigzag, with creases drawn in two colours and two line styles for mountain and valley. The right panel shows the same sheet folded into a corrugated surface, seen from above and to one side, with the near facets drawn over the far ones." src="02-folding-geometry_files/figure-html/geom-pattern-1.png" width="90%"/><p class="caption">
 Figure 2.1: The flat crease pattern and the same sheet folded. Mountain and valley creases are distinguished by colour and by line style together, so the distinction survives greyscale printing.
 </p>
 </div>
@@ -313,8 +320,8 @@ Figure 2.1: The flat crease pattern and the same sheet folded. Mountain and vall
 dimension-reduction method is shown. Everything in Part III is a measurement of
 the gap between them.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geom-sweep"></span>
-<img src="02-folding-geometry_files/figure-html/geom-sweep-1.png" alt="Three panels showing the same Miura-ori sheet folded to increasing degrees, left to right. In the leftmost the sheet is nearly flat and wide; in the middle it is visibly corrugated; in the rightmost it has contracted to roughly half its width and the corrugations are deep. All three are drawn at the same scale." width="90%"><p class="caption">
+<span id="fig:geom-sweep" style="display:block;"></span>
+<img alt="Three panels showing the same Miura-ori sheet folded to increasing degrees, left to right. In the leftmost the sheet is nearly flat and wide; in the middle it is visibly corrugated; in the rightmost it has contracted to roughly half its width and the corrugations are deep. All three are drawn at the same scale." src="02-folding-geometry_files/figure-html/geom-sweep-1.png" width="90%"/><p class="caption">
 Figure 2.2: One pattern at three points of its one-parameter family. The sheet contracts in both directions as it folds; the flat chart behind it does not change at all.
 </p>
 </div>
@@ -333,9 +340,9 @@ take from that is the standard a folding has to meet here: a closed form, an
 exact isometry, and a fold that reaches every crease family. Two of the three are
 easy.</p>
 </div>
-<div id="three-what-folding-does-to-distance-along-the-surface" class="section level3" number="2.4.3">
+<div class="section level3" id="three-what-folding-does-to-distance-along-the-surface" number="2.4.3">
 <h3>
-<span class="header-section-number">2.4.3</span> Three: what folding does to distance along the surface<a class="anchor" aria-label="anchor" href="#three-what-folding-does-to-distance-along-the-surface"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.4.3</span> Three: what folding does to distance along the surface<a aria-label="anchor" class="anchor" href="#three-what-folding-does-to-distance-along-the-surface"><i class="fas fa-link"></i></a>
 </h3>
 <p>Nothing. That is the point, and it needs no further argument once the facets are
 congruent: a path on the sheet crosses the same facets in the same places at any
@@ -343,9 +350,9 @@ congruent: a path on the sheet crosses the same facets in the same places at any
 is therefore exactly the distance between their positions in the flat chart,
 subject to one caveat that is stated in <code>geom-limits</code> rather than hidden here.</p>
 </div>
-<div id="four-what-folding-does-to-distance-through-space" class="section level3" number="2.4.4">
+<div class="section level3" id="four-what-folding-does-to-distance-through-space" number="2.4.4">
 <h3>
-<span class="header-section-number">2.4.4</span> Four: what folding does to distance through space<a class="anchor" aria-label="anchor" href="#four-what-folding-does-to-distance-through-space"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.4.4</span> Four: what folding does to distance through space<a aria-label="anchor" class="anchor" href="#four-what-folding-does-to-distance-through-space"><i class="fas fa-link"></i></a>
 </h3>
 <p>Here folding does a great deal, and the amount is exact.</p>
 <p>Take two points on opposite sides of a single crease, each at perpendicular
@@ -371,9 +378,9 @@ is what “exact” means in double precision.</p>
 since <span class="math inline">\(\sin(\rho/2) &lt; 1\)</span> for every <span class="math inline">\(\rho &lt; \pi\)</span>, <strong>ambient distance is strictly
 less than chart distance for every <span class="math inline">\(\theta &gt; 0\)</span>.</strong></p>
 </div>
-<div id="five-the-floor-under-strictly" class="section level3" number="2.4.5">
+<div class="section level3" id="five-the-floor-under-strictly" number="2.4.5">
 <h3>
-<span class="header-section-number">2.4.5</span> Five: the floor under “strictly”<a class="anchor" aria-label="anchor" href="#five-the-floor-under-strictly"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.4.5</span> Five: the floor under “strictly”<a aria-label="anchor" class="anchor" href="#five-the-floor-under-strictly"><i class="fas fa-link"></i></a>
 </h3>
 <p>That last sentence is false as written, and the chapter says so rather than
 leaving a reader to trip over it in Part III.</p>
@@ -392,9 +399,9 @@ is 0.05, which is above the floor by a wide margin — and that margin is
 the only reason Part III may treat the contraction as strict.</p>
 </div>
 </div>
-<div id="geom-results" class="section level2" number="2.5">
+<div class="section level2" id="geom-results" number="2.5">
 <h2>
-<span class="header-section-number">2.5</span> Results<a class="anchor" aria-label="anchor" href="#geom-results"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.5</span> Results<a aria-label="anchor" class="anchor" href="#geom-results"><i class="fas fa-link"></i></a>
 </h2>
 <p>Three consequences follow, and they are the reason this chapter comes before the
 methods rather than after them.</p>
@@ -436,22 +443,22 @@ function is a property of the method. The critique that two-dimensional
 embeddings distort more than their users admit <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>,<a href="references.html#ref-kobak2019art">19</a>)</span> is an argument this book answers with measurement, and
 measurement of that kind needs an axis to measure along.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geom-curve"></span>
-<img src="02-folding-geometry_files/figure-html/geom-curve-1.png" alt="A line chart. The horizontal axis is the dihedral angle from zero to pi; the vertical axis is the ratio of ambient to geodesic distance, from zero to one. A smooth curve rises from the origin to one at pi, steeply at first and flattening as it approaches the right-hand end. Measured points lie exactly on the curve." width="90%"><p class="caption">
+<span id="fig:geom-curve" style="display:block;"></span>
+<img alt="A line chart. The horizontal axis is the dihedral angle from zero to pi; the vertical axis is the ratio of ambient to geodesic distance, from zero to one. A smooth curve rises from the origin to one at pi, steeply at first and flattening as it approaches the right-hand end. Measured points lie exactly on the curve." src="02-folding-geometry_files/figure-html/geom-curve-1.png" width="90%"/><p class="caption">
 Figure 2.3: The ambient-to-geodesic distance ratio across a single crease, against the dihedral angle. The curve is <span class="math inline">\(\sin(\rho/2)\)</span>; the points are measured from folded coordinates. A flat sheet sits at the right-hand end and contracts nothing.
 </p>
 </div>
 </div>
-<div id="geom-diagnostics" class="section level2" number="2.6">
+<div class="section level2" id="geom-diagnostics" number="2.6">
 <h2>
-<span class="header-section-number">2.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#geom-diagnostics"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.6</span> Diagnostics<a aria-label="anchor" class="anchor" href="#geom-diagnostics"><i class="fas fa-link"></i></a>
 </h2>
 <p>The most useful material in this chapter is about two things this project got
 wrong. Both were caught, both are cheap to state, and both generalise past
 origami.</p>
-<div id="an-isometry-test-cannot-tell-a-fold-from-a-pleat" class="section level3" number="2.6.1">
+<div class="section level3" id="an-isometry-test-cannot-tell-a-fold-from-a-pleat" number="2.6.1">
 <h3>
-<span class="header-section-number">2.6.1</span> An isometry test cannot tell a fold from a pleat<a class="anchor" aria-label="anchor" href="#an-isometry-test-cannot-tell-a-fold-from-a-pleat"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.6.1</span> An isometry test cannot tell a fold from a pleat<a aria-label="anchor" class="anchor" href="#an-isometry-test-cannot-tell-a-fold-from-a-pleat"><i class="fas fa-link"></i></a>
 </h3>
 <p>A second pattern family, the Yoshimura, shipped for three days with a folding
 that was not one. It folded its horizontal creases and left every diagonal at
@@ -475,9 +482,9 @@ families flat, and a vertex with unfolded creases cannot balance:</p>
 <span class="math inline">\(\lvert M - V \rvert = 2\)</span>. On the pleat, twelve of sixteen
 failed.</p>
 </div>
-<div id="a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails" class="section level3" number="2.6.2">
+<div class="section level3" id="a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails" number="2.6.2">
 <h3>
-<span class="header-section-number">2.6.2</span> A test that a correct implementation passes is not a test a wrong one fails<a class="anchor" aria-label="anchor" href="#a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.6.2</span> A test that a correct implementation passes is not a test a wrong one fails<a aria-label="anchor" class="anchor" href="#a-test-that-a-correct-implementation-passes-is-not-a-test-a-wrong-one-fails"><i class="fas fa-link"></i></a>
 </h3>
 <p>That is the moral, and the same chapter has to record that this book learned it
 twice.</p>
@@ -499,9 +506,9 @@ them. The check that finally settled it computes the assignment a second time by
 an independent route, from facet normals oriented against the ambient frame
 rather than against the mesh’s own winding, and compares.</p>
 </div>
-<div id="a-first-order-flex-at-the-flat-state-proves-nothing" class="section level3" number="2.6.3">
+<div class="section level3" id="a-first-order-flex-at-the-flat-state-proves-nothing" number="2.6.3">
 <h3>
-<span class="header-section-number">2.6.3</span> A first-order flex at the flat state proves nothing<a class="anchor" aria-label="anchor" href="#a-first-order-flex-at-the-flat-state-proves-nothing"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.6.3</span> A first-order flex at the flat state proves nothing<a aria-label="anchor" class="anchor" href="#a-first-order-flex-at-the-flat-state-proves-nothing"><i class="fas fa-link"></i></a>
 </h3>
 <p>The third instance, recorded here because it is the same error in a different
 costume. At <span class="math inline">\(\theta = 0\)</span> every <span class="math inline">\(z\)</span> column of a pattern’s rigidity Jacobian
@@ -512,13 +519,13 @@ foldable. Second-order analysis and a finite continuation are what decide, and
 Chapter <a href="benchmarks.html#benchmarks">8</a> records what they decided.</p>
 </div>
 </div>
-<div id="geom-limits" class="section level2" number="2.7">
+<div class="section level2" id="geom-limits" number="2.7">
 <h2>
-<span class="header-section-number">2.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#geom-limits"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.7</span> Where it fails<a aria-label="anchor" class="anchor" href="#geom-limits"><i class="fas fa-link"></i></a>
 </h2>
-<div id="the-chart-is-the-geodesic-only-inside-a-convex-region" class="section level3" number="2.7.1">
+<div class="section level3" id="the-chart-is-the-geodesic-only-inside-a-convex-region" number="2.7.1">
 <h3>
-<span class="header-section-number">2.7.1</span> The chart is the geodesic only inside a convex region<a class="anchor" aria-label="anchor" href="#the-chart-is-the-geodesic-only-inside-a-convex-region"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.7.1</span> The chart is the geodesic only inside a convex region<a aria-label="anchor" class="anchor" href="#the-chart-is-the-geodesic-only-inside-a-convex-region"><i class="fas fa-link"></i></a>
 </h3>
 <p>Step three claimed that geodesic distance equals chart distance. That is true
 when the straight segment between two chart points stays on the paper, and a
@@ -538,9 +545,9 @@ gives 0.013. Every artefact in this book that the answer key is
 read against is drawn the first way, and the producer that generates the
 irreducible-loss suite asserts the zero rather than trusting this paragraph.</p>
 </div>
-<div id="self-intersection" class="section level3" number="2.7.2">
+<div class="section level3" id="self-intersection" number="2.7.2">
 <h3>
-<span class="header-section-number">2.7.2</span> Self-intersection<a class="anchor" aria-label="anchor" href="#self-intersection"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.7.2</span> Self-intersection<a aria-label="anchor" class="anchor" href="#self-intersection"><i class="fas fa-link"></i></a>
 </h3>
 <p>Nothing in the algebra of step one prevents a folded placement from passing
 through itself, and a self-intersecting surface would invalidate every ambient
@@ -553,8 +560,8 @@ polygon to polygon, analytically, not by sampling points on them. At <span class
 0.786 and 0.526: falling as the sheet
 closes, as it must, and positive throughout.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:geom-clearance"></span>
-<img src="02-folding-geometry_files/figure-html/geom-clearance-1.png" alt="A line chart. The horizontal axis is the folding parameter from zero to one; the vertical axis is the minimum distance between non-adjacent facets. The curve starts high at the left and falls steadily, approaching but not reaching zero at the right-hand end. A vertical dashed line near the right marks the grid's largest fold angle, where the clearance is still clearly positive." width="90%"><p class="caption">
+<span id="fig:geom-clearance" style="display:block;"></span>
+<img alt="A line chart. The horizontal axis is the folding parameter from zero to one; the vertical axis is the minimum distance between non-adjacent facets. The curve starts high at the left and falls steadily, approaching but not reaching zero at the right-hand end. A vertical dashed line near the right marks the grid's largest fold angle, where the clearance is still clearly positive." src="02-folding-geometry_files/figure-html/geom-clearance-1.png" width="90%"/><p class="caption">
 Figure 2.4: Minimum clearance between non-adjacent facets, against the folding parameter. The surface approaches itself as it folds and never touches; the dashed line marks the largest fold angle the benchmark grid uses.
 </p>
 </div>
@@ -566,9 +573,9 @@ this book depends on, and it is a check rather than an argument because the
 algebra of step one does not forbid self-intersection — it simply does not
 produce one for this family in this range.</p>
 </div>
-<div id="sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is" class="section level3" number="2.7.3">
+<div class="section level3" id="sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is" number="2.7.3">
 <h3>
-<span class="header-section-number">2.7.3</span> Sampling, and what a finite sample of a zero-reach surface is<a class="anchor" aria-label="anchor" href="#sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.7.3</span> Sampling, and what a finite sample of a zero-reach surface is<a aria-label="anchor" class="anchor" href="#sampling-and-what-a-finite-sample-of-a-zero-reach-surface-is"><i class="fas fa-link"></i></a>
 </h3>
 <p>The reach remark in <code>geom-background</code> has a practical edge that belongs here.
 Every guarantee about recovering a manifold from a finite sample is stated in
@@ -582,18 +589,18 @@ short circuit between sheets that the sampling cannot distinguish
 <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>,<a href="references.html#ref-balasubramanian2002isomap">9</a>)</span>, and the quantity that
 predicts it is a property of the sample rather than of the surface.</p>
 </div>
-<div id="one-family" class="section level3" number="2.7.4">
+<div class="section level3" id="one-family" number="2.7.4">
 <h3>
-<span class="header-section-number">2.7.4</span> One family<a class="anchor" aria-label="anchor" href="#one-family"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.7.4</span> One family<a aria-label="anchor" class="anchor" href="#one-family"><i class="fas fa-link"></i></a>
 </h3>
 <p>This book ships one pattern family that folds. Two others were specified and
 both were withdrawn on evidence, which Chapter <a href="benchmarks.html#benchmarks">8</a> reports as
 results rather than as gaps. A benchmark built on a single family cannot support
 claims about pattern variety, and this book does not make any.</p>
 </div>
-<div id="what-the-chapter-does-not-settle" class="section level3" number="2.7.5">
+<div class="section level3" id="what-the-chapter-does-not-settle" number="2.7.5">
 <h3>
-<span class="header-section-number">2.7.5</span> What the chapter does not settle<a class="anchor" aria-label="anchor" href="#what-the-chapter-does-not-settle"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.7.5</span> What the chapter does not settle<a aria-label="anchor" class="anchor" href="#what-the-chapter-does-not-settle"><i class="fas fa-link"></i></a>
 </h3>
 <p>Whether a folded sheet is a <em>good</em> model of the manifolds that arise in real
 data is not a geometric question and is not answered here. Chapter
@@ -604,9 +611,9 @@ truth is known exactly, which is a property no real dataset has and no
 previously used benchmark provides.</p>
 </div>
 </div>
-<div id="geom-reproduce" class="section level2" number="2.8">
+<div class="section level2" id="geom-reproduce" number="2.8">
 <h2>
-<span class="header-section-number">2.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#geom-reproduce"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.8</span> Reproduce this<a aria-label="anchor" class="anchor" href="#geom-reproduce"><i class="fas fa-link"></i></a>
 </h2>
 <p>Every claim above is an assertion in the test suite, and the suite runs on every
 push:</p>
@@ -627,9 +634,9 @@ floor.</li>
 </ul>
 <p>Run them with <code>Rscript tests/testthat.R</code> from the repository root.</p>
 </div>
-<div id="geom-reading" class="section level2" number="2.9">
+<div class="section level2" id="geom-reading" number="2.9">
 <h2>
-<span class="header-section-number">2.9</span> Further reading<a class="anchor" aria-label="anchor" href="#geom-reading"><i class="fas fa-link"></i></a>
+<span class="header-section-number">2.9</span> Further reading<a aria-label="anchor" class="anchor" href="#geom-reading"><i class="fas fa-link"></i></a>
 </h2>
 <p>Hull’s <em>Origametry</em> <span class="citation">(<a href="references.html#ref-hull2020origametry">11</a>)</span> is the single best entry point to the
 mathematics of flat-foldability and is the reference for both classical theorems
@@ -643,16 +650,14 @@ sheets.</p>
 role in sampling guarantees <span class="citation">(<a href="references.html#ref-niyogi2008homology">16</a>)</span> are what the zero-reach remark
 above refers to, and Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> is the textbook
 treatment of the methods Part II takes up.</p>
-
 </div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
-  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
-    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-  </button>
+<button aria-label="Toggle dark mode" class="btn-circle-mode" id="mode-switch" type="button">
+<i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i>
+</button>
 </div>
-
 <script>
   (function () {
     var stored = localStorage.getItem('themeMode');
@@ -706,101 +711,9 @@ treatment of the methods Part II takes up.</p>
       li.appendChild(t);
     });
   });
-</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // There are TWO .book-extra blocks on each page:
-    //  - sidebar one: contains #book-repo ("View book source")
-    //  - right-nav one: contains #book-source + #book-edit
-    // We want the latter.
-    var bookSource = document.getElementById("book-source");
-    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
-    if (!bookExtra || document.querySelector(".book-downloads")) return;
-
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
-    // Every link in this block is probed before it is offered.
-    //
-    // The full-book link used to be written unconditionally while the chapter
-    // link below it was probed -- and that asymmetry was the bug. The render
-    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
-    // so a build could deploy green with a "Downloads" box pointing at a PDF
-    // that was never produced. The workflow no longer tolerates that (it
-    // asserts both artefacts exist and clear a size floor), but a link that
-    // checks its own target is cheap, and the two mechanisms fail
-    // independently: a deploy that partially clears gh-pages would leave the
-    // assertion satisfied and the link dead.
-    //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
-
-    var TARGETS = [
-      { href: "folding-in-r.pdf",
-        id:   "book-download-full",
-        text: "Entire book (PDF) ",
-        icon: "fa-solid fa-book",
-        skip: false },
-      { href: "folding-in-r.epub",
-        id: "book-download-epub",
-        text: "Entire book (EPUB) ",
-        icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
-    ];
-
-    var exists = function (t) {
-      if (t.skip) return Promise.resolve(false);
-      return fetch(t.href, { method: "HEAD" })
-        .then(function (r) { return r.ok; })
-        .catch(function () { return false; });
-    };
-
-    Promise.all(TARGETS.map(exists)).then(function (found) {
-      // Resolved together rather than appended as each probe lands, so the
-      // order is the order of TARGETS and not the order of the network.
-      var live = TARGETS.filter(function (t, i) { return found[i]; });
-      if (!live.length) return;              // nothing to offer, no empty box
-      if (document.querySelector(".book-downloads")) return;
-
-      var wrap = document.createElement("div");
-      wrap.className = "book-downloads";
-
-      var heading = document.createElement("h6");
-      heading.className = "book-downloads-heading";
-      heading.textContent = "Downloads";
-      wrap.appendChild(heading);
-
-      var list = document.createElement("ul");
-      list.className = "list-unstyled";
-
-      live.forEach(function (t) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.id = t.id;
-        a.href = t.href;
-        a.textContent = t.text;
-        var icon = document.createElement("i");
-        icon.className = t.icon;
-        a.appendChild(icon);
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-
-      wrap.appendChild(list);
-      bookExtra.parentNode.insertBefore(wrap, bookExtra);
-    });
-  });
-</script><!-- Footer attribution --><div class="bookdown-attribution">
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-
 <script>
 // A pasted query can arrive before bookdown's focus-triggered index fetch ends.
 // Keep that first query pending until the index is ready.
@@ -830,11 +743,11 @@ treatment of the methods Part II takes up.</p>
 <div class="next"><a href="generative.html"><span class="header-section-number">3</span> Folding as a generative model</a></div>
 </div>
 <!-- verified-downloads:start -->
-<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/folding-geometry.pdf">This chapter (PDF)</a></p></nav>
+
 <!-- verified-downloads:end -->
 </main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
-    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav">
+<nav aria-label="On this page" data-toggle="toc" id="toc"><h2>On this page</h2>
+<ul class="nav navbar-nav">
 <li><a class="nav-link" href="#folding-geometry"><span class="header-section-number">2</span> The geometry of folding</a></li>
 <li><a class="nav-link" href="#geom-question"><span class="header-section-number">2.1</span> What this chapter answers</a></li>
 <li><a class="nav-link" href="#geom-setup"><span class="header-section-number">2.2</span> Setup</a></li>
@@ -875,29 +788,23 @@ treatment of the methods Part II takes up.</p>
 <li><a class="nav-link" href="#geom-reproduce"><span class="header-section-number">2.8</span> Reproduce this</a></li>
 <li><a class="nav-link" href="#geom-reading"><span class="header-section-number">2.9</span> Further reading</a></li>
 </ul>
-
-      <div class="book-extra">
-        <ul class="list-unstyled">
-<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/02-folding-geometry.Rmd">View source <i class="fab fa-github"></i></a></li>
-          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/02-folding-geometry.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
-        </ul>
+<div class="book-extra">
+<ul class="list-unstyled">
+<li><a href="https://github.com/r-heller/folding-in-r/blob/main/02-folding-geometry.Rmd" id="book-source">View source <i class="fab fa-github"></i></a></li>
+<li><a href="https://github.com/r-heller/folding-in-r/edit/main/02-folding-geometry.Rmd" id="book-edit">Edit this page <i class="fab fa-github"></i></a></li>
+</ul>
 </div>
-    </nav>
+</nav>
 </div>
-
 </div>
 </div> <!-- .container -->
-
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
-  </div>
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
-  </div>
-
+<div class="col-12 col-md-6 mt-3">
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+</div>
+<div class="col-12 col-md-6 mt-3">
+<p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+</div>
 </div></div>
 </footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
   (function () {

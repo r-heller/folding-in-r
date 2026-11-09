@@ -1,32 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="en-GB">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
 <title>Chapter 3 Folding as a generative model | Folding in R</title>
-<meta name="author" content="R. Heller">
-<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease...">
-<meta name="generator" content="bookdown 0.47 with bs4_book()">
-<meta property="og:title" content="Chapter 3 Folding as a generative model | Folding in R">
-<meta property="og:type" content="book">
-<meta property="og:url" content="https://r-heller.github.io/folding-in-r/generative.html">
-<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease...">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chapter 3 Folding as a generative model | Folding in R">
-<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease...">
-<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
-<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
-<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
-<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
-<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/font-awesome.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+<meta content="R. Heller" name="author"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease..." name="description"/>
+<meta content="bookdown 0.47 with bs4_book()" name="generator"/>
+<meta content="Chapter 3 Folding as a generative model | Folding in R" property="og:title"/>
+<meta content="book" property="og:type"/>
+<meta content="https://r-heller.github.io/folding-in-r/generative.html" property="og:url"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" property="og:image"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease..." property="og:description"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Chapter 3 Folding as a generative model | Folding in R" name="twitter:title"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you turn one pattern into a family of test problems?  3.1 What this chapter answers Chapter 2 established one object: a crease..." name="twitter:description"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" name="twitter:image"/>
+<!-- JS --><script crossorigin="anonymous" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script><script crossorigin="anonymous" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js"></script><script crossorigin="anonymous" src="https://kit.fontawesome.com/6ecbd6c532.js"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet"/>
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet"/>
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet"/>
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet"/>
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="style/font-awesome.min.css" rel="stylesheet"/>
+<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -52,29 +53,36 @@
       margin-left: 2em;
     }
   </style>
-<link rel="stylesheet" href="style/style.css">
-</head>
+<link href="style/style.css" rel="stylesheet"/>
+<style id="unified-book-download-style">
+.book-downloads--unified {display:flex!important;flex-wrap:wrap;gap:12px 24px;margin:16px 0 24px!important;padding:14px 16px!important;border:1px solid #a8adb4;border-radius:8px;background:transparent;color:inherit;font-family:system-ui,sans-serif;font-size:14px;line-height:1.4;box-sizing:border-box;max-width:100%;}
+.book-downloads--unified .book-download-group {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.book-downloads--unified .book-download-label {font-weight:600;margin-right:4px;}
+.book-downloads--unified a {display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid currentColor;border-radius:5px;text-decoration:none!important;font-weight:600;color:inherit;}
+.book-downloads--unified a:hover {background:rgba(127,127,127,.14);}
+.book-downloads--unified a:focus-visible {outline:3px solid #2684d9;outline-offset:3px;}
+.book-downloads--unified svg {height:20px;width:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.book-downloads:not(.book-downloads--unified),.book-download-footer,.sidebar-downloads {display:none!important;}
+@media(max-width:500px){.book-downloads--unified{gap:12px;padding:12px!important;}.book-downloads--unified .book-download-group{width:100%;}.book-downloads--unified .book-download-label{min-width:92px;}}
+@media print{.book-downloads--unified{display:none!important;}}
+</style></head>
 <body data-spy="scroll" data-target="#toc">
-
 <div class="container-fluid">
 <div class="row">
-  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
-
-    <div class="d-flex align-items-start justify-content-between">
-      <h1>
-        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+<header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+<div class="d-flex align-items-start justify-content-between">
+<h1>
+<a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
         <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
-      </h1>
-      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
-    </div>
-
-    <div id="main-nav" class="collapse-lg">
-      <form role="search">
-        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</h1>
+<button aria-controls="main-nav" aria-expanded="true" class="btn btn-outline-primary d-lg-none ml-2 mt-1" data-target="#main-nav" data-toggle="collapse" type="button"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+</div>
+<div class="collapse-lg" id="main-nav">
+<form role="search">
+<input aria-label="Search" class="form-control" id="search" placeholder="Search" type="search"/>
 </form>
-
-      <nav aria-label="Table of contents"><h2>Table of contents</h2>
-        <ul class="book-toc list-unstyled">
+<nav aria-label="Table of contents"><h2>Table of contents</h2>
+<ul class="book-toc list-unstyled">
 <li><a class="" href="index.html">Preface</a></li>
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
@@ -104,25 +112,24 @@
 <li><a class="" href="citing.html">Citing this book</a></li>
 <li><a class="" href="references.html">References</a></li>
 </ul>
-
-        <div class="book-extra">
-          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
-        </div>
-      </nav>
+<div class="book-extra">
+<p><a href="https://github.com/r-heller/folding-in-r" id="book-repo">View book source <i class="fab fa-github"></i></a></p>
 </div>
-  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="generative" class="section level1" number="3">
+</nav>
+</div>
+</header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div class="section level1" id="generative" number="3">
 <h1>
-<span class="header-section-number">3</span> Folding as a generative model<a class="anchor" aria-label="anchor" href="#generative"><i class="fas fa-link"></i></a>
-</h1>
+<span class="header-section-number">3</span> Folding as a generative model<a aria-label="anchor" class="anchor" href="#generative"><i class="fas fa-link"></i></a>
+</h1><nav aria-label="Book and chapter downloads" class="book-downloads book-downloads--unified"><div class="book-download-group"><span class="book-download-label">Entire book</span><a aria-label="Download entire book as PDF" download="" href="folding-in-r.pdf" title="Download entire book as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download entire book as EPUB" download="" href="folding-in-r.epub" title="Download entire book as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div><div class="book-download-group"><span class="book-download-label">This chapter</span><a aria-label="Download this chapter as PDF" download="" href="downloads/chapters/generative.pdf" title="Download this chapter as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download this chapter as EPUB" download="" href="downloads/chapters/generative.epub" title="Download this chapter as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div></nav>
 <!-- page-provenance:start -->
 <div class="page-provenance">
 <p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07</em></p>
 </div>
 <!-- page-provenance:end -->
 <p><em>How do you turn one pattern into a family of test problems?</em></p>
-<div id="gen-question" class="section level2" number="3.1">
+<div class="section level2" id="gen-question" number="3.1">
 <h2>
-<span class="header-section-number">3.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#gen-question"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.1</span> What this chapter answers<a aria-label="anchor" class="anchor" href="#gen-question"><i class="fas fa-link"></i></a>
 </h2>
 <p>Chapter <a href="folding-geometry.html#folding-geometry">2</a> established one object: a crease pattern whose
 flat chart is its exact two-dimensional structure. One object is not a
@@ -143,9 +150,9 @@ does to the <span class="math inline">\(k\)</span>-nearest-neighbour graph a met
 <a href="benchmarks.html#benchmarks">8</a> builds constructions on top of this model, and every chapter
 from <a href="linear.html#linear">4</a> onward reads an artefact produced by it.</p>
 </div>
-<div id="gen-setup" class="section level2" number="3.2">
+<div class="section level2" id="gen-setup" number="3.2">
 <h2>
-<span class="header-section-number">3.2</span> Setup<a class="anchor" aria-label="anchor" href="#gen-setup"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.2</span> Setup<a aria-label="anchor" class="anchor" href="#gen-setup"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span>  <span class="op">&lt;-</span> <span class="fu">miura_ori</span><span class="op">(</span>nx <span class="op">=</span> <span class="fl">6L</span>, ny <span class="op">=</span> <span class="fl">6L</span>, a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">1</span>, alpha <span class="op">=</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span></span>
@@ -158,9 +165,9 @@ fold. Nothing in this chapter reads a committed artefact; every number below is
 computed while the page is built. The <a href="notation.html#notation">notation appendix</a> fixes the
 symbols.</p>
 </div>
-<div id="gen-background" class="section level2" number="3.3">
+<div class="section level2" id="gen-background" number="3.3">
 <h2>
-<span class="header-section-number">3.3</span> Background<a class="anchor" aria-label="anchor" href="#gen-background"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.3</span> Background<a aria-label="anchor" class="anchor" href="#gen-background"><i class="fas fa-link"></i></a>
 </h2>
 <p>Dimension reduction is usually benchmarked against a <em>collection</em>: a fixed list
 of datasets, some real and some synthetic, each scored once and averaged over
@@ -194,9 +201,9 @@ that a crease has reach exactly zero. Nothing here is covered by that theory, so
 sampling adequacy is <em>measured</em> on every sample instead — which is what
 <code>gen-results</code> does.</p>
 </div>
-<div id="gen-core" class="section level2" number="3.4">
+<div class="section level2" id="gen-core" number="3.4">
 <h2>
-<span class="header-section-number">3.4</span> The Miura-ori in four scalars<a class="anchor" aria-label="anchor" href="#gen-core"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.4</span> The Miura-ori in four scalars<a aria-label="anchor" class="anchor" href="#gen-core"><i class="fas fa-link"></i></a>
 </h2>
 <p>Four scalars go in and four come out, and the two sets are not the same four.</p>
 <p>Going in are <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span>, <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\theta\)</span>. The first three fix the flat
@@ -222,9 +229,9 @@ and <span class="math inline">\(H = a\sin\varphi\)</span> solves the first ident
 <span class="math inline">\(\varphi \le \alpha\)</span> and vanishes at <span class="math inline">\(\varphi = \alpha\)</span>, which is the
 flat-folded state — so <span class="math inline">\(\varphi\)</span> runs on <span class="math inline">\([0, \alpha]\)</span> and <span class="math inline">\(\theta = \varphi/\alpha\)</span>
 is the normalised parameter <code>fold()</code> takes.</p>
-<div id="the-derivation-checked" class="section level3" number="3.4.1">
+<div class="section level3" id="the-derivation-checked" number="3.4.1">
 <h3>
-<span class="header-section-number">3.4.1</span> The derivation, checked<a class="anchor" aria-label="anchor" href="#the-derivation-checked"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.4.1</span> The derivation, checked<a aria-label="anchor" class="anchor" href="#the-derivation-checked"><i class="fas fa-link"></i></a>
 </h3>
 <p>Those three conditions are what the placement was built to satisfy, so testing
 them on the formula would be circular. What is not circular is reading the four
@@ -286,8 +293,8 @@ is trying to avoid. The algebra above stands on the check in
 </p>
 </div>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:gen-fig-family"></span>
-<img src="03-generative-model_files/figure-html/gen-fig-family-1.png" alt="Six panels in two rows of three, each showing a folded Miura-ori sheet drawn in projection. The top row uses a shallow opening angle and the bottom row a steep one, so the two rows have visibly different cell shapes. Left to right within each row the sheet goes from flat, through half folded, to nearly collapsed, contracting in both directions as it goes. Mountain and valley creases are drawn in two colours and two line styles." width="90%"><p class="caption">
+<span id="fig:gen-fig-family" style="display:block;"></span>
+<img alt="Six panels in two rows of three, each showing a folded Miura-ori sheet drawn in projection. The top row uses a shallow opening angle and the bottom row a steep one, so the two rows have visibly different cell shapes. Left to right within each row the sheet goes from flat, through half folded, to nearly collapsed, contracting in both directions as it goes. Mountain and valley creases are drawn in two colours and two line styles." src="03-generative-model_files/figure-html/gen-fig-family-1.png" width="90%"/><p class="caption">
 Figure 3.1: The generative family. Rows are two opening angles <span class="math inline">\(\alpha\)</span>; columns are three values of the folding parameter. The chart differs between rows and is identical along each row: <span class="math inline">\(\theta\)</span> moves the sheet and never the answer key.
 </p>
 </div>
@@ -295,8 +302,8 @@ Figure 3.1: The generative family. Rows are two opening angles <span class="math
 chart; reading across a row does not change it by one coordinate. A benchmark
 cell is a position in that array.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:gen-fig-scalars"></span>
-<img src="03-generative-model_files/figure-html/gen-fig-scalars-1.png" alt="Four small line charts side by side, one for each constant. Reading left to right: the horizontal edge projection falls from one to about 0.55, the corrugation height rises from zero to about 0.84, the zigzag offset rises from one half to about 0.92, and the row spacing falls from about 0.87 to about 0.4. All four bend most towards the right-hand end. Measured points lie on every line." width="90%"><p class="caption">
+<span id="fig:gen-fig-scalars" style="display:block;"></span>
+<img alt="Four small line charts side by side, one for each constant. Reading left to right: the horizontal edge projection falls from one to about 0.55, the corrugation height rises from zero to about 0.84, the zigzag offset rises from one half to about 0.92, and the row spacing falls from about 0.87 to about 0.4. All four bend most towards the right-hand end. Measured points lie on every line." src="03-generative-model_files/figure-html/gen-fig-scalars-1.png" width="90%"/><p class="caption">
 Figure 3.2: The four metric constants of the folded placement against the folding parameter, for the pattern of <code>gen-setup</code>. Lines are the closed form; points are the same constants read back out of the coordinates <code>fold()</code> returns.
 </p>
 </div>
@@ -307,9 +314,9 @@ the last fifth of the sweep does most of the geometric work. Both facts turn up
 again in <code>gen-results</code>.</p>
 </div>
 </div>
-<div id="gen-sampling" class="section level2" number="3.5">
+<div class="section level2" id="gen-sampling" number="3.5">
 <h2>
-<span class="header-section-number">3.5</span> Sampling and noise<a class="anchor" aria-label="anchor" href="#gen-sampling"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.5</span> Sampling and noise<a aria-label="anchor" class="anchor" href="#gen-sampling"><i class="fas fa-link"></i></a>
 </h2>
 <p>The chart is the sample space. <code>sample_manifold()</code> draws points in the flat
 pattern, records them as <code>truth</code>, and carries each one into <span class="math inline">\(\mathbb{R}^3\)</span>
@@ -362,8 +369,8 @@ nothing: every Miura facet is congruent, so the spread of triangle areas is
 and facet-uniform draws coincide. That is a fact about the pattern, not about the sampler, and it is
 listed in <code>gen-limits</code> as something this book does not test.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:gen-fig-density"></span>
-<img src="03-generative-model_files/figure-html/gen-fig-density-1.png" alt="Two square scatter panels of chart points over the same region of a Miura pattern. Panel A on the left is an even wash of points with no visible structure. Panel B on the right shows the same region with distinctly darker clusters arranged on a regular lattice, one at the corner vertex of every cell, and lighter gaps between them." width="90%"><p class="caption">
+<span id="fig:gen-fig-density" style="display:block;"></span>
+<img alt="Two square scatter panels of chart points over the same region of a Miura pattern. Panel A on the left is an even wash of points with no visible structure. Panel B on the right shows the same region with distinctly darker clusters arranged on a regular lattice, one at the corner vertex of every cell, and lighter gaps between them." src="03-generative-model_files/figure-html/gen-fig-density-1.png" width="90%"/><p class="caption">
 Figure 3.3: The same triangles, drawn from twice. Panel A is the sampler’s draw, uniform over area. Panel B is the naive barycentric draw without the square root, which concentrates points at the fan apex of every triangle — that is, at the crease-pattern vertices.
 </p>
 </div>
@@ -407,9 +414,9 @@ it does not know.</p>
 diameter. <code>truth</code> is byte-identical to the clean draw in every row — the answer
 key does not move when the data get worse.</p>
 </div>
-<div id="gen-results" class="section level2" number="3.6">
+<div class="section level2" id="gen-results" number="3.6">
 <h2>
-<span class="header-section-number">3.6</span> Results: what theta does<a class="anchor" aria-label="anchor" href="#gen-results"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.6</span> Results: what theta does<a aria-label="anchor" class="anchor" href="#gen-results"><i class="fas fa-link"></i></a>
 </h2>
 <p><span class="math inline">\(\theta\)</span> changes no chart coordinate. What it changes is the graph a method
 builds before it does anything else.</p>
@@ -477,8 +484,8 @@ neighbourhoods a method could actually see. Three combinations of neighbourhood
 size and reference geometry, each answering a different question, all named in
 <code>R/constants.R</code> so that they cannot drift.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:gen-fig-difficulty"></span>
-<img src="03-generative-model_files/figure-html/gen-fig-difficulty-1.png" alt="Four line charts in a two by two arrangement, each against the folding parameter from zero to 0.95. Top left, the false-neighbour fraction rises from zero, slowly at first and then sharply, to about 0.3. Top right, the short-circuit index falls from one to about 0.79. Bottom left, the branch-gap ratio falls from about 20 to about 6. Bottom right, the minimum facet clearance falls from about 0.87 to about 0.4. Every curve bends most in its rightmost quarter." width="90%"><p class="caption">
+<span id="fig:gen-fig-difficulty" style="display:block;"></span>
+<img alt="Four line charts in a two by two arrangement, each against the folding parameter from zero to 0.95. Top left, the false-neighbour fraction rises from zero, slowly at first and then sharply, to about 0.3. Top right, the short-circuit index falls from one to about 0.79. Bottom left, the branch-gap ratio falls from about 20 to about 6. Bottom right, the minimum facet clearance falls from about 0.87 to about 0.4. Every curve bends most in its rightmost quarter." src="03-generative-model_files/figure-html/gen-fig-difficulty-1.png" width="90%"/><p class="caption">
 Figure 3.4: Four difficulty measures over the benchmark grid’s <span class="math inline">\(\theta\)</span> sweep, computed on one seed at <span class="math inline">\(n = 800\)</span>. All four are monotone and none is linear: the last quarter of the axis does most of the work.
 </p>
 </div>
@@ -490,8 +497,8 @@ Chapter <a href="results.html#results">10</a> reports a case where two method fa
 partway along it, which no summary at a fixed geometry can show.</p>
 <p>Where the false edges sit is as informative as how many there are.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:gen-fig-graph"></span>
-<img src="03-generative-model_files/figure-html/gen-fig-graph-1.png" alt="Two panels showing the flat Miura chart with short line segments drawn over it. In panel A the segments form a dense, even mesh filling the facets, with visible gaps running along the zigzag crease lines. In panel B the segments are longer and lie almost entirely in narrow zigzag bands that follow those same crease lines, leaving the interiors of the facets empty." width="90%"><p class="caption">
+<span id="fig:gen-fig-graph" style="display:block;"></span>
+<img alt="Two panels showing the flat Miura chart with short line segments drawn over it. In panel A the segments form a dense, even mesh filling the facets, with visible gaps running along the zigzag crease lines. In panel B the segments are longer and lie almost entirely in narrow zigzag bands that follow those same crease lines, leaving the interiors of the facets empty." src="03-generative-model_files/figure-html/gen-fig-graph-1.png" width="90%"/><p class="caption">
 Figure 3.5: The ambient <span class="math inline">\(k\)</span>-nearest-neighbour graph at the grid’s largest fold, drawn on the chart it should have respected. Panel A holds the edges that are also chart neighbours; panel B holds the false ones. The false edges are not scattered over the sheet — they trace the crease lines, and every one of them straddles a fold.
 </p>
 </div>
@@ -514,9 +521,9 @@ That is a structured failure, and whether a method is robust to it is a
 different question from whether it tolerates noise — which is why the benchmark
 grid crosses the two axes instead of collapsing them.</p>
 </div>
-<div id="gen-diagnostics" class="section level2" number="3.7">
+<div class="section level2" id="gen-diagnostics" number="3.7">
 <h2>
-<span class="header-section-number">3.7</span> Diagnostics<a class="anchor" aria-label="anchor" href="#gen-diagnostics"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.7</span> Diagnostics<a aria-label="anchor" class="anchor" href="#gen-diagnostics"><i class="fas fa-link"></i></a>
 </h2>
 <p><strong><span class="math inline">\(\theta\)</span> is not a dihedral angle.</strong> It is the fraction of the way to
 flat-folded, on <span class="math inline">\([0, 1]\)</span>, and <code>fold()</code> refuses anything outside that. The
@@ -548,9 +555,9 @@ TRUE. Called without a seed it touches <code><a href="https://rdrr.io/r/base/Ran
 not at all and records <code>NA</code>, so a returned object never claims a seed that would
 not reproduce it.</p>
 </div>
-<div id="gen-limits" class="section level2" number="3.8">
+<div class="section level2" id="gen-limits" number="3.8">
 <h2>
-<span class="header-section-number">3.8</span> Where it fails<a class="anchor" aria-label="anchor" href="#gen-limits"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.8</span> Where it fails<a aria-label="anchor" class="anchor" href="#gen-limits"><i class="fas fa-link"></i></a>
 </h2>
 <p><strong>The classical short circuit lives past the end of the grid.</strong> <code>gen-results</code>
 found no edge joining facets more than one cell apart anywhere on <code>THETA_GRID</code>.
@@ -601,9 +608,9 @@ Chapter <a href="folding-geometry.html#folding-geometry">2</a>’s and it applie
 <code>boundary = FALSE</code> is what keeps it negligible, and <code>chart_exit_fraction()</code> is
 what measures it rather than assuming it.</p>
 </div>
-<div id="gen-reproduce" class="section level2" number="3.9">
+<div class="section level2" id="gen-reproduce" number="3.9">
 <h2>
-<span class="header-section-number">3.9</span> Reproduce this<a class="anchor" aria-label="anchor" href="#gen-reproduce"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.9</span> Reproduce this<a aria-label="anchor" class="anchor" href="#gen-reproduce"><i class="fas fa-link"></i></a>
 </h2>
 <p>Every claim above is an assertion in the suite, which runs on every push:</p>
 <ul>
@@ -629,9 +636,9 @@ them into <code>data/processed/benchmark-grid.rds</code>. Chapter <a href="linea
 reading that artefact with its digest, and Appendix <a href="datasets.html#datasets">B</a> is its
 codebook.</p>
 </div>
-<div id="gen-reading" class="section level2" number="3.10">
+<div class="section level2" id="gen-reading" number="3.10">
 <h2>
-<span class="header-section-number">3.10</span> Further reading<a class="anchor" aria-label="anchor" href="#gen-reading"><i class="fas fa-link"></i></a>
+<span class="header-section-number">3.10</span> Further reading<a aria-label="anchor" class="anchor" href="#gen-reading"><i class="fas fa-link"></i></a>
 </h2>
 <p>Miura’s original report <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span> introduces the tessellation; Schenk
 and Guest <span class="citation">(<a href="references.html#ref-schenk2013geometry">20</a>)</span> treat the folded sheet as a mechanical
@@ -645,22 +652,18 @@ this book answers with a difficulty axis instead; Machado and colleagues
 not sufficient, which is the question Chapter <a href="evaluation.html#evaluation">9</a> takes up with an
 exact answer key in hand. Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> remains the
 textbook treatment of the methods Part II tests against this model.</p>
-
 </div>
 </div>
-
-
-
 <div class="chapter-nav">
 <div class="prev"><a href="folding-geometry.html"><span class="header-section-number">2</span> The geometry of folding</a></div>
 <div class="next"><a href="linear.html"><span class="header-section-number">4</span> Linear projections and where they break</a></div>
 </div>
 <!-- verified-downloads:start -->
-<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/generative.pdf">This chapter (PDF)</a></p></nav>
+
 <!-- verified-downloads:end -->
 </main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
-    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav">
+<nav aria-label="On this page" data-toggle="toc" id="toc"><h2>On this page</h2>
+<ul class="nav navbar-nav">
 <li><a class="nav-link" href="#generative"><span class="header-section-number">3</span> Folding as a generative model</a></li>
 <li><a class="nav-link" href="#gen-question"><span class="header-section-number">3.1</span> What this chapter answers</a></li>
 <li><a class="nav-link" href="#gen-setup"><span class="header-section-number">3.2</span> Setup</a></li>
@@ -675,23 +678,21 @@ textbook treatment of the methods Part II tests against this model.</p>
 <li><a class="nav-link" href="#gen-reproduce"><span class="header-section-number">3.9</span> Reproduce this</a></li>
 <li><a class="nav-link" href="#gen-reading"><span class="header-section-number">3.10</span> Further reading</a></li>
 </ul>
-
-      <div class="book-extra">
-        <ul class="list-unstyled">
-<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/03-generative-model.Rmd">View source <i class="fab fa-github"></i></a></li>
-          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/03-generative-model.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
-        </ul>
+<div class="book-extra">
+<ul class="list-unstyled">
+<li><a href="https://github.com/r-heller/folding-in-r/blob/main/03-generative-model.Rmd" id="book-source">View source <i class="fab fa-github"></i></a></li>
+<li><a href="https://github.com/r-heller/folding-in-r/edit/main/03-generative-model.Rmd" id="book-edit">Edit this page <i class="fab fa-github"></i></a></li>
+</ul>
 </div>
-    </nav>
+</nav>
 </div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
-  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
-    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-  </button>
+<button aria-label="Toggle dark mode" class="btn-circle-mode" id="mode-switch" type="button">
+<i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i>
+</button>
 </div>
-
 <script>
   (function () {
     var stored = localStorage.getItem('themeMode');
@@ -745,101 +746,9 @@ textbook treatment of the methods Part II tests against this model.</p>
       li.appendChild(t);
     });
   });
-</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // There are TWO .book-extra blocks on each page:
-    //  - sidebar one: contains #book-repo ("View book source")
-    //  - right-nav one: contains #book-source + #book-edit
-    // We want the latter.
-    var bookSource = document.getElementById("book-source");
-    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
-    if (!bookExtra || document.querySelector(".book-downloads")) return;
-
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
-    // Every link in this block is probed before it is offered.
-    //
-    // The full-book link used to be written unconditionally while the chapter
-    // link below it was probed -- and that asymmetry was the bug. The render
-    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
-    // so a build could deploy green with a "Downloads" box pointing at a PDF
-    // that was never produced. The workflow no longer tolerates that (it
-    // asserts both artefacts exist and clear a size floor), but a link that
-    // checks its own target is cheap, and the two mechanisms fail
-    // independently: a deploy that partially clears gh-pages would leave the
-    // assertion satisfied and the link dead.
-    //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
-
-    var TARGETS = [
-      { href: "folding-in-r.pdf",
-        id:   "book-download-full",
-        text: "Entire book (PDF) ",
-        icon: "fa-solid fa-book",
-        skip: false },
-      { href: "folding-in-r.epub",
-        id: "book-download-epub",
-        text: "Entire book (EPUB) ",
-        icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
-    ];
-
-    var exists = function (t) {
-      if (t.skip) return Promise.resolve(false);
-      return fetch(t.href, { method: "HEAD" })
-        .then(function (r) { return r.ok; })
-        .catch(function () { return false; });
-    };
-
-    Promise.all(TARGETS.map(exists)).then(function (found) {
-      // Resolved together rather than appended as each probe lands, so the
-      // order is the order of TARGETS and not the order of the network.
-      var live = TARGETS.filter(function (t, i) { return found[i]; });
-      if (!live.length) return;              // nothing to offer, no empty box
-      if (document.querySelector(".book-downloads")) return;
-
-      var wrap = document.createElement("div");
-      wrap.className = "book-downloads";
-
-      var heading = document.createElement("h6");
-      heading.className = "book-downloads-heading";
-      heading.textContent = "Downloads";
-      wrap.appendChild(heading);
-
-      var list = document.createElement("ul");
-      list.className = "list-unstyled";
-
-      live.forEach(function (t) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.id = t.id;
-        a.href = t.href;
-        a.textContent = t.text;
-        var icon = document.createElement("i");
-        icon.className = t.icon;
-        a.appendChild(icon);
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-
-      wrap.appendChild(list);
-      bookExtra.parentNode.insertBefore(wrap, bookExtra);
-    });
-  });
-</script><!-- Footer attribution --><div class="bookdown-attribution">
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-
 <script>
 // A pasted query can arrive before bookdown's focus-triggered index fetch ends.
 // Keep that first query pending until the index is ready.
@@ -865,20 +774,15 @@ textbook treatment of the methods Part II tests against this model.</p>
   };
 })();
 </script>
-
 </div>
- <!-- .container -->
-
+<!-- .container -->
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
-  </div>
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
-  </div>
-
+<div class="col-12 col-md-6 mt-3">
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+</div>
+<div class="col-12 col-md-6 mt-3">
+<p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+</div>
 </div></div>
 </footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
   (function () {

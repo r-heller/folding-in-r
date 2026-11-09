@@ -1,0 +1,178 @@
+{
+  "book": "folding-in-r",
+  "title": "Folding in R",
+  "site": "https://r-heller.github.io/folding-in-r/",
+  "whole": {
+    "pdf": "folding-in-r.pdf",
+    "epub": "folding-in-r.epub"
+  },
+  "chapters": [
+    {
+      "path": "index.html",
+      "title": "Preface",
+      "epub_source": "EPUB/text/ch001.xhtml",
+      "pdf": "downloads/chapters/index.pdf",
+      "epub": "downloads/chapters/index.epub"
+    },
+    {
+      "path": "impressum.html",
+      "title": "Impressum",
+      "epub_source": "EPUB/text/ch002.xhtml",
+      "pdf": "downloads/chapters/impressum.pdf",
+      "epub": "downloads/chapters/impressum.epub"
+    },
+    {
+      "path": "acknowledgments.html",
+      "title": "Acknowledgments",
+      "epub_source": "EPUB/text/ch003.xhtml",
+      "pdf": "downloads/chapters/acknowledgments.pdf",
+      "epub": "downloads/chapters/acknowledgments.epub"
+    },
+    {
+      "path": "how-to-use-this-book.html",
+      "title": "How to use this book",
+      "epub_source": "EPUB/text/ch004.xhtml",
+      "pdf": "downloads/chapters/how-to-use-this-book.pdf",
+      "epub": "downloads/chapters/how-to-use-this-book.epub"
+    },
+    {
+      "path": "intro.html",
+      "title": "1 Introduction",
+      "epub_source": "EPUB/text/ch005.xhtml",
+      "pdf": "downloads/chapters/intro.pdf",
+      "epub": "downloads/chapters/intro.epub",
+      "print_images": [
+        {
+          "alt": "Two panels side by side. Panel A is a flat Miura-ori crease pattern of sixteen parallelogram facets, each in a different colour, with two facets greyed out. Panel B shows the same sheet folded into a corrugated three-dimensional surface, with the facets in matching colours. The greyed facets in A are the ones hidden behind folds in B.",
+          "src": "downloads/assets/intro-0.png"
+        }
+      ]
+    },
+    {
+      "path": "folding-geometry.html",
+      "title": "2 The geometry of folding",
+      "epub_source": "EPUB/text/ch006.xhtml",
+      "pdf": "downloads/chapters/folding-geometry.pdf",
+      "epub": "downloads/chapters/folding-geometry.epub"
+    },
+    {
+      "path": "generative.html",
+      "title": "3 Folding as a generative model",
+      "epub_source": "EPUB/text/ch007.xhtml",
+      "pdf": "downloads/chapters/generative.pdf",
+      "epub": "downloads/chapters/generative.epub"
+    },
+    {
+      "path": "linear.html",
+      "title": "4 Linear projections and where they break",
+      "epub_source": "EPUB/text/ch008.xhtml",
+      "pdf": "downloads/chapters/linear.pdf",
+      "epub": "downloads/chapters/linear.epub"
+    },
+    {
+      "path": "geodesic.html",
+      "title": "5 Geodesic methods",
+      "epub_source": "EPUB/text/ch009.xhtml",
+      "pdf": "downloads/chapters/geodesic.pdf",
+      "epub": "downloads/chapters/geodesic.epub"
+    },
+    {
+      "path": "neighbor.html",
+      "title": "6 Neighbour embeddings",
+      "epub_source": "EPUB/text/ch010.xhtml",
+      "pdf": "downloads/chapters/neighbor.pdf",
+      "epub": "downloads/chapters/neighbor.epub"
+    },
+    {
+      "path": "autoencoders.html",
+      "title": "7 Learned folds",
+      "epub_source": "EPUB/text/ch011.xhtml",
+      "pdf": "downloads/chapters/autoencoders.pdf",
+      "epub": "downloads/chapters/autoencoders.epub"
+    },
+    {
+      "path": "benchmarks.html",
+      "title": "8 Building crease-pattern manifolds",
+      "epub_source": "EPUB/text/ch012.xhtml",
+      "pdf": "downloads/chapters/benchmarks.pdf",
+      "epub": "downloads/chapters/benchmarks.epub"
+    },
+    {
+      "path": "evaluation.html",
+      "title": "9 Ground truth and the evaluators",
+      "epub_source": "EPUB/text/ch013.xhtml",
+      "pdf": "downloads/chapters/evaluation.pdf",
+      "epub": "downloads/chapters/evaluation.epub"
+    },
+    {
+      "path": "results.html",
+      "title": "10 Benchmark results",
+      "epub_source": "EPUB/text/ch014.xhtml",
+      "pdf": "downloads/chapters/results.pdf",
+      "epub": "downloads/chapters/results.epub"
+    },
+    {
+      "path": "comparison.html",
+      "title": "11 Crease patterns vs.\u00a0the Swiss roll",
+      "epub_source": "EPUB/text/ch015.xhtml",
+      "pdf": "downloads/chapters/comparison.pdf",
+      "epub": "downloads/chapters/comparison.epub"
+    },
+    {
+      "path": "application.html",
+      "title": "12 From benchmark to decision",
+      "epub_source": "EPUB/text/ch016.xhtml",
+      "pdf": "downloads/chapters/application.pdf",
+      "epub": "downloads/chapters/application.epub"
+    },
+    {
+      "path": "notation.html",
+      "title": "A Notation",
+      "epub_source": "EPUB/text/ch018.xhtml",
+      "pdf": "downloads/chapters/notation.pdf",
+      "epub": "downloads/chapters/notation.epub"
+    },
+    {
+      "path": "datasets.html",
+      "title": "B Datasets and codebook",
+      "epub_source": "EPUB/text/ch019.xhtml",
+      "pdf": "downloads/chapters/datasets.pdf",
+      "epub": "downloads/chapters/datasets.epub"
+    },
+    {
+      "path": "glossary.html",
+      "title": "Glossary",
+      "epub_source": "EPUB/text/ch020.xhtml",
+      "pdf": "downloads/chapters/glossary.pdf",
+      "epub": "downloads/chapters/glossary.epub"
+    },
+    {
+      "path": "colophon.html",
+      "title": "Colophon",
+      "epub_source": "EPUB/text/ch021.xhtml",
+      "pdf": "downloads/chapters/colophon.pdf",
+      "epub": "downloads/chapters/colophon.epub"
+    },
+    {
+      "path": "about-the-author.html",
+      "title": "About the author",
+      "epub_source": "EPUB/text/ch022.xhtml",
+      "pdf": "downloads/chapters/about-the-author.pdf",
+      "epub": "downloads/chapters/about-the-author.epub"
+    },
+    {
+      "path": "citing.html",
+      "title": "Citing this book",
+      "epub_source": "EPUB/text/ch023.xhtml",
+      "pdf": "downloads/chapters/citing.pdf",
+      "epub": "downloads/chapters/citing.epub"
+    },
+    {
+      "path": "references.html",
+      "title": "References",
+      "epub_source": "EPUB/text/ch024.xhtml",
+      "pdf": "downloads/chapters/references.pdf",
+      "epub": "downloads/chapters/references.epub"
+    }
+  ]
+}

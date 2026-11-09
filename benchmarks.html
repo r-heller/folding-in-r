@@ -1,32 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="en-GB">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
 <title>Chapter 8 Building crease-pattern manifolds | Folding in R</title>
-<meta name="author" content="R. Heller">
-<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to...">
-<meta name="generator" content="bookdown 0.47 with bs4_book()">
-<meta property="og:title" content="Chapter 8 Building crease-pattern manifolds | Folding in R">
-<meta property="og:type" content="book">
-<meta property="og:url" content="https://r-heller.github.io/folding-in-r/benchmarks.html">
-<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to...">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chapter 8 Building crease-pattern manifolds | Folding in R">
-<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to...">
-<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
-<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
-<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
-<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
-<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/font-awesome.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+<meta content="R. Heller" name="author"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to..." name="description"/>
+<meta content="bookdown 0.47 with bs4_book()" name="generator"/>
+<meta content="Chapter 8 Building crease-pattern manifolds | Folding in R" property="og:title"/>
+<meta content="book" property="og:type"/>
+<meta content="https://r-heller.github.io/folding-in-r/benchmarks.html" property="og:url"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" property="og:image"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to..." property="og:description"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Chapter 8 Building crease-pattern manifolds | Folding in R" name="twitter:title"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  How do you build a manifold whose true geometry you already know?  8.1 What this chapter answers A benchmark for dimension reduction has to..." name="twitter:description"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" name="twitter:image"/>
+<!-- JS --><script crossorigin="anonymous" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script><script crossorigin="anonymous" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js"></script><script crossorigin="anonymous" src="https://kit.fontawesome.com/6ecbd6c532.js"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet"/>
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet"/>
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet"/>
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet"/>
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="style/font-awesome.min.css" rel="stylesheet"/>
+<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -52,29 +53,36 @@
       margin-left: 2em;
     }
   </style>
-<link rel="stylesheet" href="style/style.css">
-</head>
+<link href="style/style.css" rel="stylesheet"/>
+<style id="unified-book-download-style">
+.book-downloads--unified {display:flex!important;flex-wrap:wrap;gap:12px 24px;margin:16px 0 24px!important;padding:14px 16px!important;border:1px solid #a8adb4;border-radius:8px;background:transparent;color:inherit;font-family:system-ui,sans-serif;font-size:14px;line-height:1.4;box-sizing:border-box;max-width:100%;}
+.book-downloads--unified .book-download-group {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.book-downloads--unified .book-download-label {font-weight:600;margin-right:4px;}
+.book-downloads--unified a {display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid currentColor;border-radius:5px;text-decoration:none!important;font-weight:600;color:inherit;}
+.book-downloads--unified a:hover {background:rgba(127,127,127,.14);}
+.book-downloads--unified a:focus-visible {outline:3px solid #2684d9;outline-offset:3px;}
+.book-downloads--unified svg {height:20px;width:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.book-downloads:not(.book-downloads--unified),.book-download-footer,.sidebar-downloads {display:none!important;}
+@media(max-width:500px){.book-downloads--unified{gap:12px;padding:12px!important;}.book-downloads--unified .book-download-group{width:100%;}.book-downloads--unified .book-download-label{min-width:92px;}}
+@media print{.book-downloads--unified{display:none!important;}}
+</style></head>
 <body data-spy="scroll" data-target="#toc">
-
 <div class="container-fluid">
 <div class="row">
-  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
-
-    <div class="d-flex align-items-start justify-content-between">
-      <h1>
-        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+<header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+<div class="d-flex align-items-start justify-content-between">
+<h1>
+<a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
         <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
-      </h1>
-      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
-    </div>
-
-    <div id="main-nav" class="collapse-lg">
-      <form role="search">
-        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</h1>
+<button aria-controls="main-nav" aria-expanded="true" class="btn btn-outline-primary d-lg-none ml-2 mt-1" data-target="#main-nav" data-toggle="collapse" type="button"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+</div>
+<div class="collapse-lg" id="main-nav">
+<form role="search">
+<input aria-label="Search" class="form-control" id="search" placeholder="Search" type="search"/>
 </form>
-
-      <nav aria-label="Table of contents"><h2>Table of contents</h2>
-        <ul class="book-toc list-unstyled">
+<nav aria-label="Table of contents"><h2>Table of contents</h2>
+<ul class="book-toc list-unstyled">
 <li><a class="" href="index.html">Preface</a></li>
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
@@ -104,25 +112,24 @@
 <li><a class="" href="citing.html">Citing this book</a></li>
 <li><a class="" href="references.html">References</a></li>
 </ul>
-
-        <div class="book-extra">
-          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
-        </div>
-      </nav>
+<div class="book-extra">
+<p><a href="https://github.com/r-heller/folding-in-r" id="book-repo">View book source <i class="fab fa-github"></i></a></p>
 </div>
-  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="benchmarks" class="section level1" number="8">
+</nav>
+</div>
+</header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div class="section level1" id="benchmarks" number="8">
 <h1>
-<span class="header-section-number">8</span> Building crease-pattern manifolds<a class="anchor" aria-label="anchor" href="#benchmarks"><i class="fas fa-link"></i></a>
-</h1>
+<span class="header-section-number">8</span> Building crease-pattern manifolds<a aria-label="anchor" class="anchor" href="#benchmarks"><i class="fas fa-link"></i></a>
+</h1><nav aria-label="Book and chapter downloads" class="book-downloads book-downloads--unified"><div class="book-download-group"><span class="book-download-label">Entire book</span><a aria-label="Download entire book as PDF" download="" href="folding-in-r.pdf" title="Download entire book as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download entire book as EPUB" download="" href="folding-in-r.epub" title="Download entire book as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div><div class="book-download-group"><span class="book-download-label">This chapter</span><a aria-label="Download this chapter as PDF" download="" href="downloads/chapters/benchmarks.pdf" title="Download this chapter as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download this chapter as EPUB" download="" href="downloads/chapters/benchmarks.epub" title="Download this chapter as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div></nav>
 <!-- page-provenance:start -->
 <div class="page-provenance">
 <p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07</em></p>
 </div>
 <!-- page-provenance:end -->
 <p><em>How do you build a manifold whose true geometry you already know?</em></p>
-<div id="bench-question" class="section level2" number="8.1">
+<div class="section level2" id="bench-question" number="8.1">
 <h2>
-<span class="header-section-number">8.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#bench-question"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.1</span> What this chapter answers<a aria-label="anchor" class="anchor" href="#bench-question"><i class="fas fa-link"></i></a>
 </h2>
 <p>A benchmark for dimension reduction has to supply four things. Three of them are
 routine. Data: points in an ambient space that a method can be handed. A
@@ -149,9 +156,9 @@ families were specified for it and both were withdrawn on evidence, and they are
 reported here as results — what it takes for a pattern to qualify is worth more
 to a reader than a list of the ones that did.</p>
 </div>
-<div id="bench-setup" class="section level2" number="8.2">
+<div class="section level2" id="bench-setup" number="8.2">
 <h2>
-<span class="header-section-number">8.2</span> Setup<a class="anchor" aria-label="anchor" href="#bench-setup"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.2</span> Setup<a aria-label="anchor" class="anchor" href="#bench-setup"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/product-grid.rds"</span>, <span class="st">"bb8ade76d88b95a3"</span><span class="op">)</span></span>
@@ -162,13 +169,13 @@ to a reader than a list of the ones that did.</p>
 built from. Everything else this chapter calls is in <code>R/</code>, sourced when the book
 renders.</p>
 </div>
-<div id="bench-background" class="section level2" number="8.3">
+<div class="section level2" id="bench-background" number="8.3">
 <h2>
-<span class="header-section-number">8.3</span> Background<a class="anchor" aria-label="anchor" href="#bench-background"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.3</span> Background<a aria-label="anchor" class="anchor" href="#bench-background"><i class="fas fa-link"></i></a>
 </h2>
-<div id="four-objects-four-verbs" class="section level3" number="8.3.1">
+<div class="section level3" id="four-objects-four-verbs" number="8.3.1">
 <h3>
-<span class="header-section-number">8.3.1</span> Four objects, four verbs<a class="anchor" aria-label="anchor" href="#four-objects-four-verbs"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.3.1</span> Four objects, four verbs<a aria-label="anchor" class="anchor" href="#four-objects-four-verbs"><i class="fas fa-link"></i></a>
 </h3>
 <p>The helper API is small on purpose. Three S3 classes carry everything between
 files, each a plain list, and <code>R/README.md</code> states the contract field by field.</p>
@@ -213,20 +220,20 @@ unfolds to a region with a zigzag edge. <code>boundary = FALSE</code> is not tid
 is the condition under which the answer key is the answer.</p>
 </div>
 </div>
-<div id="bench-core" class="section level2" number="8.4">
+<div class="section level2" id="bench-core" number="8.4">
 <h2>
-<span class="header-section-number">8.4</span> Constructions that keep the answer key<a class="anchor" aria-label="anchor" href="#bench-core"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.4</span> Constructions that keep the answer key<a aria-label="anchor" class="anchor" href="#bench-core"><i class="fas fa-link"></i></a>
 </h2>
-<div id="one-pattern-family-and-two-honest-gaps" class="section level3" number="8.4.1">
+<div class="section level3" id="one-pattern-family-and-two-honest-gaps" number="8.4.1">
 <h3>
-<span class="header-section-number">8.4.1</span> One pattern family, and two honest gaps<a class="anchor" aria-label="anchor" href="#one-pattern-family-and-two-honest-gaps"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.4.1</span> One pattern family, and two honest gaps<a aria-label="anchor" class="anchor" href="#one-pattern-family-and-two-honest-gaps"><i class="fas fa-link"></i></a>
 </h3>
 <p>The book ships one family that folds. That is fewer than were specified, and the
 two that were withdrawn were withdrawn for different reasons, both of which are
 worth more than the families would have been.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:bench-fig-families"></span>
-<img src="08-building-benchmarks_files/figure-html/bench-fig-families-1.png" alt="Two side-by-side panels of flat crease patterns drawn in the plane. The left panel is a Miura-ori: a grid of congruent parallelograms whose transverse crease lines zigzag, with a jagged left and right edge. The right panel is a Yoshimura diamond tessellation: rows of triangles with horizontal, slanted and diagonal creases meeting six to a vertex. Both use two colours and two line styles for mountain and valley creases and a solid grey line for the sheet boundary." width="90%"><p class="caption">
+<span id="fig:bench-fig-families" style="display:block;"></span>
+<img alt="Two side-by-side panels of flat crease patterns drawn in the plane. The left panel is a Miura-ori: a grid of congruent parallelograms whose transverse crease lines zigzag, with a jagged left and right edge. The right panel is a Yoshimura diamond tessellation: rows of triangles with horizontal, slanted and diagonal creases meeting six to a vertex. Both use two colours and two line styles for mountain and valley creases and a solid grey line for the sheet boundary." src="08-building-benchmarks_files/figure-html/bench-fig-families-1.png" width="90%"/><p class="caption">
 Figure 8.1: Two valid flat crease patterns. Only the left one has a certified rigid folding; the right one is drawn here and never folded anywhere in this book. Mountain and valley are distinguished by colour and by line style together.
 </p>
 </div>
@@ -289,9 +296,9 @@ vanishes, so the count of non-trivial infinitesimal flexes is
 planar pattern whatsoever, foldable or not. Each trap here was sprung, and each
 was caught only by a second, independent check.</p>
 </div>
-<div id="the-isometry-certificate" class="section level3" number="8.4.2">
+<div class="section level3" id="the-isometry-certificate" number="8.4.2">
 <h3>
-<span class="header-section-number">8.4.2</span> The isometry certificate<a class="anchor" aria-label="anchor" href="#the-isometry-certificate"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.4.2</span> The isometry certificate<a aria-label="anchor" class="anchor" href="#the-isometry-certificate"><i class="fas fa-link"></i></a>
 </h3>
 <p>What a family has to produce, then, is a closed form, a fold that reaches every
 crease family, and an isometry that is exact rather than converged. The third is
@@ -316,8 +323,8 @@ full <span class="math inline">\(\alpha\)</span> range the worst departure is
 closed form, not a tolerance anyone chose, and it is the certificate the product
 construction below inherits.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:bench-fig-certificate"></span>
-<img src="08-building-benchmarks_files/figure-html/bench-fig-certificate-1.png" alt="A line chart with a logarithmic vertical axis. The horizontal axis is the folding parameter from zero to one. Six nearly flat curves, one per opening angle and distinguished by colour, sit together in a narrow band around ten to the power minus fifteen. A horizontal dashed line far above them at ten to the power minus ten marks the contract tolerance." width="90%"><p class="caption">
+<span id="fig:bench-fig-certificate" style="display:block;"></span>
+<img alt="A line chart with a logarithmic vertical axis. The horizontal axis is the folding parameter from zero to one. Six nearly flat curves, one per opening angle and distinguished by colour, sit together in a narrow band around ten to the power minus fifteen. A horizontal dashed line far above them at ten to the power minus ten marks the contract tolerance." src="08-building-benchmarks_files/figure-html/bench-fig-certificate-1.png" width="90%"/><p class="caption">
 Figure 8.2: Worst within-facet distance error across the folding sweep, at six opening angles spanning the range the contract asserts. The dashed line is the contract; every curve sits five orders of magnitude below it and shows no trend in either the folding parameter or the opening angle.
 </p>
 </div>
@@ -326,9 +333,9 @@ The flatness matters as much as the level: an error growing with <span class="ma
 mean the closed form was an approximation that happened to be good near the flat
 state, which is what a derivation by facet rotation tends to produce.</p>
 </div>
-<div id="products-raising-intrinsic-dimension-without-losing-truth" class="section level3" number="8.4.3">
+<div class="section level3" id="products-raising-intrinsic-dimension-without-losing-truth" number="8.4.3">
 <h3>
-<span class="header-section-number">8.4.3</span> Products: raising intrinsic dimension without losing truth<a class="anchor" aria-label="anchor" href="#products-raising-intrinsic-dimension-without-losing-truth"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.4.3</span> Products: raising intrinsic dimension without losing truth<a aria-label="anchor" class="anchor" href="#products-raising-intrinsic-dimension-without-losing-truth"><i class="fas fa-link"></i></a>
 </h3>
 <p>A folded sheet has intrinsic dimension two and every embedding in this book has
 target dimension two. That is a benchmark with no headroom, and the product
@@ -379,8 +386,8 @@ singular value decomposition; its residual is the tail sum of squared singular
 values; normalising gives the expression above.</p>
 <p>It is exact, it depends on the data alone, and no method appears anywhere in it.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:bench-fig-spectrum"></span>
-<img src="08-building-benchmarks_files/figure-html/bench-fig-spectrum-1.png" alt="Two panels. Panel A is a bar chart of four bars, decreasing from about 0.43 to about 0.06, labelled as shares of chart variance. Panel B is a line falling from about 0.75 at target dimension one, through 0.53 and 0.25, to zero at target dimension four; black cross markers sit exactly on the line at all four points." width="90%"><p class="caption">
+<span id="fig:bench-fig-spectrum" style="display:block;"></span>
+<img alt="Two panels. Panel A is a bar chart of four bars, decreasing from about 0.43 to about 0.06, labelled as shares of chart variance. Panel B is a line falling from about 0.75 at target dimension one, through 0.53 and 0.25, to zero at target dimension four; black cross markers sit exactly on the line at all four points." src="08-building-benchmarks_files/figure-html/bench-fig-spectrum-1.png" width="90%"/><p class="caption">
 Figure 8.3: The chart spectrum of one product cell, and the bound it produces. Panel A: the four eigenvalues of the four-dimensional chart, as shares of its variance. Panel B: the bound at each target dimension, as a line, with the rank-d projection of the chart drawn on top of it as crosses. The tail of A is the square of B.
 </p>
 </div>
@@ -397,9 +404,9 @@ the noise model or with the sample’s difficulty, so “every method landed wit
 a few per cent of the floor” is a statement about a regime rather than about a
 lucky draw.</p>
 </div>
-<div id="lifting-to-arbitrary-ambient-dimension" class="section level3" number="8.4.4">
+<div class="section level3" id="lifting-to-arbitrary-ambient-dimension" number="8.4.4">
 <h3>
-<span class="header-section-number">8.4.4</span> Lifting to arbitrary ambient dimension<a class="anchor" aria-label="anchor" href="#lifting-to-arbitrary-ambient-dimension"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.4.4</span> Lifting to arbitrary ambient dimension<a aria-label="anchor" class="anchor" href="#lifting-to-arbitrary-ambient-dimension"><i class="fas fa-link"></i></a>
 </h3>
 <p>Real data does not arrive in three dimensions, and a method that only works when
 the ambient dimension is small should be caught by that rather than flattered by
@@ -426,9 +433,9 @@ axes, and a benchmark that moves them together cannot say which a method is
 responding to. <code>lift()</code> moves the first alone.</p>
 </div>
 </div>
-<div id="bench-results" class="section level2" number="8.5">
+<div class="section level2" id="bench-results" number="8.5">
 <h2>
-<span class="header-section-number">8.5</span> Results<a class="anchor" aria-label="anchor" href="#bench-results"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.5</span> Results<a aria-label="anchor" class="anchor" href="#bench-results"><i class="fas fa-link"></i></a>
 </h2>
 <p>The product suite is 12960 rows: two arms, each swept over nine values
 of its own difficulty parameter, 20 seeds, four target
@@ -442,13 +449,13 @@ two Miura sheets do. The differentiator as written is refuted, and reporting
 both arms side by side is the stronger statement. What crease-specificity rests
 on afterwards is zero reach <span class="citation">(<a href="references.html#ref-federer1959curvature">15</a>,<a href="references.html#ref-niyogi2008homology">16</a>)</span> and an
 answer key that is not smooth, not the bound.</p>
-<div id="the-floor-bites-and-nothing-goes-under-it" class="section level3" number="8.5.1">
+<div class="section level3" id="the-floor-bites-and-nothing-goes-under-it" number="8.5.1">
 <h3>
-<span class="header-section-number">8.5.1</span> The floor bites, and nothing goes under it<a class="anchor" aria-label="anchor" href="#the-floor-bites-and-nothing-goes-under-it"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.5.1</span> The floor bites, and nothing goes under it<a aria-label="anchor" class="anchor" href="#the-floor-bites-and-nothing-goes-under-it"><i class="fas fa-link"></i></a>
 </h3>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:bench-fig-dimension"></span>
-<img src="08-building-benchmarks_files/figure-html/bench-fig-dimension-1.png" alt="Two panels sharing a vertical axis of normalised Procrustes error from zero to one. In each, a heavy grey line falls with target dimension one to four and the area beneath it is shaded. In the left panel, labelled crease product, three curves for ambient, geodesic and neighbourhood methods run just above the shaded region at dimensions one and two and separate from it at three and four. In the right panel, labelled roll product, the same three curves run flat near 0.95 across all four dimensions, far above a bound that falls quickly to near zero." width="90%"><p class="caption">
+<span id="fig:bench-fig-dimension" style="display:block;"></span>
+<img alt="Two panels sharing a vertical axis of normalised Procrustes error from zero to one. In each, a heavy grey line falls with target dimension one to four and the area beneath it is shaded. In the left panel, labelled crease product, three curves for ambient, geodesic and neighbourhood methods run just above the shaded region at dimensions one and two and separate from it at three and four. In the right panel, labelled roll product, the same three curves run flat near 0.95 across all four dimensions, far above a bound that falls quickly to near zero." src="08-building-benchmarks_files/figure-html/bench-fig-dimension-1.png" width="90%"/><p class="caption">
 Figure 8.4: Achieved error against target dimension, by what each method consumes, with the irreducible-loss bound as the heavy line and the region below it shaded. Both arms have a four-dimensional chart, so the bound reaches zero at target dimension four. The shaded region is unreachable by any configuration whatsoever.
 </p>
 </div>
@@ -489,13 +496,13 @@ seeds. The provisional version of it came from two values of <span class="math i
 quick run that was never saved and put the ambient methods first — which is
 exactly the reading standing rule 2 exists to prevent.</p>
 </div>
-<div id="excess-as-a-curve" class="section level3" number="8.5.2">
+<div class="section level3" id="excess-as-a-curve" number="8.5.2">
 <h3>
-<span class="header-section-number">8.5.2</span> Excess as a curve<a class="anchor" aria-label="anchor" href="#excess-as-a-curve"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.5.2</span> Excess as a curve<a aria-label="anchor" class="anchor" href="#excess-as-a-curve"><i class="fas fa-link"></i></a>
 </h3>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:bench-fig-excess"></span>
-<img src="08-building-benchmarks_files/figure-html/bench-fig-excess-1.png" alt="Two panels with independent axes. The left panel, crease product, plots excess over the floor against the folding parameter: three nearly flat curves for ambient, geodesic and neighbourhood methods sit between 0.01 and 0.10 until the folding parameter passes 0.8, where the ambient curve turns sharply upward and the geodesic one bends up more gently. The right panel, roll product, plots excess against the number of turns: three curves rise steadily together from about 0.72 to about 0.92 and stay within a hair of each other throughout." width="90%"><p class="caption">
+<span id="fig:bench-fig-excess" style="display:block;"></span>
+<img alt="Two panels with independent axes. The left panel, crease product, plots excess over the floor against the folding parameter: three nearly flat curves for ambient, geodesic and neighbourhood methods sit between 0.01 and 0.10 until the folding parameter passes 0.8, where the ambient curve turns sharply upward and the geodesic one bends up more gently. The right panel, roll product, plots excess against the number of turns: three curves rise steadily together from about 0.72 to about 0.92 and stay within a hair of each other throughout." src="08-building-benchmarks_files/figure-html/bench-fig-excess-1.png" width="90%"/><p class="caption">
 Figure 8.5: Mean excess over the floor at target dimension two, against each family’s own difficulty parameter — the folding parameter on the left, the number of turns on the right. The vertical scales differ between panels and the two arms are matched on nothing, so this is a statement about the construction and not about which family is harder.
 </p>
 </div>
@@ -516,9 +523,9 @@ from 0.168 down to
 roll’s arc-length coordinate and elongates its chart. Two arms, two different
 relationships between difficulty and the bound, and neither is a defect.</p>
 </div>
-<div id="why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark" class="section level3" number="8.5.3">
+<div class="section level3" id="why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark" number="8.5.3">
 <h3>
-<span class="header-section-number">8.5.3</span> Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark<a class="anchor" aria-label="anchor" href="#why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.5.3</span> Why a benchmark stuck at intrinsic dimension 2 is not a serious benchmark<a aria-label="anchor" class="anchor" href="#why-a-benchmark-stuck-at-intrinsic-dimension-2-is-not-a-serious-benchmark"><i class="fas fa-link"></i></a>
 </h3>
 <p>Everything above is unavailable on the book’s main grid, and the reason is one
 line of arithmetic. That grid’s chart is two-dimensional and its target is
@@ -544,9 +551,9 @@ makes the bound bite, and doing it while keeping the answer key exact is what
 argument.</p>
 </div>
 </div>
-<div id="bench-diagnostics" class="section level2" number="8.6">
+<div class="section level2" id="bench-diagnostics" number="8.6">
 <h2>
-<span class="header-section-number">8.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#bench-diagnostics"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.6</span> Diagnostics<a aria-label="anchor" class="anchor" href="#bench-diagnostics"><i class="fas fa-link"></i></a>
 </h2>
 <p><strong>Do not read the two arms as a difficulty comparison.</strong> The crease arm is swept
 over the folding parameter and the roll arm over turns; the two are matched on
@@ -575,9 +582,9 @@ two negative results — and the discrepancy is left visible rather than quietly
 patched, because it is exactly the kind of stale count a registry keyed by
 family name is supposed to catch and did not.</p>
 </div>
-<div id="bench-limits" class="section level2" number="8.7">
+<div class="section level2" id="bench-limits" number="8.7">
 <h2>
-<span class="header-section-number">8.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#bench-limits"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.7</span> Where it fails<a aria-label="anchor" class="anchor" href="#bench-limits"><i class="fas fa-link"></i></a>
 </h2>
 <p><strong>A product is not a curved four-manifold.</strong> <code>product_manifold()</code> gives
 intrinsic dimension four with an exact chart, and it gives it in the easiest
@@ -606,9 +613,9 @@ claims about pattern variety, and this book makes none. It can support claims
 about a construction, and the suite’s two arms are the evidence that the
 construction is what the claims are about.</p>
 </div>
-<div id="bench-reproduce" class="section level2" number="8.8">
+<div class="section level2" id="bench-reproduce" number="8.8">
 <h2>
-<span class="header-section-number">8.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#bench-reproduce"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.8</span> Reproduce this<a aria-label="anchor" class="anchor" href="#bench-reproduce"><i class="fas fa-link"></i></a>
 </h2>
 <p>To add a family, write the constructor in <code>R/patterns.R</code> and the folding map in
 <code>R/folding.R</code>, and let <code>tests/testthat/test-folding.R</code> decide whether it
@@ -627,9 +634,9 @@ which is the form every result in Part III is reported in.</p>
 at render time: run it locally, commit the <code>.rds</code>, and let <code>read_run()</code> refuse
 any chapter whose prose was written against a different one.</p>
 </div>
-<div id="bench-reading" class="section level2" number="8.9">
+<div class="section level2" id="bench-reading" number="8.9">
 <h2>
-<span class="header-section-number">8.9</span> Further reading<a class="anchor" aria-label="anchor" href="#bench-reading"><i class="fas fa-link"></i></a>
+<span class="header-section-number">8.9</span> Further reading<a aria-label="anchor" class="anchor" href="#bench-reading"><i class="fas fa-link"></i></a>
 </h2>
 <p>Miura’s report <span class="citation">(<a href="references.html#ref-miura1985method">5</a>)</span> introduces the one family this benchmark
 folds, and Schenk and Guest <span class="citation">(<a href="references.html#ref-schenk2013geometry">20</a>)</span> give the mechanics of folded
@@ -648,16 +655,14 @@ Espadoto and colleagues <span class="citation">(<a href="references.html#ref-esp
 this chapter argues with, and Machado and colleagues <span class="citation">(<a href="references.html#ref-machado2025necessary">3</a>)</span>
 make the case for evaluating the evaluators, which Chapter <a href="evaluation.html#evaluation">9</a>
 takes up.</p>
-
 </div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
-  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
-    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-  </button>
+<button aria-label="Toggle dark mode" class="btn-circle-mode" id="mode-switch" type="button">
+<i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i>
+</button>
 </div>
-
 <script>
   (function () {
     var stored = localStorage.getItem('themeMode');
@@ -711,101 +716,9 @@ takes up.</p>
       li.appendChild(t);
     });
   });
-</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // There are TWO .book-extra blocks on each page:
-    //  - sidebar one: contains #book-repo ("View book source")
-    //  - right-nav one: contains #book-source + #book-edit
-    // We want the latter.
-    var bookSource = document.getElementById("book-source");
-    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
-    if (!bookExtra || document.querySelector(".book-downloads")) return;
-
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
-    // Every link in this block is probed before it is offered.
-    //
-    // The full-book link used to be written unconditionally while the chapter
-    // link below it was probed -- and that asymmetry was the bug. The render
-    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
-    // so a build could deploy green with a "Downloads" box pointing at a PDF
-    // that was never produced. The workflow no longer tolerates that (it
-    // asserts both artefacts exist and clear a size floor), but a link that
-    // checks its own target is cheap, and the two mechanisms fail
-    // independently: a deploy that partially clears gh-pages would leave the
-    // assertion satisfied and the link dead.
-    //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
-
-    var TARGETS = [
-      { href: "folding-in-r.pdf",
-        id:   "book-download-full",
-        text: "Entire book (PDF) ",
-        icon: "fa-solid fa-book",
-        skip: false },
-      { href: "folding-in-r.epub",
-        id: "book-download-epub",
-        text: "Entire book (EPUB) ",
-        icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
-    ];
-
-    var exists = function (t) {
-      if (t.skip) return Promise.resolve(false);
-      return fetch(t.href, { method: "HEAD" })
-        .then(function (r) { return r.ok; })
-        .catch(function () { return false; });
-    };
-
-    Promise.all(TARGETS.map(exists)).then(function (found) {
-      // Resolved together rather than appended as each probe lands, so the
-      // order is the order of TARGETS and not the order of the network.
-      var live = TARGETS.filter(function (t, i) { return found[i]; });
-      if (!live.length) return;              // nothing to offer, no empty box
-      if (document.querySelector(".book-downloads")) return;
-
-      var wrap = document.createElement("div");
-      wrap.className = "book-downloads";
-
-      var heading = document.createElement("h6");
-      heading.className = "book-downloads-heading";
-      heading.textContent = "Downloads";
-      wrap.appendChild(heading);
-
-      var list = document.createElement("ul");
-      list.className = "list-unstyled";
-
-      live.forEach(function (t) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.id = t.id;
-        a.href = t.href;
-        a.textContent = t.text;
-        var icon = document.createElement("i");
-        icon.className = t.icon;
-        a.appendChild(icon);
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-
-      wrap.appendChild(list);
-      bookExtra.parentNode.insertBefore(wrap, bookExtra);
-    });
-  });
-</script><!-- Footer attribution --><div class="bookdown-attribution">
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-
 <script>
 // A pasted query can arrive before bookdown's focus-triggered index fetch ends.
 // Keep that first query pending until the index is ready.
@@ -835,11 +748,11 @@ takes up.</p>
 <div class="next"><a href="evaluation.html"><span class="header-section-number">9</span> Ground truth and the evaluators</a></div>
 </div>
 <!-- verified-downloads:start -->
-<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/benchmarks.pdf">This chapter (PDF)</a></p></nav>
+
 <!-- verified-downloads:end -->
 </main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
-    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav">
+<nav aria-label="On this page" data-toggle="toc" id="toc"><h2>On this page</h2>
+<ul class="nav navbar-nav">
 <li><a class="nav-link" href="#benchmarks"><span class="header-section-number">8</span> Building crease-pattern manifolds</a></li>
 <li><a class="nav-link" href="#bench-question"><span class="header-section-number">8.1</span> What this chapter answers</a></li>
 <li><a class="nav-link" href="#bench-setup"><span class="header-section-number">8.2</span> Setup</a></li>
@@ -866,29 +779,23 @@ takes up.</p>
 <li><a class="nav-link" href="#bench-reproduce"><span class="header-section-number">8.8</span> Reproduce this</a></li>
 <li><a class="nav-link" href="#bench-reading"><span class="header-section-number">8.9</span> Further reading</a></li>
 </ul>
-
-      <div class="book-extra">
-        <ul class="list-unstyled">
-<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/08-building-benchmarks.Rmd">View source <i class="fab fa-github"></i></a></li>
-          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/08-building-benchmarks.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
-        </ul>
+<div class="book-extra">
+<ul class="list-unstyled">
+<li><a href="https://github.com/r-heller/folding-in-r/blob/main/08-building-benchmarks.Rmd" id="book-source">View source <i class="fab fa-github"></i></a></li>
+<li><a href="https://github.com/r-heller/folding-in-r/edit/main/08-building-benchmarks.Rmd" id="book-edit">Edit this page <i class="fab fa-github"></i></a></li>
+</ul>
 </div>
-    </nav>
+</nav>
 </div>
-
 </div>
 </div> <!-- .container -->
-
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
-  </div>
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
-  </div>
-
+<div class="col-12 col-md-6 mt-3">
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+</div>
+<div class="col-12 col-md-6 mt-3">
+<p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+</div>
 </div></div>
 </footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
   (function () {

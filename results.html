@@ -1,32 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="en-GB">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
 <title>Chapter 10 Benchmark results | Folding in R</title>
-<meta name="author" content="R. Heller">
-<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one...">
-<meta name="generator" content="bookdown 0.47 with bs4_book()">
-<meta property="og:title" content="Chapter 10 Benchmark results | Folding in R">
-<meta property="og:type" content="book">
-<meta property="og:url" content="https://r-heller.github.io/folding-in-r/results.html">
-<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one...">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chapter 10 Benchmark results | Folding in R">
-<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one...">
-<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
-<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
-<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
-<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
-<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/font-awesome.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+<meta content="R. Heller" name="author"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one..." name="description"/>
+<meta content="bookdown 0.47 with bs4_book()" name="generator"/>
+<meta content="Chapter 10 Benchmark results | Folding in R" property="og:title"/>
+<meta content="book" property="og:type"/>
+<meta content="https://r-heller.github.io/folding-in-r/results.html" property="og:url"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" property="og:image"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one..." property="og:description"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Chapter 10 Benchmark results | Folding in R" name="twitter:title"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Which method survives — and can the benchmark tell?  10.1 What this chapter answers Part II fitted each method to a folded sheet one..." name="twitter:description"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" name="twitter:image"/>
+<!-- JS --><script crossorigin="anonymous" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script><script crossorigin="anonymous" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js"></script><script crossorigin="anonymous" src="https://kit.fontawesome.com/6ecbd6c532.js"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet"/>
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet"/>
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet"/>
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet"/>
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="style/font-awesome.min.css" rel="stylesheet"/>
+<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -52,29 +53,36 @@
       margin-left: 2em;
     }
   </style>
-<link rel="stylesheet" href="style/style.css">
-</head>
+<link href="style/style.css" rel="stylesheet"/>
+<style id="unified-book-download-style">
+.book-downloads--unified {display:flex!important;flex-wrap:wrap;gap:12px 24px;margin:16px 0 24px!important;padding:14px 16px!important;border:1px solid #a8adb4;border-radius:8px;background:transparent;color:inherit;font-family:system-ui,sans-serif;font-size:14px;line-height:1.4;box-sizing:border-box;max-width:100%;}
+.book-downloads--unified .book-download-group {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.book-downloads--unified .book-download-label {font-weight:600;margin-right:4px;}
+.book-downloads--unified a {display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid currentColor;border-radius:5px;text-decoration:none!important;font-weight:600;color:inherit;}
+.book-downloads--unified a:hover {background:rgba(127,127,127,.14);}
+.book-downloads--unified a:focus-visible {outline:3px solid #2684d9;outline-offset:3px;}
+.book-downloads--unified svg {height:20px;width:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.book-downloads:not(.book-downloads--unified),.book-download-footer,.sidebar-downloads {display:none!important;}
+@media(max-width:500px){.book-downloads--unified{gap:12px;padding:12px!important;}.book-downloads--unified .book-download-group{width:100%;}.book-downloads--unified .book-download-label{min-width:92px;}}
+@media print{.book-downloads--unified{display:none!important;}}
+</style></head>
 <body data-spy="scroll" data-target="#toc">
-
 <div class="container-fluid">
 <div class="row">
-  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
-
-    <div class="d-flex align-items-start justify-content-between">
-      <h1>
-        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+<header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+<div class="d-flex align-items-start justify-content-between">
+<h1>
+<a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
         <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
-      </h1>
-      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
-    </div>
-
-    <div id="main-nav" class="collapse-lg">
-      <form role="search">
-        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</h1>
+<button aria-controls="main-nav" aria-expanded="true" class="btn btn-outline-primary d-lg-none ml-2 mt-1" data-target="#main-nav" data-toggle="collapse" type="button"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+</div>
+<div class="collapse-lg" id="main-nav">
+<form role="search">
+<input aria-label="Search" class="form-control" id="search" placeholder="Search" type="search"/>
 </form>
-
-      <nav aria-label="Table of contents"><h2>Table of contents</h2>
-        <ul class="book-toc list-unstyled">
+<nav aria-label="Table of contents"><h2>Table of contents</h2>
+<ul class="book-toc list-unstyled">
 <li><a class="" href="index.html">Preface</a></li>
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
@@ -104,25 +112,24 @@
 <li><a class="" href="citing.html">Citing this book</a></li>
 <li><a class="" href="references.html">References</a></li>
 </ul>
-
-        <div class="book-extra">
-          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
-        </div>
-      </nav>
+<div class="book-extra">
+<p><a href="https://github.com/r-heller/folding-in-r" id="book-repo">View book source <i class="fab fa-github"></i></a></p>
 </div>
-  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="results" class="section level1" number="10">
+</nav>
+</div>
+</header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div class="section level1" id="results" number="10">
 <h1>
-<span class="header-section-number">10</span> Benchmark results<a class="anchor" aria-label="anchor" href="#results"><i class="fas fa-link"></i></a>
-</h1>
+<span class="header-section-number">10</span> Benchmark results<a aria-label="anchor" class="anchor" href="#results"><i class="fas fa-link"></i></a>
+</h1><nav aria-label="Book and chapter downloads" class="book-downloads book-downloads--unified"><div class="book-download-group"><span class="book-download-label">Entire book</span><a aria-label="Download entire book as PDF" download="" href="folding-in-r.pdf" title="Download entire book as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download entire book as EPUB" download="" href="folding-in-r.epub" title="Download entire book as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div><div class="book-download-group"><span class="book-download-label">This chapter</span><a aria-label="Download this chapter as PDF" download="" href="downloads/chapters/results.pdf" title="Download this chapter as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download this chapter as EPUB" download="" href="downloads/chapters/results.epub" title="Download this chapter as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div></nav>
 <!-- page-provenance:start -->
 <div class="page-provenance">
 <p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07</em></p>
 </div>
 <!-- page-provenance:end -->
 <p><em>Which method survives — and can the benchmark tell?</em></p>
-<div id="results-question" class="section level2" number="10.1">
+<div class="section level2" id="results-question" number="10.1">
 <h2>
-<span class="header-section-number">10.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#results-question"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.1</span> What this chapter answers<a aria-label="anchor" class="anchor" href="#results-question"><i class="fas fa-link"></i></a>
 </h2>
 <p>Part II fitted each method to a folded sheet one configuration at a time. This
 chapter fits all of them to the whole sweep at once — every method against every
@@ -140,9 +147,9 @@ a well-formed sentence here unless both are stated. The rest is those two
 answers with their conditions attached, and a rule — fixed in code before the
 grid existed — for turning them into a decision.</p>
 </div>
-<div id="results-setup" class="section level2" number="10.2">
+<div class="section level2" id="results-setup" number="10.2">
 <h2>
-<span class="header-section-number">10.2</span> Setup<a class="anchor" aria-label="anchor" href="#results-setup"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.2</span> Setup<a aria-label="anchor" class="anchor" href="#results-setup"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb72"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/benchmark-grid.rds"</span>, <span class="st">"2483a468d82d4d64"</span><span class="op">)</span></span>
@@ -160,9 +167,9 @@ core-seconds per sampled cell, metrics included.</p>
 <code>ok</code> is the subset that fitted. Both are used below, and which one a number came
 from is stated, because the difference between them is itself a result.</p>
 </div>
-<div id="results-background" class="section level2" number="10.3">
+<div class="section level2" id="results-background" number="10.3">
 <h2>
-<span class="header-section-number">10.3</span> What the grid holds<a class="anchor" aria-label="anchor" href="#results-background"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.3</span> What the grid holds<a aria-label="anchor" class="anchor" href="#results-background"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb73"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">step</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diff.html">diff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
@@ -185,9 +192,9 @@ from is stated, because the difference between them is itself a result.</p>
 <caption>
 <span id="tab:results-design">Table 10.1: </span>The benchmark grid, read off the artefact rather than asserted.</caption>
 <colgroup>
-<col width="10%">
-<col width="8%">
-<col width="81%">
+<col width="10%"/>
+<col width="8%"/>
+<col width="81%"/>
 </colgroup>
 <thead><tr class="header">
 <th align="left">Factor</th>
@@ -263,8 +270,8 @@ absolute terms” coincide on this grid. They do not coincide on the product
 construction of Chapter <a href="benchmarks.html#benchmarks">8</a>, which is the artefact built to make
 the floor positive.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:results-fig-status"></span>
-<img src="10-benchmark-results_files/figure-html/results-fig-status-1.png" alt="Three panels, one per noise condition, each a horizontal bar per method showing 400 fits. Under no noise and under ambient noise every method except the autoencoder ran as asked, and the autoencoder bar is entirely 'declared unavailable'. Under outlier noise the Laplacian eigenmaps bar is entirely 'declined the cell', the diffusion map bar is almost entirely 'ran after retuning' with a single declined fit, and the rest ran as asked." width="90%"><p class="caption">
+<span id="fig:results-fig-status" style="display:block;"></span>
+<img alt="Three panels, one per noise condition, each a horizontal bar per method showing 400 fits. Under no noise and under ambient noise every method except the autoencoder ran as asked, and the autoencoder bar is entirely 'declared unavailable'. Under outlier noise the Laplacian eigenmaps bar is entirely 'declined the cell', the diffusion map bar is almost entirely 'ran after retuning' with a single declined fit, and the rest ran as asked." src="10-benchmark-results_files/figure-html/results-fig-status-1.png" width="90%"/><p class="caption">
 Figure 10.1: What happened to every fit, by method and noise condition. Counts are printed on each segment that is not a clean run, so nothing here is carried by colour alone.
 </p>
 </div>
@@ -273,9 +280,9 @@ structured rather than scattered. Laplacian eigenmaps declined every outlier
 cell; the diffusion map ran under outliers only after widening its own kernel
 bandwidth, which the <code>tuning</code> column records.</p>
 </div>
-<div id="results-core" class="section level2" number="10.4">
+<div class="section level2" id="results-core" number="10.4">
 <h2>
-<span class="header-section-number">10.4</span> Where the benchmark has resolving power<a class="anchor" aria-label="anchor" href="#results-core"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.4</span> Where the benchmark has resolving power<a aria-label="anchor" class="anchor" href="#results-core"><i class="fas fa-link"></i></a>
 </h2>
 <p>A ranking is worth reading only if the differences it orders are larger than the
 noise it was measured through. <code>R/selection.R</code> names that quantity and fixes it
@@ -308,8 +315,8 @@ is computed on excess over the floor rather than on raw error, which on this
 grid changes nothing because the floor is 0, and on Chapter
 <a href="benchmarks.html#benchmarks">8</a>’s product suite changes a great deal.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:results-fig-resolving"></span>
-<img src="10-benchmark-results_files/figure-html/results-fig-resolving-1.png" alt="A line chart with the folding parameter on the horizontal axis and resolving power on a logarithmic vertical axis. Three lines, distinguished by colour, line style and point shape. The outlier line sits highest, near fifteen, falling gently to about nine at the right. The clean and ambient-noise lines run between three and seven across most of the range and fall towards the right-hand end, the ambient line reaching about one and a third at the largest fold angle. A dotted horizontal line marks one; no line touches it." width="90%"><p class="caption">
+<span id="fig:results-fig-resolving" style="display:block;"></span>
+<img alt="A line chart with the folding parameter on the horizontal axis and resolving power on a logarithmic vertical axis. Three lines, distinguished by colour, line style and point shape. The outlier line sits highest, near fifteen, falling gently to about nine at the right. The clean and ambient-noise lines run between three and seven across most of the range and fall towards the right-hand end, the ambient line reaching about one and a third at the largest fold angle. A dotted horizontal line marks one; no line touches it." src="10-benchmark-results_files/figure-html/results-fig-resolving-1.png" width="90%"/><p class="caption">
 Figure 10.2: Resolving power against the folding parameter, one line per noise condition, on a logarithmic scale. The dotted line is the pre-registered floor below which the selection rule declines to rank anything.
 </p>
 </div>
@@ -350,13 +357,13 @@ sheets are a harder test. And <span class="math inline">\(R\)</span> is a proper
 generator — it is computed here at fixed <span class="math inline">\(n\)</span>, fixed <span class="math inline">\(k\)</span> and one pattern size,
 and each of those moves it.</p>
 </div>
-<div id="results-results" class="section level2" number="10.5">
+<div class="section level2" id="results-results" number="10.5">
 <h2>
-<span class="header-section-number">10.5</span> Results<a class="anchor" aria-label="anchor" href="#results-results"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.5</span> Results<a aria-label="anchor" class="anchor" href="#results-results"><i class="fas fa-link"></i></a>
 </h2>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:results-fig-headline"></span>
-<img src="10-benchmark-results_files/figure-html/results-fig-headline-1.png" alt="Three panels labelled linear, geodesic and neighbour, each plotting reconstruction error against the folding parameter from zero to nearly one. In the linear panel a single visible curve rises smoothly from zero to about a fifth, with a very narrow band. In the geodesic panel Isomap runs almost flat near zero until roughly two-thirds of the way along and then rises, while the diffusion map sits near a fifth throughout. In the neighbour panel LLE rises from below a tenth to above four tenths, Laplacian eigenmaps and UMAP run flat near a quarter, and t-SNE sits highest with a very wide seed band." width="90%"><p class="caption">
+<span id="fig:results-fig-headline" style="display:block;"></span>
+<img alt="Three panels labelled linear, geodesic and neighbour, each plotting reconstruction error against the folding parameter from zero to nearly one. In the linear panel a single visible curve rises smoothly from zero to about a fifth, with a very narrow band. In the geodesic panel Isomap runs almost flat near zero until roughly two-thirds of the way along and then rises, while the diffusion map sits near a fifth throughout. In the neighbour panel LLE rises from below a tenth to above four tenths, Laplacian eigenmaps and UMAP run flat near a quarter, and t-SNE sits highest with a very wide seed band." src="10-benchmark-results_files/figure-html/results-fig-headline-1.png" width="90%"/><p class="caption">
 Figure 10.3: Normalised Procrustes reconstruction error against the folding parameter on the clean sheet, grouped by what each method consumes. The line is the mean over twenty seeds; the band is the full seed range. PCA and classical MDS coincide exactly and plot on top of each other.
 </p>
 </div>
@@ -425,8 +432,8 @@ and is last at every fold angle — not a finding about t-SNE, which was never
 built to reproduce distances, but the clearest case on this grid of a method
 scored against a target it does not consume.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:results-fig-order"></span>
-<img src="10-benchmark-results_files/figure-html/results-fig-order-1.png" alt="Three panels, one per noise condition, with the folding parameter on the horizontal axis and rank from one at the top to eight at the bottom; the outlier panel has seven ranks because Laplacian eigenmaps produced no embedding there. Under no noise and under ambient noise PCA and classical MDS alternate between ranks one and two at small fold angles and Isomap takes rank one from roughly two-fifths of the way along. Under outlier noise UMAP holds rank one across the whole sweep, the diffusion map is last throughout, and Isomap climbs only from fourth place to third at large fold angles." width="90%"><p class="caption">
+<span id="fig:results-fig-order" style="display:block;"></span>
+<img alt="Three panels, one per noise condition, with the folding parameter on the horizontal axis and rank from one at the top to eight at the bottom; the outlier panel has seven ranks because Laplacian eigenmaps produced no embedding there. Under no noise and under ambient noise PCA and classical MDS alternate between ranks one and two at small fold angles and Isomap takes rank one from roughly two-fifths of the way along. Under outlier noise UMAP holds rank one across the whole sweep, the diffusion map is last throughout, and Isomap climbs only from fourth place to third at large fold angles." src="10-benchmark-results_files/figure-html/results-fig-order-1.png" width="90%"/><p class="caption">
 Figure 10.4: Rank by mean reconstruction error against the folding parameter, one panel per noise condition. Rank one is at the top. The leader changes with the fold angle under two conditions and is a different method entirely under the third.
 </p>
 </div>
@@ -447,13 +454,13 @@ never reaches the top under this contamination.</p>
 (method, <span class="math inline">\(\theta\)</span>, noise), and any of the three sentences “the linear methods
 win”, “Isomap wins” and “UMAP wins” can be read off this one grid.</p>
 </div>
-<div id="results-diagnostics" class="section level2" number="10.6">
+<div class="section level2" id="results-diagnostics" number="10.6">
 <h2>
-<span class="header-section-number">10.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#results-diagnostics"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.6</span> Diagnostics<a aria-label="anchor" class="anchor" href="#results-diagnostics"><i class="fas fa-link"></i></a>
 </h2>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:results-fig-metrics"></span>
-<img src="10-benchmark-results_files/figure-html/results-fig-metrics-1.png" alt="A line chart with the folding parameter on the horizontal axis and the spread across methods on a logarithmic vertical axis. Procrustes RMSE, chart-referenced Q-NX and kNN preservation all run between about two-tenths and four-tenths across the whole range. Trustworthiness and continuity run two orders of magnitude lower, near three thousandths, and trustworthiness rises steeply only beyond about two-thirds of the way along." width="90%"><p class="caption">
+<span id="fig:results-fig-metrics" style="display:block;"></span>
+<img alt="A line chart with the folding parameter on the horizontal axis and the spread across methods on a logarithmic vertical axis. Procrustes RMSE, chart-referenced Q-NX and kNN preservation all run between about two-tenths and four-tenths across the whole range. Trustworthiness and continuity run two orders of magnitude lower, near three thousandths, and trustworthiness rises steeply only beyond about two-thirds of the way along." src="10-benchmark-results_files/figure-html/results-fig-metrics-1.png" width="90%"/><p class="caption">
 Figure 10.5: How far apart the metrics place the eight methods, on the clean sheet: the range of the per-method means at each fold angle, on a logarithmic scale.
 </p>
 </div>
@@ -488,9 +495,9 @@ as saying no short circuit occurred <span class="citation">(<a href="references.
 between facets connects the graph rather than breaking it, and it is the rise in
 Isomap’s error past <span class="math inline">\(\theta = 0.4\)</span> that would carry it.</p>
 </div>
-<div id="results-limits" class="section level2" number="10.7">
+<div class="section level2" id="results-limits" number="10.7">
 <h2>
-<span class="header-section-number">10.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#results-limits"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.7</span> Where it fails<a aria-label="anchor" class="anchor" href="#results-limits"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb77"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">armB</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/e1-armB.rds"</span>, <span class="st">"cbf9ce13782a556d"</span><span class="op">)</span></span>
@@ -525,9 +532,9 @@ in two dimensions nothing is.</p>
 <a href="benchmarks.html#benchmarks">8</a>’s subject. This grid cannot support any claim about variety
 across families, and none is made.</p>
 </div>
-<div id="results-rule" class="section level2" number="10.8">
+<div class="section level2" id="results-rule" number="10.8">
 <h2>
-<span class="header-section-number">10.8</span> The pre-registered selection rule<a class="anchor" aria-label="anchor" href="#results-rule"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.8</span> The pre-registered selection rule<a aria-label="anchor" class="anchor" href="#results-rule"><i class="fas fa-link"></i></a>
 </h2>
 <p>Chapter <a href="application.html#application">12</a> has to pick a method with this grid. The value of that
 choice rests entirely on the rule having been fixed before the answer was known,
@@ -574,9 +581,9 @@ better.</p>
 and is tested to fire, and a rule that could not have declined would have
 established nothing by not declining.</p>
 </div>
-<div id="results-reproduce" class="section level2" number="10.9">
+<div class="section level2" id="results-reproduce" number="10.9">
 <h2>
-<span class="header-section-number">10.9</span> Reproduce this<a class="anchor" aria-label="anchor" href="#results-reproduce"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.9</span> Reproduce this<a aria-label="anchor" class="anchor" href="#results-reproduce"><i class="fas fa-link"></i></a>
 </h2>
 <p>The grid is regenerated with
 <code>Rscript scripts/run-benchmark-grid.R --cores 4</code> from the repository root, and
@@ -590,9 +597,9 @@ producers cannot drift apart. <code>tests/testthat/test-selection.R</code> asser
 each of the three thresholds changes the decision, and that raising the seed
 count does not.</p>
 </div>
-<div id="results-reading" class="section level2" number="10.10">
+<div class="section level2" id="results-reading" number="10.10">
 <h2>
-<span class="header-section-number">10.10</span> Further reading<a class="anchor" aria-label="anchor" href="#results-reading"><i class="fas fa-link"></i></a>
+<span class="header-section-number">10.10</span> Further reading<a aria-label="anchor" class="anchor" href="#results-reading"><i class="fas fa-link"></i></a>
 </h2>
 <p>Espadoto and colleagues <span class="citation">(<a href="references.html#ref-espadoto2021survey">4</a>)</span> survey the projection-quality
 literature this chapter’s metrics come from, and Lee and Verleysen
@@ -605,16 +612,14 @@ property that predicts the regime changes above better than any of the scores
 does. What none of them supplies is a scale against which a score can be called
 good; that is Chapter <a href="benchmarks.html#benchmarks">8</a>’s subject, and it is why this chapter’s
 floor column is a placeholder rather than a measurement.</p>
-
 </div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
-  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
-    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-  </button>
+<button aria-label="Toggle dark mode" class="btn-circle-mode" id="mode-switch" type="button">
+<i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i>
+</button>
 </div>
-
 <script>
   (function () {
     var stored = localStorage.getItem('themeMode');
@@ -668,101 +673,9 @@ floor column is a placeholder rather than a measurement.</p>
       li.appendChild(t);
     });
   });
-</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // There are TWO .book-extra blocks on each page:
-    //  - sidebar one: contains #book-repo ("View book source")
-    //  - right-nav one: contains #book-source + #book-edit
-    // We want the latter.
-    var bookSource = document.getElementById("book-source");
-    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
-    if (!bookExtra || document.querySelector(".book-downloads")) return;
-
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
-    // Every link in this block is probed before it is offered.
-    //
-    // The full-book link used to be written unconditionally while the chapter
-    // link below it was probed -- and that asymmetry was the bug. The render
-    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
-    // so a build could deploy green with a "Downloads" box pointing at a PDF
-    // that was never produced. The workflow no longer tolerates that (it
-    // asserts both artefacts exist and clear a size floor), but a link that
-    // checks its own target is cheap, and the two mechanisms fail
-    // independently: a deploy that partially clears gh-pages would leave the
-    // assertion satisfied and the link dead.
-    //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
-
-    var TARGETS = [
-      { href: "folding-in-r.pdf",
-        id:   "book-download-full",
-        text: "Entire book (PDF) ",
-        icon: "fa-solid fa-book",
-        skip: false },
-      { href: "folding-in-r.epub",
-        id: "book-download-epub",
-        text: "Entire book (EPUB) ",
-        icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
-    ];
-
-    var exists = function (t) {
-      if (t.skip) return Promise.resolve(false);
-      return fetch(t.href, { method: "HEAD" })
-        .then(function (r) { return r.ok; })
-        .catch(function () { return false; });
-    };
-
-    Promise.all(TARGETS.map(exists)).then(function (found) {
-      // Resolved together rather than appended as each probe lands, so the
-      // order is the order of TARGETS and not the order of the network.
-      var live = TARGETS.filter(function (t, i) { return found[i]; });
-      if (!live.length) return;              // nothing to offer, no empty box
-      if (document.querySelector(".book-downloads")) return;
-
-      var wrap = document.createElement("div");
-      wrap.className = "book-downloads";
-
-      var heading = document.createElement("h6");
-      heading.className = "book-downloads-heading";
-      heading.textContent = "Downloads";
-      wrap.appendChild(heading);
-
-      var list = document.createElement("ul");
-      list.className = "list-unstyled";
-
-      live.forEach(function (t) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.id = t.id;
-        a.href = t.href;
-        a.textContent = t.text;
-        var icon = document.createElement("i");
-        icon.className = t.icon;
-        a.appendChild(icon);
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-
-      wrap.appendChild(list);
-      bookExtra.parentNode.insertBefore(wrap, bookExtra);
-    });
-  });
-</script><!-- Footer attribution --><div class="bookdown-attribution">
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-
 <script>
 // A pasted query can arrive before bookdown's focus-triggered index fetch ends.
 // Keep that first query pending until the index is ready.
@@ -792,11 +705,11 @@ floor column is a placeholder rather than a measurement.</p>
 <div class="next"><a href="comparison.html"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></div>
 </div>
 <!-- verified-downloads:start -->
-<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/results.pdf">This chapter (PDF)</a></p></nav>
+
 <!-- verified-downloads:end -->
 </main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
-    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav">
+<nav aria-label="On this page" data-toggle="toc" id="toc"><h2>On this page</h2>
+<ul class="nav navbar-nav">
 <li><a class="nav-link" href="#results"><span class="header-section-number">10</span> Benchmark results</a></li>
 <li><a class="nav-link" href="#results-question"><span class="header-section-number">10.1</span> What this chapter answers</a></li>
 <li><a class="nav-link" href="#results-setup"><span class="header-section-number">10.2</span> Setup</a></li>
@@ -809,29 +722,23 @@ floor column is a placeholder rather than a measurement.</p>
 <li><a class="nav-link" href="#results-reproduce"><span class="header-section-number">10.9</span> Reproduce this</a></li>
 <li><a class="nav-link" href="#results-reading"><span class="header-section-number">10.10</span> Further reading</a></li>
 </ul>
-
-      <div class="book-extra">
-        <ul class="list-unstyled">
-<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/10-benchmark-results.Rmd">View source <i class="fab fa-github"></i></a></li>
-          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/10-benchmark-results.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
-        </ul>
+<div class="book-extra">
+<ul class="list-unstyled">
+<li><a href="https://github.com/r-heller/folding-in-r/blob/main/10-benchmark-results.Rmd" id="book-source">View source <i class="fab fa-github"></i></a></li>
+<li><a href="https://github.com/r-heller/folding-in-r/edit/main/10-benchmark-results.Rmd" id="book-edit">Edit this page <i class="fab fa-github"></i></a></li>
+</ul>
 </div>
-    </nav>
+</nav>
 </div>
-
 </div>
 </div> <!-- .container -->
-
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
-  </div>
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
-  </div>
-
+<div class="col-12 col-md-6 mt-3">
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+</div>
+<div class="col-12 col-md-6 mt-3">
+<p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+</div>
 </div></div>
 </footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
   (function () {

@@ -1,32 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="en-GB">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
 <title>Chapter 11 Crease patterns vs. the Swiss roll | Folding in R</title>
-<meta name="author" content="R. Heller">
-<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim...">
-<meta name="generator" content="bookdown 0.47 with bs4_book()">
-<meta property="og:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
-<meta property="og:type" content="book">
-<meta property="og:url" content="https://r-heller.github.io/folding-in-r/comparison.html">
-<meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim...">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
-<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim...">
-<meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
-<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet">
-<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
-<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet">
-<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/font-awesome.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- CSS --><style type="text/css">
+<meta content="R. Heller" name="author"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim..." name="description"/>
+<meta content="bookdown 0.47 with bs4_book()" name="generator"/>
+<meta content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R" property="og:title"/>
+<meta content="book" property="og:type"/>
+<meta content="https://r-heller.github.io/folding-in-r/comparison.html" property="og:url"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" property="og:image"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim..." property="og:description"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R" name="twitter:title"/>
+<meta content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim..." name="twitter:description"/>
+<meta content="https://r-heller.github.io/folding-in-r/images/cover.png" name="twitter:image"/>
+<!-- JS --><script crossorigin="anonymous" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script><script crossorigin="anonymous" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js"></script><script crossorigin="anonymous" src="https://kit.fontawesome.com/6ecbd6c532.js"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet"/>
+<script src="libs/bootstrap-4.6.0/bootstrap.bundle.min.js"></script><link href="libs/Inter-0.4.10/font.css" rel="stylesheet"/>
+<link href="libs/JetBrains_Mono-0.4.10/font.css" rel="stylesheet"/>
+<script src="libs/bs3compat-0.11.0/transition.js"></script><script src="libs/bs3compat-0.11.0/tabs.js"></script><script src="libs/bs3compat-0.11.0/bs3compat.js"></script><link href="libs/bs4_book-1.0.0/bs4_book.css" rel="stylesheet"/>
+<script src="libs/bs4_book-1.0.0/bs4_book.js"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="style/font-awesome.min.css" rel="stylesheet"/>
+<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -52,29 +53,36 @@
       margin-left: 2em;
     }
   </style>
-<link rel="stylesheet" href="style/style.css">
-</head>
+<link href="style/style.css" rel="stylesheet"/>
+<style id="unified-book-download-style">
+.book-downloads--unified {display:flex!important;flex-wrap:wrap;gap:12px 24px;margin:16px 0 24px!important;padding:14px 16px!important;border:1px solid #a8adb4;border-radius:8px;background:transparent;color:inherit;font-family:system-ui,sans-serif;font-size:14px;line-height:1.4;box-sizing:border-box;max-width:100%;}
+.book-downloads--unified .book-download-group {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.book-downloads--unified .book-download-label {font-weight:600;margin-right:4px;}
+.book-downloads--unified a {display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid currentColor;border-radius:5px;text-decoration:none!important;font-weight:600;color:inherit;}
+.book-downloads--unified a:hover {background:rgba(127,127,127,.14);}
+.book-downloads--unified a:focus-visible {outline:3px solid #2684d9;outline-offset:3px;}
+.book-downloads--unified svg {height:20px;width:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.book-downloads:not(.book-downloads--unified),.book-download-footer,.sidebar-downloads {display:none!important;}
+@media(max-width:500px){.book-downloads--unified{gap:12px;padding:12px!important;}.book-downloads--unified .book-download-group{width:100%;}.book-downloads--unified .book-download-label{min-width:92px;}}
+@media print{.book-downloads--unified{display:none!important;}}
+</style></head>
 <body data-spy="scroll" data-target="#toc">
-
 <div class="container-fluid">
 <div class="row">
-  <header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
-
-    <div class="d-flex align-items-start justify-content-between">
-      <h1>
-        <a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
+<header class="col-sm-12 col-lg-3 sidebar sidebar-book"><a class="sr-only sr-only-focusable" href="#content">Skip to main content</a>
+<div class="d-flex align-items-start justify-content-between">
+<h1>
+<a href="index.html" title="Origami, Manifolds, and Dimension Reduction">Folding in R</a>:
         <small class="text-muted">Origami, Manifolds, and Dimension Reduction</small>
-      </h1>
-      <button class="btn btn-outline-primary d-lg-none ml-2 mt-1" type="button" data-toggle="collapse" data-target="#main-nav" aria-expanded="true" aria-controls="main-nav"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
-    </div>
-
-    <div id="main-nav" class="collapse-lg">
-      <form role="search">
-        <input id="search" class="form-control" type="search" placeholder="Search" aria-label="Search">
+</h1>
+<button aria-controls="main-nav" aria-expanded="true" class="btn btn-outline-primary d-lg-none ml-2 mt-1" data-target="#main-nav" data-toggle="collapse" type="button"><i class="fas fa-bars"></i><span class="sr-only">Show table of contents</span></button>
+</div>
+<div class="collapse-lg" id="main-nav">
+<form role="search">
+<input aria-label="Search" class="form-control" id="search" placeholder="Search" type="search"/>
 </form>
-
-      <nav aria-label="Table of contents"><h2>Table of contents</h2>
-        <ul class="book-toc list-unstyled">
+<nav aria-label="Table of contents"><h2>Table of contents</h2>
+<ul class="book-toc list-unstyled">
 <li><a class="" href="index.html">Preface</a></li>
 <li><a class="" href="impressum.html">Impressum</a></li>
 <li><a class="" href="acknowledgments.html">Acknowledgments</a></li>
@@ -104,25 +112,24 @@
 <li><a class="" href="citing.html">Citing this book</a></li>
 <li><a class="" href="references.html">References</a></li>
 </ul>
-
-        <div class="book-extra">
-          <p><a id="book-repo" href="https://github.com/r-heller/folding-in-r">View book source <i class="fab fa-github"></i></a></p>
-        </div>
-      </nav>
+<div class="book-extra">
+<p><a href="https://github.com/r-heller/folding-in-r" id="book-repo">View book source <i class="fab fa-github"></i></a></p>
 </div>
-  </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="comparison" class="section level1" number="11">
+</nav>
+</div>
+</header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div class="section level1" id="comparison" number="11">
 <h1>
-<span class="header-section-number">11</span> Crease patterns vs. the Swiss roll<a class="anchor" aria-label="anchor" href="#comparison"><i class="fas fa-link"></i></a>
-</h1>
+<span class="header-section-number">11</span> Crease patterns vs. the Swiss roll<a aria-label="anchor" class="anchor" href="#comparison"><i class="fas fa-link"></i></a>
+</h1><nav aria-label="Book and chapter downloads" class="book-downloads book-downloads--unified"><div class="book-download-group"><span class="book-download-label">Entire book</span><a aria-label="Download entire book as PDF" download="" href="folding-in-r.pdf" title="Download entire book as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download entire book as EPUB" download="" href="folding-in-r.epub" title="Download entire book as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div><div class="book-download-group"><span class="book-download-label">This chapter</span><a aria-label="Download this chapter as PDF" download="" href="downloads/chapters/comparison.pdf" title="Download this chapter as PDF"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M14 2H5v20h14V7z"></path><path d="M14 2v6h5M8 13h8M8 17h6"></path></svg><span>PDF</span></a><a aria-label="Download this chapter as EPUB" download="" href="downloads/chapters/comparison.epub" title="Download this chapter as EPUB"><svg aria-hidden="true" focusable="false" viewbox="0 0 24 24"><path d="M3 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3zM21 4h-5a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h5z"></path></svg><span>EPUB</span></a></div></nav>
 <!-- page-provenance:start -->
 <div class="page-provenance">
 <p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07</em></p>
 </div>
 <!-- page-provenance:end -->
 <p><em>Does the new benchmark actually add anything?</em></p>
-<div id="comp-question" class="section level2" number="11.1">
+<div class="section level2" id="comp-question" number="11.1">
 <h2>
-<span class="header-section-number">11.1</span> What this chapter answers<a class="anchor" aria-label="anchor" href="#comp-question"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.1</span> What this chapter answers<a aria-label="anchor" class="anchor" href="#comp-question"><i class="fas fa-link"></i></a>
 </h2>
 <p>Yes — and not the thing this book set out to claim.</p>
 <p>The claim under test was that a crease pattern is a <em>harder</em> benchmark than the
@@ -139,9 +146,9 @@ at every point of it. The contribution is the answer key and the axis, not the
 difficulty — which is why Chapters <a href="benchmarks.html#benchmarks">8</a> and <a href="evaluation.html#evaluation">9</a> are
 where it pays, and this chapter is where it does not.</p>
 </div>
-<div id="comp-setup" class="section level2" number="11.2">
+<div class="section level2" id="comp-setup" number="11.2">
 <h2>
-<span class="header-section-number">11.2</span> Setup<a class="anchor" aria-label="anchor" href="#comp-setup"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.2</span> Setup<a aria-label="anchor" class="anchor" href="#comp-setup"><i class="fas fa-link"></i></a>
 </h2>
 <div class="sourceCode" id="cb79"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">classic</span> <span class="op">&lt;-</span> <span class="fu">read_run</span><span class="op">(</span><span class="st">"data/processed/classic-grid.rds"</span>,   <span class="st">"d71fb3ba0ad5de68"</span><span class="op">)</span></span>
@@ -155,13 +162,13 @@ controlled arm and the crease-count arm of the experiment that decided this
 chapter’s claim, and <code>scripts/experiment-e1.R</code> produced both before it was
 drafted.</p>
 </div>
-<div id="comp-background" class="section level2" number="11.3">
+<div class="section level2" id="comp-background" number="11.3">
 <h2>
-<span class="header-section-number">11.3</span> Background<a class="anchor" aria-label="anchor" href="#comp-background"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.3</span> Background<a aria-label="anchor" class="anchor" href="#comp-background"><i class="fas fa-link"></i></a>
 </h2>
-<div id="the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped" class="section level3" number="11.3.1">
+<div class="section level3" id="the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped" number="11.3.1">
 <h3>
-<span class="header-section-number">11.3.1</span> The Swiss roll has an exact chart, and it is usually not the one shipped<a class="anchor" aria-label="anchor" href="#the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.3.1</span> The Swiss roll has an exact chart, and it is usually not the one shipped<a aria-label="anchor" class="anchor" href="#the-swiss-roll-has-an-exact-chart-and-it-is-usually-not-the-one-shipped"><i class="fas fa-link"></i></a>
 </h3>
 <p>A Swiss roll is a rectangle of paper wound onto a spiral. It arrived with Isomap
 <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span>, appeared the same year in the LLE paper beside the
@@ -211,15 +218,15 @@ appears at 0.258 — smaller, and not zero.</p>
 <p>Every Swiss roll in this book is scored against arc length. Figure
 <a href="comparison.html#fig:comp-chart">11.1</a> is why.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:comp-chart"></span>
-<img src="11-versus-swiss-roll_files/figure-html/comp-chart-1.png" alt="A line chart with position by turning angle on the horizontal axis and position by arc length on the vertical axis, both scaled to the unit interval. A straight grey diagonal marks equality. A solid dark curve for the Archimedean spiral bows well below the diagonal, farthest from it around the middle of the range. A dashed lighter curve for the Euler spiral bows above the diagonal by a much smaller amount. Both curves meet the diagonal only at the two ends." width="90%"><p class="caption">
+<span id="fig:comp-chart" style="display:block;"></span>
+<img alt="A line chart with position by turning angle on the horizontal axis and position by arc length on the vertical axis, both scaled to the unit interval. A straight grey diagonal marks equality. A solid dark curve for the Archimedean spiral bows well below the diagonal, farthest from it around the middle of the range. A dashed lighter curve for the Euler spiral bows above the diagonal by a much smaller amount. Both curves meet the diagonal only at the two ends." src="11-versus-swiss-roll_files/figure-html/comp-chart-1.png" width="90%"/><p class="caption">
 Figure 11.1: Position along the spiral measured two ways, on the same sample. The grey diagonal is where the two agree. The Archimedean roll’s customary angle chart departs from arc length across the whole sweep; the Euler roll’s departs far less, because its parameterisation is unit speed.
 </p>
 </div>
 </div>
-<div id="the-severed-sphere-has-no-answer-key-at-all" class="section level3" number="11.3.2">
+<div class="section level3" id="the-severed-sphere-has-no-answer-key-at-all" number="11.3.2">
 <h3>
-<span class="header-section-number">11.3.2</span> The severed sphere has no answer key at all<a class="anchor" aria-label="anchor" href="#the-severed-sphere-has-no-answer-key-at-all"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.3.2</span> The severed sphere has no answer key at all<a aria-label="anchor" class="anchor" href="#the-severed-sphere-has-no-answer-key-at-all"><i class="fas fa-link"></i></a>
 </h3>
 <p>Say it bluntly. A sphere has constant positive Gaussian curvature, the plane has
 none, and curvature is intrinsic — Gauss’s <em>Theorema Egregium</em>. No chart of any
@@ -236,13 +243,13 @@ exactly as it scored the roll. Those numbers exist, they are in the committed
 artefact, and this chapter reports none of them as recovery of a structure.</p>
 </div>
 </div>
-<div id="comp-core" class="section level2" number="11.4">
+<div class="section level2" id="comp-core" number="11.4">
 <h2>
-<span class="header-section-number">11.4</span> Difficulty has two axes, not one<a class="anchor" aria-label="anchor" href="#comp-core"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.4</span> Difficulty has two axes, not one<a aria-label="anchor" class="anchor" href="#comp-core"><i class="fas fa-link"></i></a>
 </h2>
-<div id="the-knob-has-to-move-the-right-thing" class="section level3" number="11.4.1">
+<div class="section level3" id="the-knob-has-to-move-the-right-thing" number="11.4.1">
 <h3>
-<span class="header-section-number">11.4.1</span> The knob has to move the right thing<a class="anchor" aria-label="anchor" href="#the-knob-has-to-move-the-right-thing"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.4.1</span> The knob has to move the right thing<a aria-label="anchor" class="anchor" href="#the-knob-has-to-move-the-right-thing"><i class="fas fa-link"></i></a>
 </h3>
 <p>Both families have a difficulty parameter, and both parameters have to be
 checked, because the obvious version of each does nothing.</p>
@@ -300,8 +307,8 @@ plane captures, the third principal eigenvalue over their sum.</p>
 <span>                y <span class="op">=</span> <span class="st">"ambient non-planarity"</span>, colour <span class="op">=</span> <span class="cn">NULL</span>, shape <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">theme_fold</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:comp-plane"></span>
-<img src="11-versus-swiss-roll_files/figure-html/comp-plane-1.png" alt="A scatter plot with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and ambient non-planarity from zero to about 0.32 on the vertical axis. A connected run of Miura points sweeps along the bottom of the panel and never rises above about 0.06. A connected run of Swiss roll points sits in a narrow horizontal band near 0.09 to 0.13, with the S-curve as a single point beside them, and severed sphere points well above at 0.22 to 0.30. A grey shaded horizontal band separates the Miura run from everything else and contains no points." width="90%"><p class="caption">
+<span id="fig:comp-plane" style="display:block;"></span>
+<img alt="A scatter plot with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and ambient non-planarity from zero to about 0.32 on the vertical axis. A connected run of Miura points sweeps along the bottom of the panel and never rises above about 0.06. A connected run of Swiss roll points sits in a narrow horizontal band near 0.09 to 0.13, with the S-curve as a single point beside them, and severed sphere points well above at 0.22 to 0.30. A grey shaded horizontal band separates the Miura run from everything else and contains no points." src="11-versus-swiss-roll_files/figure-html/comp-plane-1.png" width="90%"/><p class="caption">
 Figure 11.2: The two difficulty axes. Each family sweeps its own parameter; difficulty rises to the right. The shaded band is empty, so over this design there is no setting at which a folded Miura and a classical surface are comparable on both axes at once.
 </p>
 </div>
@@ -338,9 +345,9 @@ axis that is flat until the very end of the range cannot order the settings in
 between, so the comparison is made on <span class="math inline">\(g/s\)</span> and the short-circuit index is
 reported beside it as the check that <span class="math inline">\(g/s\)</span> is not measuring the sampler.</p>
 </div>
-<div id="the-fix-and-what-it-costs" class="section level3" number="11.4.2">
+<div class="section level3" id="the-fix-and-what-it-costs" number="11.4.2">
 <h3>
-<span class="header-section-number">11.4.2</span> The fix, and what it costs<a class="anchor" aria-label="anchor" href="#the-fix-and-what-it-costs"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.4.2</span> The fix, and what it costs<a aria-label="anchor" class="anchor" href="#the-fix-and-what-it-costs"><i class="fas fa-link"></i></a>
 </h3>
 <p><span class="math inline">\(\theta\)</span> is not the only knob the generator has. Cell count dominates
 non-planarity: a small Miura at a wide opening angle and a deep fold reaches
@@ -361,9 +368,9 @@ and
 and neither monotonically. Error is flat in crease count at matched separation.
 Whatever makes these patterns hard, it is not that they have creases.</p>
 </div>
-<div id="one-geometry-against-a-family" class="section level3" number="11.4.3">
+<div class="section level3" id="one-geometry-against-a-family" number="11.4.3">
 <h3>
-<span class="header-section-number">11.4.3</span> One geometry against a family<a class="anchor" aria-label="anchor" href="#one-geometry-against-a-family"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.4.3</span> One geometry against a family<a aria-label="anchor" class="anchor" href="#one-geometry-against-a-family"><i class="fas fa-link"></i></a>
 </h3>
 <p>This is the structural difference, and it survives everything the measurements
 below do to the rest of the chapter. A Swiss roll’s turn count changes how
@@ -384,13 +391,13 @@ question into a number at every setting, and the number is what the rest of this
 chapter argues over.</p>
 </div>
 </div>
-<div id="comp-results" class="section level2" number="11.5">
+<div class="section level2" id="comp-results" number="11.5">
 <h2>
-<span class="header-section-number">11.5</span> Results<a class="anchor" aria-label="anchor" href="#comp-results"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.5</span> Results<a aria-label="anchor" class="anchor" href="#comp-results"><i class="fas fa-link"></i></a>
 </h2>
-<div id="the-head-to-head-matched-on-separation-alone" class="section level3" number="11.5.1">
+<div class="section level3" id="the-head-to-head-matched-on-separation-alone" number="11.5.1">
 <h3>
-<span class="header-section-number">11.5.1</span> The head-to-head, matched on separation alone<a class="anchor" aria-label="anchor" href="#the-head-to-head-matched-on-separation-alone"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.5.1</span> The head-to-head, matched on separation alone<a aria-label="anchor" class="anchor" href="#the-head-to-head-matched-on-separation-alone"><i class="fas fa-link"></i></a>
 </h3>
 <p>Match each Swiss roll to the <span class="math inline">\(\theta\)</span> whose measured <span class="math inline">\(g/s\)</span> is nearest, keep the
 ones landing inside the crease family’s range, and score both sides from the
@@ -423,8 +430,8 @@ committed grids at the same eight methods, the same twenty seeds and no noise.</
 <p>That leaves 3 matched pairs, agreeing to within
 6.8% in <span class="math inline">\(g/s\)</span>.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:comp-ranking"></span>
-<img src="11-versus-swiss-roll_files/figure-html/comp-ranking-1.png" alt="A dumbbell chart. Eight methods run down the vertical axis, ordered by Swiss-roll error with Isomap at the top and PCA and classical MDS at the bottom. Each method carries two markers joined by a grey segment, one for the Swiss roll and one for the matched Miura. Every Miura marker lies to the left of its Swiss-roll marker, that is at lower error. For Isomap the two nearly coincide near zero; for PCA and MDS the Miura marker sits far to the left while the Swiss-roll marker is at the extreme right." width="90%"><p class="caption">
+<span id="fig:comp-ranking" style="display:block;"></span>
+<img alt="A dumbbell chart. Eight methods run down the vertical axis, ordered by Swiss-roll error with Isomap at the top and PCA and classical MDS at the bottom. Each method carries two markers joined by a grey segment, one for the Swiss roll and one for the matched Miura. Every Miura marker lies to the left of its Swiss-roll marker, that is at lower error. For Isomap the two nearly coincide near zero; for PCA and MDS the Miura marker sits far to the left while the Swiss-roll marker is at the extreme right." src="11-versus-swiss-roll_files/figure-html/comp-ranking-1.png" width="90%"/><p class="caption">
 Figure 11.3: Mean reconstruction error of eight methods on a Swiss roll and on a Miura matched to it in gap-to-spacing ratio. Methods are ordered by their Swiss-roll score, and the connecting segments make the reordering visible: the two linear methods move from joint last to near the front.
 </p>
 </div>
@@ -447,9 +454,9 @@ on the crease side, which is the first thing to notice: at matched separation th
 folded sheet is the easier object for all eight. What changes the order is that
 the linear methods gain far more from the change than the geodesic one does.</p>
 </div>
-<div id="why-that-answer-is-the-wrong-one" class="section level3" number="11.5.2">
+<div class="section level3" id="why-that-answer-is-the-wrong-one" number="11.5.2">
 <h3>
-<span class="header-section-number">11.5.2</span> Why that answer is the wrong one<a class="anchor" aria-label="anchor" href="#why-that-answer-is-the-wrong-one"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.5.2</span> Why that answer is the wrong one<a aria-label="anchor" class="anchor" href="#why-that-answer-is-the-wrong-one"><i class="fas fa-link"></i></a>
 </h3>
 <p>Because the match was on one axis and there are two. PCA does well on a folded
 Miura for a reason that has nothing to do with creases: even at the largest
@@ -459,9 +466,9 @@ separates PCA from Isomap 30 times better than the crease
 pattern does — a number produced almost entirely by the axis the match failed to
 control.</p>
 </div>
-<div id="the-controlled-comparison" class="section level3" number="11.5.3">
+<div class="section level3" id="the-controlled-comparison" number="11.5.3">
 <h3>
-<span class="header-section-number">11.5.3</span> The controlled comparison<a class="anchor" aria-label="anchor" href="#the-controlled-comparison"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.5.3</span> The controlled comparison<a aria-label="anchor" class="anchor" href="#the-controlled-comparison"><i class="fas fa-link"></i></a>
 </h3>
 <p><code>e1-controlled.rds</code> sweeps <span class="math inline">\((n_x, \alpha, \theta)\)</span> against turns, and has an
 overlap region in which both axes lie inside the joint range of the two families.</p>
@@ -528,8 +535,8 @@ convention cannot, and Chapter <a href="evaluation.html#evaluation">9</a> asks t
 between the two for a straight method comparison should choose the roll, and this
 chapter is where the book says so.</p>
 <div class="figure" style="text-align: center">
-<span style="display:block;" id="fig:comp-spread"></span>
-<img src="11-versus-swiss-roll_files/figure-html/comp-spread-1.png" alt="A line chart with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and the mean absolute difference between PCA and Isomap reconstruction error on the vertical axis from zero to about one. The Swiss roll curve climbs from about 0.4 at the left to a peak near 0.9 in the middle, then drops almost vertically to zero and stays there across the whole right-hand half. The Miura curve is nearly flat just above zero across its entire range, never exceeding about 0.05." width="90%"><p class="caption">
+<span id="fig:comp-spread" style="display:block;"></span>
+<img alt="A line chart with the gap-to-spacing ratio on a reversed logarithmic horizontal axis, so difficulty increases to the right, and the mean absolute difference between PCA and Isomap reconstruction error on the vertical axis from zero to about one. The Swiss roll curve climbs from about 0.4 at the left to a peak near 0.9 in the middle, then drops almost vertically to zero and stays there across the whole right-hand half. The Miura curve is nearly flat just above zero across its entire range, never exceeding about 0.05." src="11-versus-swiss-roll_files/figure-html/comp-spread-1.png" width="90%"/><p class="caption">
 Figure 11.4: How far apart each benchmark holds PCA and Isomap, across its whole sweep and at every seed the grids carry. Difficulty rises to the right. The Miura curve stays near the floor throughout. The Swiss roll separates the two methods widely over a middle window and then stops separating them at all, because past that window Isomap short-circuits and fails as completely as PCA.
 </p>
 </div>
@@ -545,9 +552,9 @@ benchmark, on its best window rather than its worst, but the number is a
 statement about Swiss rolls there and not about Swiss rolls generally.</p>
 </div>
 </div>
-<div id="comp-diagnostics" class="section level2" number="11.6">
+<div class="section level2" id="comp-diagnostics" number="11.6">
 <h2>
-<span class="header-section-number">11.6</span> Diagnostics<a class="anchor" aria-label="anchor" href="#comp-diagnostics"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.6</span> Diagnostics<a aria-label="anchor" class="anchor" href="#comp-diagnostics"><i class="fas fa-link"></i></a>
 </h2>
 <p>One objection deserves an answer before a reader raises it, and it is specific
 enough that a footnote would not do.</p>
@@ -591,9 +598,9 @@ settings rather than over rows, and why the <span class="math inline">\(p\)</spa
 within a setting are not independent draws of the quantity being estimated, and
 treating them as such would report an interval several times too narrow.</p>
 </div>
-<div id="comp-limits" class="section level2" number="11.7">
+<div class="section level2" id="comp-limits" number="11.7">
 <h2>
-<span class="header-section-number">11.7</span> Where it fails<a class="anchor" aria-label="anchor" href="#comp-limits"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.7</span> Where it fails<a aria-label="anchor" class="anchor" href="#comp-limits"><i class="fas fa-link"></i></a>
 </h2>
 <p><strong>The overlap is a corner.</strong> It holds
 9 crease settings,
@@ -618,9 +625,9 @@ picture in the subject and it belongs in a first lecture, and a pipeline that
 fails on it is broken. What it cannot be is the evidence, because one fixed
 geometry has nowhere to put a curve.</p>
 </div>
-<div id="comp-reproduce" class="section level2" number="11.8">
+<div class="section level2" id="comp-reproduce" number="11.8">
 <h2>
-<span class="header-section-number">11.8</span> Reproduce this<a class="anchor" aria-label="anchor" href="#comp-reproduce"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.8</span> Reproduce this<a aria-label="anchor" class="anchor" href="#comp-reproduce"><i class="fas fa-link"></i></a>
 </h2>
 <p><code>scripts/run-classic-grid.R</code> writes <code>classic-grid.rds</code>, <code>scripts/experiment-e1.R</code>
 the three E1 artefacts, <code>scripts/run-benchmark-grid.R</code> the crease grid; all are
@@ -628,9 +635,9 @@ committed with provenance. <code>tests/testthat/test-baselines.R</code> asserts 
 arc-length closed form, the Fresnel error, the sphere’s stretch factor and the
 refusal printed above.</p>
 </div>
-<div id="comp-reading" class="section level2" number="11.9">
+<div class="section level2" id="comp-reading" number="11.9">
 <h2>
-<span class="header-section-number">11.9</span> Further reading<a class="anchor" aria-label="anchor" href="#comp-reading"><i class="fas fa-link"></i></a>
+<span class="header-section-number">11.9</span> Further reading<a aria-label="anchor" class="anchor" href="#comp-reading"><i class="fas fa-link"></i></a>
 </h2>
 <p>The Swiss roll and the S-curve enter with Isomap <span class="citation">(<a href="references.html#ref-tenenbaum2000isomap">6</a>)</span> and LLE
 <span class="citation">(<a href="references.html#ref-roweis2000lle">30</a>)</span>; Lee and Verleysen <span class="citation">(<a href="references.html#ref-lee2007nonlinear">12</a>)</span> is the textbook treatment
@@ -648,22 +655,18 @@ are necessary but not sufficient — a caution that applies with full force to t
 five-fold separation reported above. The dispute about reading two-dimensional
 embeddings at all <span class="citation">(<a href="references.html#ref-chari2023specious">1</a>,<a href="references.html#ref-lause2024elephant">2</a>)</span> is the reason this
 book measures rather than argues.</p>
-
 </div>
 </div>
-
-
-
 <div class="chapter-nav">
 <div class="prev"><a href="results.html"><span class="header-section-number">10</span> Benchmark results</a></div>
 <div class="next"><a href="application.html"><span class="header-section-number">12</span> From benchmark to decision</a></div>
 </div>
 <!-- verified-downloads:start -->
-<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/comparison.pdf">This chapter (PDF)</a></p></nav>
+
 <!-- verified-downloads:end -->
 </main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
-    <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
-      <ul class="nav navbar-nav">
+<nav aria-label="On this page" data-toggle="toc" id="toc"><h2>On this page</h2>
+<ul class="nav navbar-nav">
 <li><a class="nav-link" href="#comparison"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></li>
 <li><a class="nav-link" href="#comp-question"><span class="header-section-number">11.1</span> What this chapter answers</a></li>
 <li><a class="nav-link" href="#comp-setup"><span class="header-section-number">11.2</span> Setup</a></li>
@@ -692,23 +695,21 @@ book measures rather than argues.</p>
 <li><a class="nav-link" href="#comp-reproduce"><span class="header-section-number">11.8</span> Reproduce this</a></li>
 <li><a class="nav-link" href="#comp-reading"><span class="header-section-number">11.9</span> Further reading</a></li>
 </ul>
-
-      <div class="book-extra">
-        <ul class="list-unstyled">
-<li><a id="book-source" href="https://github.com/r-heller/folding-in-r/blob/main/11-versus-swiss-roll.Rmd">View source <i class="fab fa-github"></i></a></li>
-          <li><a id="book-edit" href="https://github.com/r-heller/folding-in-r/edit/main/11-versus-swiss-roll.Rmd">Edit this page <i class="fab fa-github"></i></a></li>
-        </ul>
+<div class="book-extra">
+<ul class="list-unstyled">
+<li><a href="https://github.com/r-heller/folding-in-r/blob/main/11-versus-swiss-roll.Rmd" id="book-source">View source <i class="fab fa-github"></i></a></li>
+<li><a href="https://github.com/r-heller/folding-in-r/edit/main/11-versus-swiss-roll.Rmd" id="book-edit">Edit this page <i class="fab fa-github"></i></a></li>
+</ul>
 </div>
-    </nav>
+</nav>
 </div>
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
 <div class="sticky-item">
-  <button type="button" id="mode-switch" class="btn-circle-mode" aria-label="Toggle dark mode">
-    <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
-  </button>
+<button aria-label="Toggle dark mode" class="btn-circle-mode" id="mode-switch" type="button">
+<i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i>
+</button>
 </div>
-
 <script>
   (function () {
     var stored = localStorage.getItem('themeMode');
@@ -762,101 +763,9 @@ book measures rather than argues.</p>
       li.appendChild(t);
     });
   });
-</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // There are TWO .book-extra blocks on each page:
-    //  - sidebar one: contains #book-repo ("View book source")
-    //  - right-nav one: contains #book-source + #book-edit
-    // We want the latter.
-    var bookSource = document.getElementById("book-source");
-    var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
-    if (!bookExtra || document.querySelector(".book-downloads")) return;
-
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
-    // Every link in this block is probed before it is offered.
-    //
-    // The full-book link used to be written unconditionally while the chapter
-    // link below it was probed -- and that asymmetry was the bug. The render
-    // workflow tolerated a failed EPUB or PDF render with continue-on-error,
-    // so a build could deploy green with a "Downloads" box pointing at a PDF
-    // that was never produced. The workflow no longer tolerates that (it
-    // asserts both artefacts exist and clear a size floor), but a link that
-    // checks its own target is cheap, and the two mechanisms fail
-    // independently: a deploy that partially clears gh-pages would leave the
-    // assertion satisfied and the link dead.
-    //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
-
-    var TARGETS = [
-      { href: "folding-in-r.pdf",
-        id:   "book-download-full",
-        text: "Entire book (PDF) ",
-        icon: "fa-solid fa-book",
-        skip: false },
-      { href: "folding-in-r.epub",
-        id: "book-download-epub",
-        text: "Entire book (EPUB) ",
-        icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
-    ];
-
-    var exists = function (t) {
-      if (t.skip) return Promise.resolve(false);
-      return fetch(t.href, { method: "HEAD" })
-        .then(function (r) { return r.ok; })
-        .catch(function () { return false; });
-    };
-
-    Promise.all(TARGETS.map(exists)).then(function (found) {
-      // Resolved together rather than appended as each probe lands, so the
-      // order is the order of TARGETS and not the order of the network.
-      var live = TARGETS.filter(function (t, i) { return found[i]; });
-      if (!live.length) return;              // nothing to offer, no empty box
-      if (document.querySelector(".book-downloads")) return;
-
-      var wrap = document.createElement("div");
-      wrap.className = "book-downloads";
-
-      var heading = document.createElement("h6");
-      heading.className = "book-downloads-heading";
-      heading.textContent = "Downloads";
-      wrap.appendChild(heading);
-
-      var list = document.createElement("ul");
-      list.className = "list-unstyled";
-
-      live.forEach(function (t) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.id = t.id;
-        a.href = t.href;
-        a.textContent = t.text;
-        var icon = document.createElement("i");
-        icon.className = t.icon;
-        a.appendChild(icon);
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-
-      wrap.appendChild(list);
-      bookExtra.parentNode.insertBefore(wrap, bookExtra);
-    });
-  });
-</script><!-- Footer attribution --><div class="bookdown-attribution">
+</script><!-- Right-panel "Downloads" section, injected above View source / Edit this page --><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-
 <script>
 // A pasted query can arrive before bookdown's focus-triggered index fetch ends.
 // Keep that first query pending until the index is ready.
@@ -882,20 +791,15 @@ book measures rather than argues.</p>
   };
 })();
 </script>
-
 </div>
- <!-- .container -->
-
+<!-- .container -->
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
-  </div>
-
-  <div class="col-12 col-md-6 mt-3">
-    <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
-  </div>
-
+<div class="col-12 col-md-6 mt-3">
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+</div>
+<div class="col-12 col-md-6 mt-3">
+<p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>
+</div>
 </div></div>
 </footer><!-- dynamically load mathjax for compatibility with self-contained --><script>
   (function () {
