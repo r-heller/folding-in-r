@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 11 Crease patterns vs. the Swiss roll | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim under test was that a crease pattern is a harder...">
+<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/comparison.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim under test was that a crease pattern is a harder...">
+<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 11 Crease patterns vs. the Swiss roll | Folding in R">
-<meta name="twitter:description" content="Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim under test was that a crease pattern is a harder...">
+<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  Does the new benchmark actually add anything?  11.1 What this chapter answers Yes — and not the thing this book set out to claim. The claim...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -114,6 +114,11 @@
 <h1>
 <span class="header-section-number">11</span> Crease patterns vs. the Swiss roll<a class="anchor" aria-label="anchor" href="#comparison"><i class="fas fa-link"></i></a>
 </h1>
+<!-- page-provenance:start -->
+<div class="page-provenance">
+<p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07</em></p>
+</div>
+<!-- page-provenance:end -->
 <p><em>Does the new benchmark actually add anything?</em></p>
 <div id="comp-question" class="section level2" number="11.1">
 <h2>
@@ -652,7 +657,11 @@ book measures rather than argues.</p>
 <div class="chapter-nav">
 <div class="prev"><a href="results.html"><span class="header-section-number">10</span> Benchmark results</a></div>
 <div class="next"><a href="application.html"><span class="header-section-number">12</span> From benchmark to decision</a></div>
-</div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
+</div>
+<!-- verified-downloads:start -->
+<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/comparison.pdf">This chapter (PDF)</a></p></nav>
+<!-- verified-downloads:end -->
+</main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
       <ul class="nav navbar-nav">
 <li><a class="nav-link" href="#comparison"><span class="header-section-number">11</span> Crease patterns vs. the Swiss roll</a></li>
@@ -790,6 +799,11 @@ book measures rather than argues.</p>
         text: "Entire book (PDF) ",
         icon: "fa-solid fa-book",
         skip: false },
+      { href: "folding-in-r.epub",
+        id: "book-download-epub",
+        text: "Entire book (EPUB) ",
+        icon: "fa-solid fa-book-open",
+        skip: false },
       { href: "pdf-chapters/" + chapterPdf,
         id:   "book-download-chapter",
         text: "This chapter (PDF) ",
@@ -842,9 +856,32 @@ book measures rather than argues.</p>
 </script><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-  
 
-  
+<script>
+// A pasted query can arrive before bookdown's focus-triggered index fetch ends.
+// Keep that first query pending until the index is ready.
+(function () {
+  var search = window.searchFuse;
+  if (typeof search !== 'function') return;
+  var ready;
+  window.searchFuse = async function (query, callback) {
+    if (!window.fuse) {
+      if (!ready) ready = fetch('search.json').then(function (response) {
+        if (!response.ok) throw new Error('Search index unavailable');
+        return response.json();
+      }).then(function (data) {
+        window.fuse = new Fuse(data, {
+          keys: ['heading', 'text', 'code'], ignoreLocation: true,
+          ignoreFieldNorm: true, threshold: 0.1, includeMatches: true,
+          includeScore: true
+        });
+      }).catch(function () { ready = undefined; });
+      await ready;
+    }
+    return search(query, callback);
+  };
+})();
+</script>
 
 </div>
  <!-- .container -->
@@ -852,7 +889,7 @@ book measures rather than argues.</p>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-08.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

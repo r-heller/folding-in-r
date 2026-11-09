@@ -214,6 +214,11 @@ the table of contents to find the page you are looking for.</p>
         text: "Entire book (PDF) ",
         icon: "fa-solid fa-book",
         skip: false },
+      { href: "folding-in-r.epub",
+        id: "book-download-epub",
+        text: "Entire book (EPUB) ",
+        icon: "fa-solid fa-book-open",
+        skip: false },
       { href: "pdf-chapters/" + chapterPdf,
         id:   "book-download-chapter",
         text: "This chapter (PDF) ",
@@ -266,10 +271,39 @@ the table of contents to find the page you are looking for.</p>
 </script><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-  <div class="chapter-nav">
+
+<script>
+// A pasted query can arrive before bookdown's focus-triggered index fetch ends.
+// Keep that first query pending until the index is ready.
+(function () {
+  var search = window.searchFuse;
+  if (typeof search !== 'function') return;
+  var ready;
+  window.searchFuse = async function (query, callback) {
+    if (!window.fuse) {
+      if (!ready) ready = fetch('search.json').then(function (response) {
+        if (!response.ok) throw new Error('Search index unavailable');
+        return response.json();
+      }).then(function (data) {
+        window.fuse = new Fuse(data, {
+          keys: ['heading', 'text', 'code'], ignoreLocation: true,
+          ignoreFieldNorm: true, threshold: 0.1, includeMatches: true,
+          includeScore: true
+        });
+      }).catch(function () { ready = undefined; });
+      await ready;
+    }
+    return search(query, callback);
+  };
+})();
+</script><div class="chapter-nav">
 <div class="empty"></div>
 <div class="empty"></div>
-</div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
+</div>
+<!-- verified-downloads:start -->
+<p class="page-provenance"><small>R. Heller · Date: 2026-07-24 · Last changed: 2026-11-09</small></p><nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a></p></nav>
+<!-- verified-downloads:end -->
+</main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     </div>
 
 </div>
@@ -278,7 +312,7 @@ the table of contents to find the page you are looking for.</p>
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-08.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

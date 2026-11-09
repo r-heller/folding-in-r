@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Chapter 4 Linear projections and where they break | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="When is a projection just a shadow?  4.1 What this chapter answers A linear method asks one question: which flat slice of the ambient space keeps most of the cloud? On a folded sheet the answer is...">
+<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  When is a projection just a shadow?  4.1 What this chapter answers A linear method asks one question: which flat slice of the ambient space...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Chapter 4 Linear projections and where they break | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/linear.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="When is a projection just a shadow?  4.1 What this chapter answers A linear method asks one question: which flat slice of the ambient space keeps most of the cloud? On a folded sheet the answer is...">
+<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  When is a projection just a shadow?  4.1 What this chapter answers A linear method asks one question: which flat slice of the ambient space...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chapter 4 Linear projections and where they break | Folding in R">
-<meta name="twitter:description" content="When is a projection just a shadow?  4.1 What this chapter answers A linear method asks one question: which flat slice of the ambient space keeps most of the cloud? On a folded sheet the answer is...">
+<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07  When is a projection just a shadow?  4.1 What this chapter answers A linear method asks one question: which flat slice of the ambient space...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -114,6 +114,11 @@
 <h1>
 <span class="header-section-number">4</span> Linear projections and where they break<a class="anchor" aria-label="anchor" href="#linear"><i class="fas fa-link"></i></a>
 </h1>
+<!-- page-provenance:start -->
+<div class="page-provenance">
+<p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-09-07</em></p>
+</div>
+<!-- page-provenance:end -->
 <p><em>When is a projection just a shadow?</em></p>
 <div id="lin-question" class="section level2" number="4.1">
 <h2>
@@ -251,7 +256,7 @@ whole benchmark is about.</p>
 <span><span class="va">chart_aspect</span> <span class="op">&lt;-</span> <span class="va">u</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">/</span> <span class="va">u</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>          <span class="co"># of the chart, which folding never touches</span></span></code></pre></div>
 <p>At <span class="math inline">\(\theta = 0\)</span> the sheet lies in a plane, PCA finds that plane, and the recovery
 is exact. On this sample the error is
-3.8e-16 against a floor of 0,
+2.2e-16 against a floor of 0,
 and over the whole clean flat row of the committed grid — 20
 seeds — the worst is
 1.4e-15, with
@@ -323,9 +328,9 @@ whose rank orders agree perfectly.</p>
 <p>The same holds for the routes into PCA itself. At <span class="math inline">\(\theta\)</span> of 0.5,
 <code><a href="https://rdrr.io/r/stats/cmdscale.html">cmdscale()</a></code>, <code><a href="https://rdrr.io/r/stats/princomp.html">princomp()</a></code> and an eigendecomposition of the covariance matrix all
 land on <code><a href="https://rdrr.io/r/stats/prcomp.html">prcomp()</a></code>’s answer at Procrustes distances of
-9.4e-16,
-2.6e-16 and
-1.5e-16. Four names, one computation.
+5.7e-16,
+2.1e-16 and
+2e-16. Four names, one computation.
 The accuracy argument for <code><a href="https://rdrr.io/r/stats/prcomp.html">prcomp()</a></code> has nowhere to show up on data of this
 conditioning.</p>
 <div class="figure" style="text-align: center">
@@ -627,6 +632,11 @@ substitution with a kernel built from geodesic distances. Lee and Verleysen
         text: "Entire book (PDF) ",
         icon: "fa-solid fa-book",
         skip: false },
+      { href: "folding-in-r.epub",
+        id: "book-download-epub",
+        text: "Entire book (EPUB) ",
+        icon: "fa-solid fa-book-open",
+        skip: false },
       { href: "pdf-chapters/" + chapterPdf,
         id:   "book-download-chapter",
         text: "This chapter (PDF) ",
@@ -679,10 +689,39 @@ substitution with a kernel built from geodesic distances. Lee and Verleysen
 </script><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-  <div class="chapter-nav">
+
+<script>
+// A pasted query can arrive before bookdown's focus-triggered index fetch ends.
+// Keep that first query pending until the index is ready.
+(function () {
+  var search = window.searchFuse;
+  if (typeof search !== 'function') return;
+  var ready;
+  window.searchFuse = async function (query, callback) {
+    if (!window.fuse) {
+      if (!ready) ready = fetch('search.json').then(function (response) {
+        if (!response.ok) throw new Error('Search index unavailable');
+        return response.json();
+      }).then(function (data) {
+        window.fuse = new Fuse(data, {
+          keys: ['heading', 'text', 'code'], ignoreLocation: true,
+          ignoreFieldNorm: true, threshold: 0.1, includeMatches: true,
+          includeScore: true
+        });
+      }).catch(function () { ready = undefined; });
+      await ready;
+    }
+    return search(query, callback);
+  };
+})();
+</script><div class="chapter-nav">
 <div class="prev"><a href="generative.html"><span class="header-section-number">3</span> Folding as a generative model</a></div>
 <div class="next"><a href="geodesic.html"><span class="header-section-number">5</span> Geodesic methods</a></div>
-</div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
+</div>
+<!-- verified-downloads:start -->
+<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/linear.pdf">This chapter (PDF)</a></p></nav>
+<!-- verified-downloads:end -->
+</main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
       <ul class="nav navbar-nav">
 <li><a class="nav-link" href="#linear"><span class="header-section-number">4</span> Linear projections and where they break</a></li>
@@ -724,7 +763,7 @@ substitution with a kernel built from geodesic distances. Lee and Verleysen
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-08.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">

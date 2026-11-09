@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Impressum | Folding in R</title>
 <meta name="author" content="R. Heller">
-<meta name="description" content="Folding in R: Origami, Manifolds, and Dimension Reduction R. Heller ORCID: 0000-0001-8006-9742 Source repository: https://github.com/r-heller/folding-in-r Online edition:...">
+<meta name="description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-07-29  Folding in R: Origami, Manifolds, and Dimension Reduction R. Heller ORCID: 0000-0001-8006-9742 Source repository:...">
 <meta name="generator" content="bookdown 0.47 with bs4_book()">
 <meta property="og:title" content="Impressum | Folding in R">
 <meta property="og:type" content="book">
 <meta property="og:url" content="https://r-heller.github.io/folding-in-r/impressum.html">
 <meta property="og:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
-<meta property="og:description" content="Folding in R: Origami, Manifolds, and Dimension Reduction R. Heller ORCID: 0000-0001-8006-9742 Source repository: https://github.com/r-heller/folding-in-r Online edition:...">
+<meta property="og:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-07-29  Folding in R: Origami, Manifolds, and Dimension Reduction R. Heller ORCID: 0000-0001-8006-9742 Source repository:...">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Impressum | Folding in R">
-<meta name="twitter:description" content="Folding in R: Origami, Manifolds, and Dimension Reduction R. Heller ORCID: 0000-0001-8006-9742 Source repository: https://github.com/r-heller/folding-in-r Online edition:...">
+<meta name="twitter:description" content="R. Heller · Date: 2026-07-29 · Last changed: 2026-07-29  Folding in R: Origami, Manifolds, and Dimension Reduction R. Heller ORCID: 0000-0001-8006-9742 Source repository:...">
 <meta name="twitter:image" content="https://r-heller.github.io/folding-in-r/images/cover.png">
 <!-- JS --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://kit.fontawesome.com/6ecbd6c532.js" crossorigin="anonymous"></script><script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="libs/bootstrap-4.6.0/bootstrap.min.css" rel="stylesheet">
@@ -113,6 +113,11 @@
   </header><main class="col-sm-12 col-md-9 col-lg-7" id="content"><div id="impressum" class="section level1 unnumbered">
 <h1>Impressum<a class="anchor" aria-label="anchor" href="#impressum"><i class="fas fa-link"></i></a>
 </h1>
+<!-- page-provenance:start -->
+<div class="page-provenance">
+<p><em>R. Heller · Date: 2026-07-29 · Last changed: 2026-07-29</em></p>
+</div>
+<!-- page-provenance:end -->
 <p><em>Folding in R: Origami, Manifolds, and Dimension Reduction</em></p>
 <p>R. Heller<br>
 ORCID: <a href="https://orcid.org/0000-0001-8006-9742">0000-0001-8006-9742</a></p>
@@ -121,7 +126,7 @@ Online edition: <a href="https://r-heller.github.io/folding-in-r/" class="uri">h
 <p>Prose is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
 Code is licensed under the MIT License; see <code>LICENSE-CODE.md</code> in the repository.</p>
 <p>This is a living document. The version you are reading was rendered on
-2026-11-08.</p>
+2026-11-09.</p>
 
 </div>
 <!-- Dark / light mode toggle (replaces Harrer's emoji with a Font Awesome glyph) -->
@@ -221,6 +226,11 @@ Code is licensed under the MIT License; see <code>LICENSE-CODE.md</code> in the 
         text: "Entire book (PDF) ",
         icon: "fa-solid fa-book",
         skip: false },
+      { href: "folding-in-r.epub",
+        id: "book-download-epub",
+        text: "Entire book (EPUB) ",
+        icon: "fa-solid fa-book-open",
+        skip: false },
       { href: "pdf-chapters/" + chapterPdf,
         id:   "book-download-chapter",
         text: "This chapter (PDF) ",
@@ -273,10 +283,39 @@ Code is licensed under the MIT License; see <code>LICENSE-CODE.md</code> in the 
 </script><!-- Footer attribution --><div class="bookdown-attribution">
   This book was built by the <a href="https://bookdown.org/"><strong>bookdown</strong></a> R package.
 </div>
-  <div class="chapter-nav">
+
+<script>
+// A pasted query can arrive before bookdown's focus-triggered index fetch ends.
+// Keep that first query pending until the index is ready.
+(function () {
+  var search = window.searchFuse;
+  if (typeof search !== 'function') return;
+  var ready;
+  window.searchFuse = async function (query, callback) {
+    if (!window.fuse) {
+      if (!ready) ready = fetch('search.json').then(function (response) {
+        if (!response.ok) throw new Error('Search index unavailable');
+        return response.json();
+      }).then(function (data) {
+        window.fuse = new Fuse(data, {
+          keys: ['heading', 'text', 'code'], ignoreLocation: true,
+          ignoreFieldNorm: true, threshold: 0.1, includeMatches: true,
+          includeScore: true
+        });
+      }).catch(function () { ready = undefined; });
+      await ready;
+    }
+    return search(query, callback);
+  };
+})();
+</script><div class="chapter-nav">
 <div class="prev"><a href="index.html">Preface</a></div>
 <div class="next"><a href="acknowledgments.html">Acknowledgments</a></div>
-</div></main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
+</div>
+<!-- verified-downloads:start -->
+<nav class="book-download-footer" aria-label="Book downloads"><p><a href="folding-in-r.pdf">Entire book (PDF)</a> · <a href="folding-in-r.epub">Entire book (EPUB)</a> · <a href="pdf-chapters/impressum.pdf">This chapter (PDF)</a></p></nav>
+<!-- verified-downloads:end -->
+</main><div class="col-md-3 col-lg-2 d-none d-md-block sidebar sidebar-chapter">
     <nav id="toc" data-toggle="toc" aria-label="On this page"><h2>On this page</h2>
       <ul class="nav navbar-nav"><li><a class="nav-link" href="#impressum">Impressum</a></li></ul>
 
@@ -295,7 +334,7 @@ Code is licensed under the MIT License; see <code>LICENSE-CODE.md</code> in the 
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 
   <div class="col-12 col-md-6 mt-3">
-    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-08.</p>
+    <p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
   </div>
 
   <div class="col-12 col-md-6 mt-3">
