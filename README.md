@@ -128,7 +128,6 @@ Supporting scripts:
 | `scripts/toc-to-readme.R` | Regenerates the table of contents above |
 | `scripts/renv-snapshot.R` | `renv::snapshot()` that keeps the deferred packages in the lockfile |
 | `scripts/run-benchmark-grid.R` | Chapter 10 grid. Slow; run locally and commit the result |
-| `scripts/check-vgwort-eligibility.R` | Character counts and VG Wort eligibility |
 
 ## Status
 
