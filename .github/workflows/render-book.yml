@@ -176,6 +176,15 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:browser
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and verify every book and chapter download
+        run: bash scripts/build-downloads-ci.sh docs folding-in-r https://r-heller.github.io/folding-in-r/
+
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:

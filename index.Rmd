@@ -70,3 +70,7 @@ It is not a treatment of rigidity theory, computational origami design, or deep
 generative modelling. It is not a tutorial on `bookdown`, `make`, or project
 tooling. Where a section could not be tied back to the ground-truth claim above,
 it was cut rather than kept for completeness.
+
+## Companion package {-}
+
+The companion R package [foldbenchR](https://github.com/r-heller/foldbenchR) is publicly available. This book renders with the helper scripts versioned alongside its chapters, so the package is not required to build the book or inspect its recorded benchmarks.

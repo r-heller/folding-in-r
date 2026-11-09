@@ -80,9 +80,10 @@ The pattern constructors, the folding and sampling interface, the product and
 lift constructions, and the evaluation metrics live in `R/` as plain scripts,
 sourced by `_common.R` at render time. No package installation is needed for
 these helpers: they are versioned with the chapters at the same commit.
-The standalone `foldbenchR` package is being revived separately, at the owner's
-request, using the same documented Miura construction. It does not replace
-these book helpers or the provenance of the committed benchmark results.
+The standalone companion package [foldbenchR](https://github.com/r-heller/foldbenchR)
+is publicly available and uses the same documented Miura construction. The
+book continues to render with its own versioned helpers, preserving the
+provenance of the committed benchmark results.
 
 ## Building the book
 
