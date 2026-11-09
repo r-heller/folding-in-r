@@ -27,7 +27,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <link href="style/font-awesome.min.css" rel="stylesheet"/>
-<script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
+<script data-domain="r-heller.github.io/folding-in-r" defer="" src="https://analytics.hellebo.de/js/script.file-downloads.outbound-links.js"></script><script crossorigin="anonymous" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js"></script><script crossorigin="anonymous" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script><!-- CSS --><style type="text/css">
     
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   </style>
@@ -239,7 +239,7 @@ recovery as a failure.</p>
 <span><span class="va">err_bend</span>  <span class="op">&lt;-</span> <span class="fu">reconstruction_error</span><span class="op">(</span><span class="va">bend</span>, <span class="va">U</span><span class="op">)</span></span>
 <span><span class="va">qnx_bend</span> <span class="op">&lt;-</span> <span class="fu">qnx</span><span class="op">(</span><span class="va">bend</span>, <span class="fu">reference_dist</span><span class="op">(</span><span class="va">m</span>, <span class="st">"chart"</span><span class="op">)</span>, K <span class="op">=</span> <span class="va">K_QNX</span><span class="op">)</span></span></code></pre></div>
 <p>A rotated, rescaled, translated copy of the chart scores
-4.7e-16. Its mirror image scores 4.7e-16 —
+4.0e-16. Its mirror image scores 4.0e-16 —
 the same number to the last digit that means anything — and the fitted rotation
 has determinant -1 against 1 for the unmirrored copy.
 Both are zero to floating point, which is what “quotients out” has to mean.</p>
@@ -379,7 +379,7 @@ Figure 9.2: The candidates, Procrustes-aligned to the same answer key and scored
 </p>
 </div>
 <p>Figure <a href="evaluation.html#fig:eval-fig-candidates">9.2</a> is the comparison the audit runs at every
-cell. The exact chart scores 1.7e-16. PCA scores
+cell. The exact chart scores 5.7e-16. PCA scores
 0.108 at the fold angle used throughout this chapter
 and 0.21 at the last angle of the sweep, and the level sets it
 draws are kinked where the creases ran. An <strong>inversion</strong> is an evaluator ranking
