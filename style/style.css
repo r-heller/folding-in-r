@@ -460,3 +460,13 @@ main .MJXc-display, main .MathJax_Display, main mjx-container[display="true"] { 
   main .quarto-xref { white-space: normal; }
   main p, main li, main .csl-entry { overflow-wrap: anywhere; }
 }
+
+/* Long inline formulas remain readable without widening the whole page. */
+main .math.inline {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+  padding-block: 0.15em;
+}

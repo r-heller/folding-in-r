@@ -18,6 +18,12 @@ const fs=require('node:fs/promises'),path=require('node:path'),http=require('nod
   await page.goto(base+'intro.html',{waitUntil:'networkidle'});const figure=page.frameLocator('iframe');await figure.locator('#theta').waitFor();const before=await figure.locator('#thetaOut').textContent();await figure.locator('#theta').fill('3');assert.notEqual(await figure.locator('#thetaOut').textContent(),before);await figure.locator('#reset').click();
   await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   const menu=page.locator('button[data-target="#main-nav"]');await menu.click();await page.locator('#main-nav.show').waitFor();await menu.click();await page.locator('#main-nav:not(.show):not(.collapsing)').waitFor({state:'attached'});
+  for(const chapter of ['folding-geometry.html','generative.html','evaluation.html']) {
+    await page.goto(base+chapter,{waitUntil:'networkidle'});
+    await page.evaluate(()=>document.fonts.ready);
+    await page.evaluate(()=>new Promise(resolve=>window.MathJax&&MathJax.Hub?MathJax.Hub.Queue(resolve):resolve()));
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),chapter+' must fit a mobile viewport');
+  }
   assert.deepEqual(await page.locator('img').evaluateAll(es=>es.filter(e=>!e.complete||!e.naturalWidth).map(e=>e.src)),[]);assert.deepEqual(errors,[]);assert.deepEqual(tracking,[]);
   console.log('PASS: search, persistent theme, PDF/EPUB, folding controls, mobile navigation, images and no counting requests.');
  }finally{await browser.close();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}}
