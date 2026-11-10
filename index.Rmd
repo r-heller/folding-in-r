@@ -2,7 +2,7 @@
 title: "Folding in R"
 subtitle: "Origami, Manifolds, and Dimension Reduction"
 author: "R. Heller"
-date: "2026-07-31"
+date: "2026-11-10"
 site: bookdown::bookdown_site
 documentclass: book
 bibliography: [book.bib, packages.bib]
@@ -37,7 +37,7 @@ lot: false
 
 <!-- page-provenance:start -->
 ::: {.page-provenance}
-*R. Heller · Date: 2025-01-17 · Last changed: 2026-03-04*
+*R. Heller · Date: 2026-07-29 · Last changed: 2026-11-09*
 :::
 <!-- page-provenance:end -->
 
