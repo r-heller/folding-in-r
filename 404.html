@@ -187,10 +187,6 @@ the table of contents to find the page you are looking for.</p>
     var bookExtra = bookSource ? bookSource.closest(".book-extra") : null;
     if (!bookExtra || document.querySelector(".book-downloads")) return;
 
-    var current = window.location.pathname.split("/").pop() || "index.html";
-    var chapterPdf = current.replace(/\.html$/, ".pdf");
-    var isLanding = current === "" || current === "index.html";
-
     // Every link in this block is probed before it is offered.
     //
     // The full-book link used to be written unconditionally while the chapter
@@ -203,10 +199,7 @@ the table of contents to find the page you are looking for.</p>
     // independently: a deploy that partially clears gh-pages would leave the
     // assertion satisfied and the link dead.
     //
-    // Front and back matter -- Impressum, Acknowledgments, Colophon -- are
-    // skipped by scripts/render-chapter-pdfs.R, so the per-chapter file is
-    // often legitimately absent. Probing beats keeping a second copy of that
-    // skip list here in sync with the R script.
+    // Chapter downloads come from the shared panel under each chapter title.
 
     var TARGETS = [
       { href: "folding-in-r.pdf",
@@ -218,12 +211,7 @@ the table of contents to find the page you are looking for.</p>
         id: "book-download-epub",
         text: "Entire book (EPUB) ",
         icon: "fa-solid fa-book-open",
-        skip: false },
-      { href: "pdf-chapters/" + chapterPdf,
-        id:   "book-download-chapter",
-        text: "This chapter (PDF) ",
-        icon: "fa-solid fa-file-pdf",
-        skip: isLanding }
+        skip: false }
     ];
 
     var exists = function (t) {
