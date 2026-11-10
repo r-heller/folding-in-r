@@ -125,7 +125,6 @@ Supporting scripts:
 | Script | Purpose |
 |---|---|
 | `scripts/verify-citations.R` | Resolves every identifier in `book.bib`; exits non-zero on failure |
-| `scripts/render-chapter-pdfs.R` | Per-chapter PDFs for the download button |
 | `scripts/toc-to-readme.R` | Regenerates the table of contents above |
 | `scripts/renv-snapshot.R` | `renv::snapshot()` that keeps the deferred packages in the lockfile |
 | `scripts/run-benchmark-grid.R` | Chapter 10 grid. Slow; run locally and commit the result |
@@ -174,11 +173,11 @@ not the day the site is built. Then validate the actual downloadable artifacts:
 ```sh
 python3 scripts/update-page-provenance.py
 Rscript -e 'bookdown::render_book("index.Rmd", output_format = "all")'
-python3 scripts/split-chapter-pdfs.py
 python3 scripts/finalize-book.py
 python3 scripts/check-book.py
 ```
 
 The final check fails on missing author/date notes, broken local links or anchors,
-and missing or unreadable whole-book PDF/EPUB files. Chapter downloads reuse the
-whole-book PDF’s bookmarks instead of executing every chapter a second time.
+and missing or unreadable whole-book PDF/EPUB files. CI then builds and checks
+the chapter PDF and EPUB downloads in `docs/downloads/chapters/` with
+`scripts/build-downloads-ci.sh`.

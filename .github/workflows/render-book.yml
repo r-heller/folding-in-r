@@ -100,9 +100,6 @@ jobs:
       # that were both complete and both the right size for a book of stubs.
       # A threshold tuned to a finished book rejects an unfinished one, and one
       # tuned to an unfinished book stops meaning anything later.
-      - name: Extract verified chapter PDFs
-        run: python3 scripts/split-chapter-pdfs.py
-
       - name: Assert both downloadable artefacts are complete
         run: Rscript scripts/check-render-artefacts.R
 
@@ -152,15 +149,10 @@ jobs:
         if: always()
         run: cat lychee-external.md >> "$GITHUB_STEP_SUMMARY" || true
 
-      # Per-chapter PDFs are rendered by the manual workflow in
-      # .github/workflows/per-chapter-pdfs.yml, which deploys them to
-      # gh-pages:/pdf-chapters without clearing the rest of the branch.
-      # Deploying docs/ here must therefore not clean, or it would delete them.
       - name: Verify page notes and downloadable formats
         run: |
           python3 tests/test_page_provenance.py
           python3 tests/test_book_delivery.py
-          python3 tests/test_split_chapter_pdfs.py
           python3 scripts/finalize-book.py docs
           python3 scripts/check-book.py docs
 
@@ -191,5 +183,3 @@ jobs:
           branch: gh-pages
           folder: docs
           clean: true
-          clean-exclude: |
-            pdf-chapters
