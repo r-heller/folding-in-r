@@ -109,6 +109,10 @@ jobs:
       - name: Drop knit intermediates
         run: rm -f docs/*.md
 
+      # The LaTeX source is a build intermediate, not a published download.
+      - name: Keep the LaTeX source off the site
+        run: find docs -name '*.tex' -print -delete
+
       # The site is checked where it exists. docs/ is a build product and is
       # not tracked (see .gitignore), so there is no standalone workflow that
       # could scan it without re-rendering the whole book -- this is the one
