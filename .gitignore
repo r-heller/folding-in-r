@@ -57,3 +57,11 @@ Thumbs.db
 data/processed/*-quick.rds
 
 node_modules/
+
+# A bookdown render that stops before it finishes leaves its per-chapter knit
+# output beside the sources instead of under docs/.
+/*.knit.md
+/index.md
+/[0-9][0-9]-*.md
+/[A-Z][0-9]-*.md
+/part-*.md
