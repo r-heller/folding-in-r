@@ -395,7 +395,7 @@ Figure 8.3: The chart spectrum of one product cell, and the bound it produces. P
 guess: <strong>it is attained.</strong> The crosses in panel B are the chart projected onto
 its own top <span class="math inline">\(d\)</span> principal directions, scored by the same function every method
 in the book is scored by. They sit on the line, to
-6.1e-16. A minimum, not an infimum — which also
+7.4e-16. A minimum, not an infimum — which also
 makes clear what the bound is not. The minimiser is constructed from the answer
 key, so nothing that has not been given the answer can be expected to reach it.</p>
 <p>The floor depends on the chart and on nothing else. That is the property that
@@ -420,13 +420,13 @@ matrix.</p>
 <span>           floor_before <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu">irreducible_loss</span><span class="op">(</span><span class="va">pr</span>, <span class="fl">2L</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span>,</span>
 <span>           floor_after  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu">irreducible_loss</span><span class="op">(</span><span class="va">lf</span>, <span class="fl">2L</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code>#&gt;   ambient dist_change floor_before floor_after
-#&gt; 1      50     1.8e-15         0.53        0.53</code></pre>
+#&gt; 1      50     2.2e-15         0.53        0.53</code></pre>
 <p>Orthonormality is load-bearing and <code>lift()</code> asserts it rather than assuming it:
 a merely random matrix would distort distances and invalidate the answer key
 silently. Because <span class="math inline">\(Q^\top Q = I\)</span> the map is exactly distance-preserving — the
 worst change over all
 79800 pairs is
-1.8e-15 — and the
+2.2e-15 — and the
 chart is untouched, so the floor is the same number before and after.</p>
 <p>That decoupling is the point. Ambient dimension and intrinsic difficulty are two
 axes, and a benchmark that moves them together cannot say which a method is
@@ -791,7 +791,7 @@ takes up.</p>
 </div> <!-- .container -->
 <footer class="bg-primary text-light mt-5"><div class="container"><div class="row">
 <div class="col-12 col-md-6 mt-3">
-<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-09.</p>
+<p>"<strong>Folding in R</strong>: Origami, Manifolds, and Dimension Reduction" was written by R. Heller. It was last built on 2026-11-10.</p>
 </div>
 <div class="col-12 col-md-6 mt-3">
 <p>This book was built by the <a class="text-light" href="https://bookdown.org">bookdown</a> R package.</p>

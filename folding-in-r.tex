@@ -170,7 +170,7 @@
 \makeatother
 \subtitle{Origami, Manifolds, and Dimension Reduction}
 \author{R. Heller}
-\date{2026-11-09}
+\date{2026-11-10}
 
 \begin{document}
 \maketitle
@@ -238,7 +238,7 @@ Prose is licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC B
 Code is licensed under the MIT License; see \texttt{LICENSE-CODE.md} in the repository.
 
 This is a living document. The version you are reading was rendered on
-2026-11-09.
+2026-11-10.
 
 \chapter*{Acknowledgments}\label{acknowledgments}
 \addcontentsline{toc}{chapter}{Acknowledgments}
@@ -530,7 +530,7 @@ derivation is what makes the answer key exact instead of approximate.
 Two numbers fix what ``answer key'' means here. Folding preserves every pairwise
 distance within every facet to 4.4e-16 --- floating-point noise on a closed
 form, not a tolerance anyone chose. And handing the chart back as though it were
-a submission scores 5.7e-16 against itself under the book's
+a submission scores 1.7e-16 against itself under the book's
 headline error, where a two-component PCA of the same folded cloud scores
 0.0775.
 
@@ -549,7 +549,7 @@ which is invariant under any diffeomorphism of the plane and therefore neutral
 between preserving distances and preserving neighbourhoods. On the sample above
 the two disagree about PCA: an error of 0.0775 against a
 \(Q_{NX}\) of 0.899, where the exact chart scores
-1 on the second and 5.7e-16 on the first.
+1 on the second and 1.7e-16 on the first.
 The gap between them, as a function of \(\theta\), is a measurement of how much
 observed error is genuine structural loss and how much is harmless
 reparameterisation. Reporting only the first would build the book's scoring
@@ -2042,7 +2042,7 @@ whole benchmark is about.
 
 At \(\theta = 0\) the sheet lies in a plane, PCA finds that plane, and the recovery
 is exact. On this sample the error is
-3.8e-16 against a floor of 0,
+2.2e-16 against a floor of 0,
 and over the whole clean flat row of the committed grid --- 20
 seeds --- the worst is
 1.4e-15, with
@@ -2121,9 +2121,9 @@ whose rank orders agree perfectly.
 The same holds for the routes into PCA itself. At \(\theta\) of 0.5,
 \texttt{cmdscale()}, \texttt{princomp()} and an eigendecomposition of the covariance matrix all
 land on \texttt{prcomp()}'s answer at Procrustes distances of
-9.4e-16,
-2.6e-16 and
-1.5e-16. Four names, one computation.
+5.7e-16,
+2.1e-16 and
+2e-16. Four names, one computation.
 The accuracy argument for \texttt{prcomp()} has nowhere to show up on data of this
 conditioning.
 
@@ -2545,13 +2545,13 @@ not merely a lower bound on it.
 \end{Shaded}
 
 Feed classical scaling the exact geodesic distances and it returns the chart, at
-a Procrustes error of 6.9e-16. That
+a Procrustes error of 5.7e-16. That
 is the embedding term, and it is zero: the chart is a two-dimensional Euclidean
 configuration, so double-centring its squared distances and taking two
 eigenvectors inverts the construction exactly.
 
 Isomap on the same sample scores 0.0266. It differs from
-\texttt{cmdscale()} on the graph distances by 8.8e-15,
+\texttt{cmdscale()} on the graph distances by 7.9e-15,
 because it \emph{is} \texttt{cmdscale()} on the graph distances. So the whole of that
 0.0266 is the graph term, and the graph term is small in the
 distances themselves --- the shortest-path matrix departs from the exact geodesics
@@ -3168,7 +3168,7 @@ random configuration earns.
 The \(Q_{NX}\) column tells a different story about the same four pictures.
 Scored at \(K =\) 20 \textbf{against the chart}, they run
 0.911, 0.757,
-0.764 and 0.755. t-SNE,
+0.767 and 0.755. t-SNE,
 last by Procrustes distance by a factor of
 3.5, is \emph{ahead} of UMAP on
 rank preservation. That is not a contradiction and not a defect in either
@@ -3209,7 +3209,7 @@ point at whatsoever. It scores 0.089, a factor of
 \textbf{the answer is a flat rectangular patch}. The truth here has no clusters in it. Every
 island in the left-hand panel is an artefact of the setting.
 
-\(Q_{NX}\) against the chart moves the same way --- 0.732 to
+\(Q_{NX}\) against the chart moves the same way --- 0.727 to
 0.875 --- so this is not one metric's idiosyncrasy. What
 disagrees with both is the eye. The tuning advice that circulates for these
 methods is largely advice about how the picture looks
@@ -3426,8 +3426,8 @@ against 0.883, and only overtakes it a
 few neighbours later. A geodesic method has no special claim on the very local
 rank order, which is exactly the part LLE is built out of.
 
-t-SNE is the only curve that falls: 0.846 at \(K =\)
-2, 0.682 at \(K =\) 400. It
+t-SNE is the only curve that falls: 0.848 at \(K =\)
+2, 0.685 at \(K =\) 400. It
 buys the local structure it is best at by spending the global structure, which
 is the trade its critics describe and its defenders accept
 \citep{chari2023specious, lause2024elephant}. Here the trade is priced exactly,
@@ -3975,7 +3975,7 @@ Figure \ref{fig:bench-fig-spectrum} shows why it is a bound rather than a
 guess: \textbf{it is attained.} The crosses in panel B are the chart projected onto
 its own top \(d\) principal directions, scored by the same function every method
 in the book is scored by. They sit on the line, to
-6.1e-16. A minimum, not an infimum --- which also
+7.4e-16. A minimum, not an infimum --- which also
 makes clear what the bound is not. The minimiser is constructed from the answer
 key, so nothing that has not been given the answer can be expected to reach it.
 
@@ -4005,7 +4005,7 @@ matrix.
 
 \begin{verbatim}
 #>   ambient dist_change floor_before floor_after
-#> 1      50     1.8e-15         0.53        0.53
+#> 1      50     2.2e-15         0.53        0.53
 \end{verbatim}
 
 Orthonormality is load-bearing and \texttt{lift()} asserts it rather than assuming it:
@@ -4013,7 +4013,7 @@ a merely random matrix would distort distances and invalidate the answer key
 silently. Because \(Q^\top Q = I\) the map is exactly distance-preserving --- the
 worst change over all
 79800 pairs is
-1.8e-15 --- and the
+2.2e-15 --- and the
 chart is untouched, so the floor is the same number before and after.
 
 That decoupling is the point. Ambient dimension and intrinsic difficulty are two
@@ -4384,7 +4384,7 @@ recovery as a failure.
 \end{Shaded}
 
 A rotated, rescaled, translated copy of the chart scores
-4.0e-16. Its mirror image scores 4.0e-16 ---
+4.7e-16. Its mirror image scores 4.7e-16 ---
 the same number to the last digit that means anything --- and the fitted rotation
 has determinant -1 against 1 for the unmirrored copy.
 Both are zero to floating point, which is what ``quotients out'' has to mean.
@@ -4544,7 +4544,7 @@ at exactly the thing it measures.
 \end{figure}
 
 Figure \ref{fig:eval-fig-candidates} is the comparison the audit runs at every
-cell. The exact chart scores 5.7e-16. PCA scores
+cell. The exact chart scores 1.7e-16. PCA scores
 0.108 at the fold angle used throughout this chapter
 and 0.21 at the last angle of the sweep, and the level sets it
 draws are kinked where the creases ran. An \textbf{inversion} is an evaluator ranking
@@ -6451,7 +6451,7 @@ MIT License; see \url{https://fontawesome.com/license/free}.
 #>  collate  C.UTF-8
 #>  ctype    C.UTF-8
 #>  tz       UTC
-#>  date     2026-11-09
+#>  date     2026-11-10
 #>  pandoc   3.8.3 @ /opt/hostedtoolcache/pandoc/3.8.3/x64/ (via rmarkdown)
 #>  quarto   NA
 #> 
